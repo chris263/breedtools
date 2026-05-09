@@ -3,7 +3,8 @@
 #' This function standardizes Breedbase phenotype data into five columns:
 #' `environment`, `genotype`, `replicate`, `block`, and `value`.
 #'
-#' @param pheno_raw A data frame, usually from [read_breedbase_excel()].
+#' @param pheno_raw A raw Breedbase phenotype data frame, usually read from
+#' a Breedbase Excel file.
 #' @param trait_col Name of the trait column to analyze.
 #' @param location_col Optional location/environment column name. If `NULL`,
 #'   the function tries to guess it.
@@ -65,6 +66,7 @@ prepare_breedbase_pheno <- function(
         "accession_name",
         "stock_name",
         "genotype",
+        "all_entries",
         "entry",
         "line",
         "variety"

@@ -1,11 +1,32 @@
 Package: breedtools
-Title: What the Package Does (One Line, Title Case)
+Title: Tools for Multi-Environment Breedbase Phenotype Analysis
 Version: 0.0.0.9000
+Depends:
+    R (>= 4.1.0)
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Cristiano", "Simoes", email = "ccsimoes263@gmail.com", role = c("aut", "cre"))
+Author: Cristiano Simoes [aut, cre]
+Maintainer: Cristiano Simoes <ccsimoes263@gmail.com>
+Description: Loads Breedbase-style phenotype data from Excel or CSV files,
+    prepares it for multi-environment analysis, checks environment variance
+    compatibility with Hartley's Fmax test, and groups environments with
+    Lin-style genotype-by-environment interaction tests.
+License: GPL-3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
+Imports:
+    dplyr,
+    tidyr,
+    purrr,
+    readxl,
+    leaflet,
+    htmltools,
+    tibble,
+    tools,
+    jsonlite,
+    stats,
+    utils
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

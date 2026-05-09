@@ -89,11 +89,12 @@ analyze_one_environment <- function(df) {
 #'
 #' @examples
 #' df <- data.frame(
-#'   environment = factor(rep(c("Loc1", "Loc2"), each = 4)),
-#'   genotype = factor(rep(c("G1", "G2"), times = 4)),
-#'   replicate = factor(rep(c(1, 2), times = 4)),
+#'   environment = factor(rep(c("Loc1", "Loc2"), each = 8)),
+#'   genotype = factor(rep(rep(c("G1", "G2"), each = 4), times = 2)),
+#'   replicate = factor(rep(rep(c(1, 2), each = 2), times = 4)),
 #'   block = factor(1),
-#'   value = c(10, 12, 11, 13, 15, 14, 16, 15)
+#'   value = c(10, 11, 12, 13, 14, 15, 16, 17,
+#'             15, 16, 17, 18, 19, 20, 21, 22)
 #' )
 #'
 #' analyze_environment_anova(df)

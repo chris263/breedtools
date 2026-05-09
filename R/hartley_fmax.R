@@ -44,7 +44,8 @@ hartley_critical_sim <- function(
 
 #' Hartley Fmax test for residual variance homogeneity
 #'
-#' @param env_anova A data frame from [analyze_environment_anova()].
+#' @param env_anova A data frame containing environment-level ANOVA results.
+#' It must include columns `environment`, `ms_error`, and `df_error`.
 #' @param alpha Significance level. Default is `0.05`.
 #' @param n_sim Number of simulations for the critical value.
 #' @param seed Random seed.

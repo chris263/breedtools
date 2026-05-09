@@ -1,10 +1,11 @@
 #' Run Breedbase multi-location phenotype variance check
 #'
-#' Reads a Breedbase Excel phenotype file, runs individual ANOVA by environment,
+#' Reads a Breedbase phenotype file, runs individual ANOVA by environment,
 #' performs Hartley Fmax tests, and identifies compatible environment groups for
 #' joint analysis.
 #'
-#' @param file Path to Breedbase Excel file.
+#' @param file Path to a `.xlsx`, `.xls`, or `.csv` phenotype file, or an
+#'   already loaded data frame.
 #' @param trait_col Trait column to analyze.
 #' @param alpha Significance level for Hartley Fmax test.
 #' @param location_col Optional location/environment column.
@@ -47,7 +48,7 @@ run_breedbase_variance_check <- function(
     export = FALSE,
     output_dir = "."
 ) {
-  pheno_raw <- read_breedbase_excel(file)
+  pheno_raw <- load_or_use_data_frame(file, "file")
 
   pheno <- prepare_breedbase_pheno(
     pheno_raw = pheno_raw,

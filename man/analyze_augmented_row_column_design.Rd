@@ -40,12 +40,16 @@ summaries.}
 }
 \value{
 A list with the analysis input, fitted model, model formula, ANOVA
-table, plot-level fitted values and residuals, genotype summaries, and model
-diagnostics.
+table, formatted ANOVA table, plot-level fitted values and residuals,
+genotype summaries, and model diagnostics.
 }
 \description{
 Fits the fixed-effects model:
 \code{y = mean + rowgroup + colgroup + rowgroup:colgroup + rowgroup:row + colgroup:col + genotype + error}.
+The formatted ANOVA table reports degrees of freedom from augmented
+row-column design formulas using field rows (\code{k}), field columns (\code{s}), row
+groups (\code{gk}), column groups (\code{gs}), check cultivars (\code{vc}), and
+unreplicated entries (\code{ve}).
 }
 \examples{
 design <- augmented_row_column_design(

@@ -275,6 +275,10 @@ augmented_row_column_design <- function(
 #' Fits the fixed-effects model:
 #' `y = mean + rowgroup + colgroup + rowgroup:colgroup + rowgroup:row +
 #' colgroup:col + genotype + error`.
+#' The formatted ANOVA table reports degrees of freedom from augmented
+#' row-column design formulas using field rows (`k`), field columns (`s`), row
+#' groups (`gk`), column groups (`gs`), check cultivars (`vc`), and
+#' unreplicated entries (`ve`).
 #'
 #' @param data A complete augmented row-column design data frame, usually
 #'   `design$design` from `augmented_row_column_design()`, with a response
@@ -290,8 +294,8 @@ augmented_row_column_design <- function(
 #'   summaries.
 #'
 #' @return A list with the analysis input, fitted model, model formula, ANOVA
-#' table, plot-level fitted values and residuals, genotype summaries, and model
-#' diagnostics.
+#' table, formatted ANOVA table, plot-level fitted values and residuals,
+#' genotype summaries, and model diagnostics.
 #'
 #' @examples
 #' design <- augmented_row_column_design(
@@ -337,6 +341,34 @@ analyze_augmented_row_column_design <- function(
     )
   }
 
+  design_structure_data <- tibble::as_tibble(data) |>
+    dplyr::transmute(
+      genotype = as.factor(.data[[genotype_col]]),
+      rowgroup = as.factor(.data[[rowgroup_col]]),
+      colgroup = as.factor(.data[[colgroup_col]]),
+      row = as.factor(.data[[row_col]]),
+      col = as.factor(.data[[col_col]]),
+      row_nested = interaction(.data[[rowgroup_col]], .data[[row_col]], drop = TRUE),
+      col_nested = interaction(.data[[colgroup_col]], .data[[col_col]], drop = TRUE),
+      type = if (type_col %in% names(data)) {
+        as.character(.data[[type_col]])
+      } else {
+        NA_character_
+      },
+      is_control = if (control_col %in% names(data)) {
+        as.integer(.data[[control_col]])
+      } else {
+        NA_integer_
+      }
+    ) |>
+    dplyr::filter(
+      !is.na(.data$genotype),
+      !is.na(.data$rowgroup),
+      !is.na(.data$colgroup),
+      !is.na(.data$row),
+      !is.na(.data$col)
+    )
+
   analysis_data <- tibble::as_tibble(data) |>
     dplyr::mutate(.row_id = dplyr::row_number()) |>
     dplyr::transmute(
@@ -347,6 +379,8 @@ analyze_augmented_row_column_design <- function(
       colgroup = as.factor(.data[[colgroup_col]]),
       row = as.factor(.data[[row_col]]),
       col = as.factor(.data[[col_col]]),
+      row_nested = interaction(.data[[rowgroup_col]], .data[[row_col]], drop = TRUE),
+      col_nested = interaction(.data[[colgroup_col]], .data[[col_col]], drop = TRUE),
       type = if (type_col %in% names(data)) {
         as.character(.data[[type_col]])
       } else {
@@ -376,11 +410,18 @@ analyze_augmented_row_column_design <- function(
   }
 
   model_formula <- stats::as.formula(
-    "response ~ rowgroup + colgroup + rowgroup:colgroup + rowgroup:row + colgroup:col + genotype"
+    "response ~ rowgroup + row_nested + colgroup + col_nested + rowgroup:colgroup + genotype"
   )
 
-  fit <- stats::lm(model_formula, data = analysis_data, na.action = stats::na.omit)
-  anova_table <- arc_lm_anova_table(fit)
+  design_df <- arc_augmented_design_df(design_structure_data)
+  fit <- arc_lm_drop_aliased_terms(model_formula, analysis_data, design_df = design_df)
+  anova_result <- arc_lm_anova_table(fit)
+  anova_table <- anova_result$table
+  anova_formatted <- arc_format_augmented_anova(
+    anova_table = anova_table,
+    response = analysis_data$response,
+    design_df = design_df
+  )
 
   plot_results <- tibble::as_tibble(data) |>
     dplyr::mutate(
@@ -423,11 +464,18 @@ analyze_augmented_row_column_design <- function(
     n_genotypes = dplyr::n_distinct(analysis_data$genotype),
     model_rank = fit$rank,
     residual_df = stats::df.residual(fit),
+    anova_error_df = design_df$display_df[design_df$term == "Residuals"],
+    aliased_coefficients_dropped = attr(fit, "aliased_coefficients_dropped") %||% 0L,
     sigma = summary(fit)$sigma,
     r_squared = summary(fit)$r.squared,
     adjusted_r_squared = summary(fit)$adj.r.squared,
-    rank_deficient = fit$rank < length(stats::coef(fit))
+    rank_deficient = fit$rank < length(stats::coef(fit)),
+    saturated_or_near_perfect_fit = isTRUE(stats::df.residual(fit) == 0) ||
+      isTRUE(!is.na(summary(fit)$sigma) && summary(fit)$sigma < sqrt(.Machine$double.eps)),
+    anova_warning = anova_result$warning %||% NA_character_
   )
+
+  analysis_message <- arc_augmented_analysis_message(diagnostics)
 
   result <- list(
     input = list(
@@ -443,13 +491,33 @@ analyze_augmented_row_column_design <- function(
     formula = model_formula,
     model = fit,
     anova = anova_table,
+    anova_df = design_df,
+    anova_formatted = anova_formatted,
     plot_results = plot_results |> dplyr::select(-dplyr::all_of(".analysis_response")),
     genotype_summary = genotype_summary,
-    diagnostics = diagnostics
+    diagnostics = diagnostics,
+    message = analysis_message
   )
 
   class(result) <- c("augmented_row_column_analysis", class(result))
   result
+}
+
+#' Print augmented row-column analysis
+#'
+#' @param x An object returned by `analyze_augmented_row_column_design()`.
+#' @param ... Additional arguments passed to `print()`.
+#'
+#' @return Invisibly returns `x`.
+#'
+#' @export
+print.augmented_row_column_analysis <- function(x, ...) {
+  cat("Augmented row-column design analysis\n\n")
+  print(x$anova_formatted, ...)
+  if (!is.null(x$message) && !is.na(x$message) && nzchar(x$message)) {
+    cat("\n", x$message, "\n", sep = "")
+  }
+  invisible(x)
 }
 
 arc_positive_integer <- function(x, label) {
@@ -565,17 +633,408 @@ arc_make_field_template <- function(rows_in_field, cols_in_field, rows_per_block
 }
 
 arc_lm_anova_table <- function(fit) {
-  tab <- stats::anova(fit)
-  out <- tibble::tibble(
-    term = rownames(tab),
-    df = as.numeric(tab[["Df"]]),
-    sum_sq = as.numeric(tab[["Sum Sq"]]),
-    mean_sq = as.numeric(tab[["Mean Sq"]]),
-    f_value = as.numeric(tab[["F value"]]),
-    p_value = as.numeric(tab[["Pr(>F)"]])
+  if (!is.null(fit$x) && !is.null(fit$y)) {
+    out <- arc_sequential_anova_from_fit(fit)
+    warning_text <- NULL
+  } else {
+    warning_text <- NULL
+    tab <- withCallingHandlers(
+      stats::anova(fit),
+      warning = function(w) {
+        warning_text <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+      }
+    )
+
+    out <- tibble::tibble(
+      term = rownames(tab),
+      df = as.numeric(tab[["Df"]]),
+      sum_sq = as.numeric(tab[["Sum Sq"]]),
+      mean_sq = as.numeric(tab[["Mean Sq"]]),
+      f_value = as.numeric(tab[["F value"]]),
+      p_value = as.numeric(tab[["Pr(>F)"]])
+    )
+    rownames(out) <- NULL
+  }
+
+  out$term[out$term == "row_nested"] <- "rowgroup:row"
+  out$term[out$term == "col_nested"] <- "colgroup:col"
+  out <- arc_clean_anova_numbers(out)
+
+  list(
+    table = out,
+    warning = warning_text
   )
-  rownames(out) <- NULL
-  out
+}
+
+arc_sequential_anova_from_fit <- function(fit) {
+  x <- fit$x
+  y <- fit$y
+  assign <- fit$assign
+  term_labels <- attr(fit$terms, "term.labels")
+  current_cols <- which(assign == 0)
+
+  current_x <- x[, current_cols, drop = FALSE]
+  current_rank <- qr(current_x)$rank
+  current_rss <- sum(stats::lm.fit(current_x, y)$residuals^2)
+  rows <- vector("list", length(term_labels))
+
+  for (i in seq_along(term_labels)) {
+    term_cols <- which(assign == i)
+
+    if (length(term_cols) == 0) {
+      rows[[i]] <- tibble::tibble(
+        term = term_labels[i],
+        df = 0,
+        sum_sq = 0,
+        mean_sq = NA_real_,
+        f_value = NA_real_,
+        p_value = NA_real_
+      )
+      next
+    }
+
+    candidate_x <- cbind(current_x, x[, term_cols, drop = FALSE])
+    candidate_fit <- stats::lm.fit(candidate_x, y)
+    candidate_rank <- qr(candidate_x)$rank
+    candidate_rss <- sum(candidate_fit$residuals^2)
+    term_df <- candidate_rank - current_rank
+    term_ss <- current_rss - candidate_rss
+
+    rows[[i]] <- tibble::tibble(
+      term = term_labels[i],
+      df = term_df,
+      sum_sq = term_ss,
+      mean_sq = if (term_df > 0) term_ss / term_df else NA_real_,
+      f_value = NA_real_,
+      p_value = NA_real_
+    )
+
+    current_x <- candidate_x
+    current_rank <- candidate_rank
+    current_rss <- candidate_rss
+  }
+
+  residual_df <- length(y) - current_rank
+  residual_mean_sq <- if (residual_df > 0) current_rss / residual_df else NA_real_
+  out <- dplyr::bind_rows(rows)
+
+  if (!is.na(residual_mean_sq) && residual_mean_sq > 0) {
+    out$f_value <- out$mean_sq / residual_mean_sq
+    out$p_value <- stats::pf(out$f_value, df1 = out$df, df2 = residual_df, lower.tail = FALSE)
+    out$f_value[out$df <= 0] <- NA_real_
+    out$p_value[out$df <= 0] <- NA_real_
+  }
+
+  dplyr::bind_rows(
+    out,
+    tibble::tibble(
+      term = "Residuals",
+      df = residual_df,
+      sum_sq = current_rss,
+      mean_sq = residual_mean_sq,
+      f_value = NA_real_,
+      p_value = NA_real_
+    )
+  )
+}
+
+arc_lm_drop_aliased_terms <- function(formula, data, design_df = NULL) {
+  model_frame <- stats::model.frame(formula, data = data, na.action = stats::na.omit)
+  response <- stats::model.response(model_frame)
+  terms_obj <- stats::terms(formula, data = data, keep.order = TRUE)
+  model_matrix <- stats::model.matrix(terms_obj, model_frame)
+  full_model_matrix <- model_matrix
+  full_assign <- attr(full_model_matrix, "assign")
+  term_labels <- attr(terms_obj, "term.labels")
+  full_term_names <- ifelse(full_assign == 0, "(Intercept)", term_labels[full_assign])
+
+  if (!is.null(design_df)) {
+    selected <- arc_select_augmented_model_columns(
+      model_matrix = full_model_matrix,
+      assign = full_assign,
+      term_labels = term_labels,
+      design_df = design_df
+    )
+  } else {
+    qr_obj <- qr(full_model_matrix)
+    selected <- sort(qr_obj$pivot[seq_len(qr_obj$rank)])
+  }
+
+  model_matrix <- full_model_matrix[, selected, drop = FALSE]
+  dropped <- setdiff(seq_len(ncol(full_model_matrix)), selected)
+
+  fit <- stats::lm.fit(x = model_matrix, y = response)
+  fit$terms <- terms_obj
+  fit$model <- model_frame
+  fit$x <- model_matrix
+  fit$y <- response
+  fit$call <- match.call()
+  fit$assign <- full_assign[selected]
+  fit$contrasts <- attr(full_model_matrix, "contrasts")
+  fit$xlevels <- stats::.getXlevels(terms_obj, model_frame)
+  fit$formula <- formula
+  fit$na.action <- attr(model_frame, "na.action")
+  class(fit) <- "lm"
+  attr(fit, "aliased_coefficients_dropped") <- length(dropped)
+  attr(fit, "dropped_coefficients") <- colnames(full_model_matrix)[dropped]
+
+  fit
+}
+
+arc_select_augmented_model_columns <- function(model_matrix, assign, term_labels, design_df) {
+  term_for_column <- ifelse(assign == 0, "(Intercept)", term_labels[assign])
+  df_lookup <- stats::setNames(design_df$display_df, design_df$term)
+  term_limits <- c(
+    rowgroup = df_lookup[["rowgroup"]],
+    row_nested = df_lookup[["rowgroup:row"]],
+    colgroup = df_lookup[["colgroup"]],
+    col_nested = df_lookup[["colgroup:col"]],
+    `rowgroup:colgroup` = df_lookup[["rowgroup:colgroup"]],
+    genotype = df_lookup[["genotype"]]
+  )
+
+  selected <- which(term_for_column == "(Intercept)")
+  selected <- selected[seq_len(min(length(selected), 1L))]
+  current <- model_matrix[, selected, drop = FALSE]
+  current_rank <- qr(current)$rank
+
+  for (term in names(term_limits)) {
+    limit <- term_limits[[term]]
+    if (is.na(limit) || limit <= 0) {
+      next
+    }
+
+    candidates <- which(term_for_column == term)
+    kept_for_term <- 0L
+
+    for (candidate in candidates) {
+      if (kept_for_term >= limit) {
+        break
+      }
+
+      candidate_matrix <- cbind(current, model_matrix[, candidate, drop = FALSE])
+      candidate_rank <- qr(candidate_matrix)$rank
+
+      if (candidate_rank > current_rank) {
+        selected <- c(selected, candidate)
+        current <- candidate_matrix
+        current_rank <- candidate_rank
+        kept_for_term <- kept_for_term + 1L
+      }
+    }
+  }
+
+  selected
+}
+
+arc_format_augmented_anova <- function(anova_table, response, design_df) {
+  source_map <- data.frame(
+    term = c(
+      "rowgroup",
+      "rowgroup:row",
+      "colgroup",
+      "colgroup:col",
+      "rowgroup:colgroup",
+      "genotype",
+      "Residuals"
+    ),
+    source = c(
+      "Row groups",
+      "Rows, nested within row groups",
+      "Column groups",
+      "Columns, nested within column groups",
+      "Row groups x column groups (blocks)",
+      "Genotypes",
+      "Error"
+    ),
+    order = seq_len(7),
+    stringsAsFactors = FALSE
+  )
+
+  out <- source_map |>
+    dplyr::left_join(anova_table, by = "term") |>
+    dplyr::left_join(design_df, by = "term") |>
+    dplyr::arrange(.data$order) |>
+    dplyr::mutate(
+      df = .data$display_df,
+      mean_sq = dplyr::if_else(.data$df > 0, .data$sum_sq / .data$df, NA_real_)
+    )
+
+  error_df <- out$df[out$term == "Residuals"]
+  error_mean_sq <- out$mean_sq[out$term == "Residuals"]
+
+  out <- out |>
+    dplyr::mutate(
+      f_value = dplyr::if_else(
+        .data$term != "Residuals" &
+          !is.na(error_mean_sq) &
+          error_mean_sq > 0 &
+          .data$df > 0,
+        .data$mean_sq / error_mean_sq,
+        NA_real_
+      ),
+      p_value = dplyr::if_else(
+        !is.na(.data$f_value) &
+          !is.na(error_df) &
+          error_df > 0,
+        stats::pf(.data$f_value, df1 = .data$df, df2 = error_df, lower.tail = FALSE),
+        NA_real_
+      )
+    ) |>
+    dplyr::transmute(
+      Source = .data$source,
+      Df = .data$df,
+      `Sum Sq` = .data$sum_sq,
+      `Mean Sq` = .data$mean_sq,
+      `F value` = .data$f_value,
+      `Pr(>F)` = .data$p_value,
+      Significance = arc_significance_stars(.data$p_value)
+    )
+
+  out <- arc_clean_anova_numbers(out)
+
+  corrected_total <- tibble::tibble(
+    Source = "Corrected total",
+    Df = design_df$corrected_total_df[1],
+    `Sum Sq` = sum((response - mean(response, na.rm = TRUE))^2, na.rm = TRUE),
+    `Mean Sq` = NA_real_,
+    `F value` = NA_real_,
+    `Pr(>F)` = NA_real_,
+    Significance = ""
+  )
+
+  dplyr::bind_rows(out, corrected_total)
+}
+
+arc_augmented_design_df <- function(data) {
+  k <- dplyr::n_distinct(data$row)
+  s <- dplyr::n_distinct(data$col)
+  gk <- dplyr::n_distinct(data$rowgroup)
+  gs <- dplyr::n_distinct(data$colgroup)
+
+  if ("is_control" %in% names(data) && any(!is.na(data$is_control))) {
+    vc <- dplyr::n_distinct(data$genotype[data$is_control == 1])
+    ve <- dplyr::n_distinct(data$genotype[data$is_control != 1 | is.na(data$is_control)])
+  } else if ("type" %in% names(data) && any(!is.na(data$type))) {
+    vc <- dplyr::n_distinct(data$genotype[data$type == "check"])
+    ve <- dplyr::n_distinct(data$genotype[data$type != "check" | is.na(data$type)])
+  } else {
+    vc <- 0
+    ve <- dplyr::n_distinct(data$genotype)
+  }
+
+  genotype_df <- vc + ve - 1
+  block_df <- (gk - 1) * (gs - 1)
+  corrected_total_df <- k * s - 1
+  source_df <- c(
+    gk - 1,
+    k - gk - 1,
+    gs - 1,
+    s - gs - 1,
+    block_df,
+    genotype_df
+  )
+  error_df <- corrected_total_df - sum(source_df)
+
+  tibble::tibble(
+    term = c(
+      "rowgroup",
+      "rowgroup:row",
+      "colgroup",
+      "colgroup:col",
+      "rowgroup:colgroup",
+      "genotype",
+      "Residuals"
+    ),
+    display_df = c(
+      source_df,
+      error_df
+    ),
+    k = k,
+    s = s,
+    gk = gk,
+    gs = gs,
+    vc = vc,
+    ve = ve,
+    corrected_total_df = corrected_total_df,
+    error_df_formula = paste0(
+      "(",
+      k,
+      " * ",
+      s,
+      " - 1) - [(",
+      gk,
+      " - 1) + (",
+      k,
+      " - ",
+      gk,
+      " - 1) + (",
+      gs,
+      " - 1) + (",
+      s,
+      " - ",
+      gs,
+      " - 1) + (",
+      gk,
+      " - 1)(",
+      gs,
+      " - 1) + (",
+      vc,
+      " + ",
+      ve,
+      " - 1)]"
+    ),
+    previous_error_df_formula = paste0(
+      "(",
+      k,
+      " - 1)(",
+      s,
+      " - 1) - (",
+      gk,
+      " - 1)(",
+      gs,
+      " - 1) - (",
+      vc,
+      " + ",
+      ve,
+      " - 1)"
+    )
+  )
+}
+
+arc_significance_stars <- function(p_value) {
+  dplyr::case_when(
+    is.na(p_value) ~ "",
+    p_value <= 0.01 ~ "**",
+    p_value <= 0.05 ~ "*",
+    TRUE ~ ""
+  )
+}
+
+arc_clean_anova_numbers <- function(x) {
+  numeric_cols <- vapply(x, is.numeric, logical(1))
+  x[numeric_cols] <- lapply(x[numeric_cols], function(col) {
+    col[is.nan(col)] <- NA_real_
+    col
+  })
+  x
+}
+
+arc_augmented_analysis_message <- function(diagnostics) {
+  if (isTRUE(diagnostics$anova_error_df <= 0)) {
+    return(
+      "F-tests are not estimable because the formatted ANOVA has no positive error degrees of freedom. The design/model is saturated for these data."
+    )
+  }
+
+  if (isTRUE(diagnostics$saturated_or_near_perfect_fit)) {
+    return(
+      "F-tests should be interpreted cautiously because the model has an essentially perfect fit."
+    )
+  }
+
+  NA_character_
 }
 
 arc_make_plot_order <- function(df, plot_type = "serpentine") {

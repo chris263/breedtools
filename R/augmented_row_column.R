@@ -270,6 +270,199 @@ augmented_row_column_design <- function(
   result
 }
 
+#' Plot an augmented row-column design grid
+#'
+#' Draws a field grid for an augmented row-column design, with plot cells,
+#' row and column labels, and thick outlines around row-column blocks.
+#'
+#' @param design An object returned by `augmented_row_column_design()` or a
+#'   design data frame with row, column, and block columns.
+#' @param label Cell label to show. Use `"all_entries"`, `"type"`, `"block"`,
+#'   or `"none"`.
+#' @param fill Cell coloring variable. Use `"type"`, `"block"`, `"rowgroup"`,
+#'   `"colgroup"`, or `"is_control"`.
+#' @param show_plot_labels Logical. If `TRUE`, labels are printed inside cells
+#'   unless `label = "none"`.
+#' @param show_block_labels Logical. If `TRUE`, block numbers are printed at
+#'   the center of each block.
+#' @param label_cex Optional text size for plot-cell labels.
+#' @param block_label_cex Text size for block labels.
+#' @param block_lwd Line width for block boundaries.
+#' @param main Optional plot title.
+#' @param legend Logical. If `TRUE`, draw a legend for cell colors.
+#' @param ... Additional arguments passed to `graphics::plot.window()`.
+#'
+#' @return Invisibly returns the plotted design data frame with internal
+#'   plotting coordinates.
+#'
+#' @examples
+#' design <- augmented_row_column_design(
+#'   treatments = paste0("G", seq_len(28)),
+#'   controls = c("Check1", "Check2"),
+#'   rows_in_field = 6,
+#'   cols_in_field = 6,
+#'   rows_per_block = 3,
+#'   cols_per_block = 3,
+#'   n_candidates = 3,
+#'   seed = 123
+#' )
+#'
+#' plot_augmented_row_column_design(design, label = "all_entries")
+#'
+#' @export
+plot_augmented_row_column_design <- function(
+    design,
+    label = c("all_entries", "type", "block", "none"),
+    fill = c("type", "block", "rowgroup", "colgroup", "is_control"),
+    show_plot_labels = TRUE,
+    show_block_labels = TRUE,
+    label_cex = NULL,
+    block_label_cex = 0.9,
+    block_lwd = 2,
+    main = NULL,
+    legend = TRUE,
+    ...
+) {
+  label <- match.arg(label)
+  fill <- match.arg(fill)
+
+  if (is.list(design) && !is.data.frame(design) && !is.null(design$design)) {
+    design <- design$design
+  }
+
+  if (!is.data.frame(design)) {
+    stop("`design` must be a design data frame or an augmented row-column design object.", call. = FALSE)
+  }
+
+  required_cols <- c("row", "col", "block")
+  missing_cols <- setdiff(required_cols, names(design))
+  if (length(missing_cols) > 0) {
+    stop("Missing required column(s): ", paste(missing_cols, collapse = ", "), call. = FALSE)
+  }
+
+  if (label != "none" && !label %in% names(design)) {
+    stop("Column `", label, "` was not found in `design`.", call. = FALSE)
+  }
+
+  if (!fill %in% names(design)) {
+    fill <- "block"
+  }
+
+  design <- as.data.frame(design, stringsAsFactors = FALSE)
+  design$row <- suppressWarnings(as.numeric(design$row))
+  design$col <- suppressWarnings(as.numeric(design$col))
+
+  if (any(is.na(design$row)) || any(is.na(design$col))) {
+    stop("`row` and `col` columns must be numeric or coercible to numeric.", call. = FALSE)
+  }
+
+  rows <- sort(unique(design$row))
+  cols <- sort(unique(design$col))
+  design$.plot_row <- match(design$row, rows)
+  design$.plot_col <- match(design$col, cols)
+  design$.fill_value <- as.character(design[[fill]])
+  fill_levels <- sort(unique(design$.fill_value))
+  fill_colors <- grDevices::hcl.colors(length(fill_levels), palette = "Set 3")
+  names(fill_colors) <- fill_levels
+
+  if (is.null(label_cex)) {
+    label_cex <- max(0.25, min(0.8, 7 / max(length(rows), length(cols))))
+  }
+
+  if (is.null(main)) {
+    main <- "Augmented row-column design"
+  }
+
+  old_par <- graphics::par(no.readonly = TRUE)
+  on.exit(graphics::par(old_par), add = TRUE)
+  graphics::par(mar = c(4.5, 4.5, 4, if (isTRUE(legend)) 7 else 2), xpd = NA)
+
+  graphics::plot.new()
+  graphics::plot.window(
+    xlim = c(0.5, length(cols) + 0.5),
+    ylim = c(length(rows) + 0.5, 0.5),
+    xaxs = "i",
+    yaxs = "i",
+    asp = 1,
+    ...
+  )
+
+  graphics::rect(
+    xleft = design$.plot_col - 0.5,
+    ybottom = design$.plot_row - 0.5,
+    xright = design$.plot_col + 0.5,
+    ytop = design$.plot_row + 0.5,
+    col = fill_colors[design$.fill_value],
+    border = "grey70",
+    lwd = 0.7
+  )
+
+  graphics::abline(v = seq(0.5, length(cols) + 0.5, by = 1), col = "grey80", lwd = 0.5)
+  graphics::abline(h = seq(0.5, length(rows) + 0.5, by = 1), col = "grey80", lwd = 0.5)
+
+  block_split <- split(design, design$block)
+  for (block_design in block_split) {
+    min_col <- min(block_design$.plot_col)
+    max_col <- max(block_design$.plot_col)
+    min_row <- min(block_design$.plot_row)
+    max_row <- max(block_design$.plot_row)
+
+    graphics::rect(
+      xleft = min_col - 0.5,
+      ybottom = min_row - 0.5,
+      xright = max_col + 0.5,
+      ytop = max_row + 0.5,
+      border = "black",
+      lwd = block_lwd
+    )
+
+    if (isTRUE(show_block_labels)) {
+      graphics::text(
+        x = mean(c(min_col, max_col)),
+        y = mean(c(min_row, max_row)),
+        labels = paste0("B", unique(block_design$block)[1]),
+        cex = block_label_cex,
+        font = 2,
+        col = "black"
+      )
+    }
+  }
+
+  if (isTRUE(show_plot_labels) && label != "none") {
+    graphics::text(
+      x = design$.plot_col,
+      y = design$.plot_row,
+      labels = as.character(design[[label]]),
+      cex = label_cex,
+      col = "black"
+    )
+  }
+
+  graphics::axis(3, at = seq_along(cols), labels = cols, las = 2, tick = FALSE)
+  graphics::axis(2, at = seq_along(rows), labels = rows, las = 1, tick = FALSE)
+  graphics::mtext("Column", side = 3, line = 2.7)
+  graphics::mtext("Row", side = 2, line = 3)
+  graphics::title(main = main)
+  graphics::box()
+
+  if (isTRUE(legend)) {
+    graphics::legend(
+      x = length(cols) + 1,
+      y = 0.5,
+      legend = fill_levels,
+      fill = fill_colors,
+      border = "grey60",
+      title = fill,
+      bty = "n",
+      xjust = 0,
+      yjust = 0,
+      cex = 0.8
+    )
+  }
+
+  invisible(tibble::as_tibble(design))
+}
+
 #' Analyze an augmented row-column design
 #'
 #' Fits the fixed-effects model:
@@ -599,6 +792,23 @@ arc_validate_inputs <- function(
       " treatments, but received ",
       length(treatments),
       ".",
+      call. = FALSE
+    )
+  }
+
+  n_block_rows <- rows_in_field / rows_per_block
+  n_block_cols <- cols_in_field / cols_per_block
+  if (n_block_cols > rows_per_block) {
+    stop(
+      "`rows_per_block` must be at least the number of column groups ",
+      "to avoid repeating the same control in a field row.",
+      call. = FALSE
+    )
+  }
+  if (n_block_rows > cols_per_block) {
+    stop(
+      "`cols_per_block` must be at least the number of row groups ",
+      "to avoid repeating the same control in a field column.",
       call. = FALSE
     )
   }
@@ -1160,6 +1370,45 @@ arc_assign_check_names <- function(check_slots, controls) {
   check_slots
 }
 
+arc_make_structured_check_slots <- function(field, controls) {
+  n_controls <- length(controls)
+  rows_per_block <- max(vapply(split(field$row, field$block), function(x) length(unique(x)), integer(1)))
+  cols_per_block <- max(vapply(split(field$col, field$block), function(x) length(unique(x)), integer(1)))
+  n_block_rows <- dplyr::n_distinct(field$rowgroup)
+  n_block_cols <- dplyr::n_distinct(field$colgroup)
+  row_offsets <- sample(seq_len(rows_per_block), n_block_rows, replace = TRUE) - 1L
+  col_offsets <- sample(seq_len(cols_per_block), n_block_cols, replace = TRUE) - 1L
+  control_order <- sample(controls)
+  field_key <- paste(field$row, field$col)
+  rows <- vector("list", n_block_rows * n_block_cols * n_controls)
+  counter <- 1L
+
+  for (rowgroup in seq_len(n_block_rows)) {
+    for (colgroup in seq_len(n_block_cols)) {
+      block <- unique(field$block[field$rowgroup == rowgroup & field$colgroup == colgroup])
+
+      for (control_idx in seq_len(n_controls)) {
+        local_row <- ((control_idx + colgroup + row_offsets[rowgroup] - 2L) %% rows_per_block) + 1L
+        local_col <- ((control_idx + rowgroup + col_offsets[colgroup] - 2L) %% cols_per_block) + 1L
+        row <- ((rowgroup - 1L) * rows_per_block) + local_row
+        col <- ((colgroup - 1L) * cols_per_block) + local_col
+
+        rows[[counter]] <- data.frame(
+          check_idx = match(paste(row, col), field_key),
+          block = block,
+          row = row,
+          col = col,
+          trt = control_order[control_idx],
+          stringsAsFactors = FALSE
+        )
+        counter <- counter + 1L
+      }
+    }
+  }
+
+  dplyr::bind_rows(rows)
+}
+
 arc_score_count_balance <- function(x, weight) {
   if (length(x) == 0) {
     return(0)
@@ -1202,42 +1451,9 @@ arc_score_augmented_design <- function(df) {
 
 arc_allocate_augmented_row_column <- function(field_template, treatments, controls, plot_type) {
   field <- field_template
-  n_checks <- length(controls)
-  check_slots <- data.frame(
-    check_idx = integer(0),
-    block = integer(0),
-    row = integer(0),
-    col = integer(0)
-  )
-
-  for (b in sort(unique(field$block))) {
-    block_idx <- which(field$block == b)
-    block_rows <- sort(unique(field$row[block_idx]))
-    block_cols <- sort(unique(field$col[block_idx]))
-
-    check_rows <- sample(block_rows, n_checks, replace = FALSE)
-    check_cols <- sample(block_cols, n_checks, replace = FALSE)
-
-    local_idx <- match(
-      paste(check_rows, check_cols),
-      paste(field$row[block_idx], field$col[block_idx])
-    )
-    check_idx <- block_idx[local_idx]
-
-    field$type[check_idx] <- "check"
-    check_slots <- rbind(
-      check_slots,
-      data.frame(
-        check_idx = check_idx,
-        block = b,
-        row = check_rows,
-        col = check_cols
-      )
-    )
-  }
-
-  check_slots <- arc_assign_check_names(check_slots, controls)
+  check_slots <- arc_make_structured_check_slots(field, controls)
   field$trt[check_slots$check_idx] <- check_slots$trt
+  field$type[check_slots$check_idx] <- "check"
 
   entry_idx <- which(field$type == "entry")
   field$trt[entry_idx] <- sample(treatments, length(entry_idx), replace = FALSE)

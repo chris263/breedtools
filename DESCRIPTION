@@ -24,6 +24,8 @@ Imports:
     htmltools,
     tibble,
     tools,
+    graphics,
+    grDevices,
     jsonlite,
     stats,
     utils

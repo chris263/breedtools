@@ -75,6 +75,67 @@ test_that("augmented_row_column_design prevents duplicate check rows and columns
   }
 })
 
+test_that("augmented_row_column_design handles large layouts without recursive search", {
+  design <- augmented_row_column_design(
+    treatments = paste0("G", seq_len(576)),
+    controls = paste0("Check", seq_len(4)),
+    rows_in_field = 36,
+    cols_in_field = 18,
+    rows_per_block = 6,
+    cols_per_block = 6,
+    n_candidates = 3,
+    seed = 123
+  )
+
+  checks <- design$design[design$design$is_control == 1, ]
+
+  expect_equal(nrow(design$design), 648)
+  expect_equal(nrow(checks), 72)
+  expect_false(any(table(checks$all_entries, checks$row) > 1))
+  expect_false(any(table(checks$all_entries, checks$col) > 1))
+
+  by_block <- split(checks, checks$block)
+  for (block_checks in by_block) {
+    expect_equal(anyDuplicated(block_checks$row), 0)
+    expect_equal(anyDuplicated(block_checks$col), 0)
+    expect_equal(anyDuplicated(block_checks$all_entries), 0)
+  }
+})
+
+test_that("plot_augmented_row_column_design draws design objects and data frames", {
+  design <- augmented_row_column_design(
+    treatments = paste0("G", seq_len(28)),
+    controls = c("Check1", "Check2"),
+    rows_in_field = 6,
+    cols_in_field = 6,
+    rows_per_block = 3,
+    cols_per_block = 3,
+    n_candidates = 3,
+    seed = 111
+  )
+
+  plot_file <- tempfile(fileext = ".pdf")
+  grDevices::pdf(plot_file)
+  plotted_object <- plot_augmented_row_column_design(
+    design,
+    label = "none",
+    fill = "block",
+    legend = FALSE
+  )
+  plotted_data <- plot_augmented_row_column_design(
+    design$design,
+    label = "all_entries",
+    fill = "type",
+    legend = FALSE
+  )
+  grDevices::dev.off()
+
+  expect_s3_class(plotted_object, "tbl_df")
+  expect_s3_class(plotted_data, "tbl_df")
+  expect_true(all(c(".plot_row", ".plot_col", ".fill_value") %in% names(plotted_object)))
+  expect_true(file.exists(plot_file))
+})
+
 test_that("augmented_row_column_design validates treatment count", {
   expect_error(
     augmented_row_column_design(

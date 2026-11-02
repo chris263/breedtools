@@ -12,3 +12,8 @@ Empty data frame.
 \description{
 Empty group summary table
 }
+\examples{
+empty_group_summary()
+
+}
+\keyword{internal}

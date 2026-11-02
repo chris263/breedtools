@@ -19,8 +19,14 @@ A tibble containing combined data from all non-empty sheets.
 \code{.xlsx}, \code{.xls}, and \code{.csv} files.
 }
 \examples{
-\dontrun{
-pheno_raw <- read_breedbase_file("breedbase_trials_pheno.xlsx")
-}
+xlsx_file <- system.file("extdata", "breedbase_pheno.xlsx", package = "breedtools")
+
+# Deprecated (emits a deprecation warning): use read_breedbase_file()
+pheno <- suppressWarnings(read_breedbase_excel(xlsx_file))
+
+# Preferred
+pheno <- read_breedbase_file(xlsx_file)
+head(pheno)
 
 }
+\keyword{internal}

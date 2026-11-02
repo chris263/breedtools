@@ -30,3 +30,13 @@ A tibble with all tested groups.
 Tests all combinations of environments and identifies groups with homogeneous
 residual variances.
 }
+\examples{
+env_anova <- data.frame(
+  environment = c("Loc1", "Loc2", "Loc3"),
+  ms_error = c(10, 12, 30),
+  df_error = c(20, 20, 20)
+)
+
+make_environment_groups(env_anova, n_sim = 2000)
+
+}

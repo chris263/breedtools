@@ -18,3 +18,14 @@ ungrouped environments.
 \description{
 Group environments using Lin-style GE compatibility testing
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+lin <- lin_group_environments(prepared$data, alpha = 0.05)
+lin$group_summary
+lin$group_membership
+
+}

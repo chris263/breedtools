@@ -19,3 +19,14 @@ A list with MSE, residual df, and message.
 \description{
 Calculate residual error MSE for a Lin environment group
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+envs <- prepared$env_info$environment[1:2]
+genotypes <- unique(prepared$data$accession_name)
+lin_error_mse(prepared$data, envs, genotypes)
+
+}

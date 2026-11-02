@@ -1,20 +1,30 @@
 Package: breedtools
-Title: Tools for Multi-Environment Breedbase Phenotype Analysis
-Version: 0.0.0.9000
-Depends:
-    R (>= 4.1.0)
-Authors@R: 
-    person("Cristiano", "Simoes", email = "ccsimoes263@gmail.com", role = c("aut", "cre"))
-Author: Cristiano Simoes [aut, cre]
-Maintainer: Cristiano Simoes <ccsimoes263@gmail.com>
-Description: Loads Breedbase-style phenotype data from Excel or CSV files,
-    prepares it for multi-environment analysis, checks environment variance
-    compatibility with Hartley's Fmax test, and groups environments with
-    Lin-style genotype-by-environment interaction tests.
+Title: Design and Analysis of Augmented Plant Breeding Trials
+Version: 0.1.0
+Authors@R:
+    person("Christiano", "Simoes", email = "ccsimoes263@gmail.com", role = c("aut", "cre"))
+Description: Generates and analyzes field trial designs for early-generation
+    plant breeding. Creates augmented row-column designs with replicated
+    checks (Federer, Nair and Raghavarao (1975) <doi:10.2307/2529426>) and
+    multi-location augmented partially replicated (p-rep) designs (Williams,
+    Piepho and Whitaker (2011) <doi:10.1002/bimj.201000102>), draws field
+    maps, and exports field books in 'Breedbase' format. Analyses give
+    analysis of variance tables with degrees of freedom estimable from the
+    observed plots and spatially adjusted entry means (best linear unbiased
+    estimates) with standard errors. Also loads 'Breedbase' phenotype files,
+    checks residual variance homogeneity across environments with Hartley's
+    Fmax test (Hartley (1950) <doi:10.1093/biomet/37.3-4.308>), and groups
+    environments by genotype-by-environment interaction (Lin (1982)
+    <doi:10.1007/BF00276251>).
 License: GPL-3
+URL: https://github.com/chris263/breedtools
+BugReports: https://github.com/chris263/breedtools/issues
 Encoding: UTF-8
+Language: en-US
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 8.0.0
+Depends:
+    R (>= 4.1.0)
 Imports:
     dplyr,
     tidyr,
@@ -30,5 +40,8 @@ Imports:
     stats,
     utils
 Suggests:
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
 Config/testthat/edition: 3

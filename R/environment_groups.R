@@ -11,6 +11,15 @@
 #'
 #' @return A tibble with all tested groups.
 #'
+#' @examples
+#' env_anova <- data.frame(
+#'   environment = c("Loc1", "Loc2", "Loc3"),
+#'   ms_error = c(10, 12, 30),
+#'   df_error = c(20, 20, 20)
+#' )
+#'
+#' make_environment_groups(env_anova, n_sim = 2000)
+#'
 #' @export
 make_environment_groups <- function(
     env_anova,
@@ -59,15 +68,15 @@ make_environment_groups <- function(
 
   dplyr::bind_rows(all_results) |>
     dplyr::select(
-      .data$group_id,
-      .data$k,
-      .data$environment_list,
-      .data$min_ms_error,
-      .data$max_ms_error,
-      .data$fmax_observed,
-      .data$fmax_critical,
-      .data$alpha,
-      .data$homogeneous
+      "group_id",
+      "k",
+      "environment_list",
+      "min_ms_error",
+      "max_ms_error",
+      "fmax_observed",
+      "fmax_critical",
+      "alpha",
+      "homogeneous"
     ) |>
     dplyr::arrange(dplyr::desc(.data$k), .data$fmax_observed)
 }
@@ -77,6 +86,16 @@ make_environment_groups <- function(
 #' @param group_tests Output from [make_environment_groups()].
 #'
 #' @return A tibble containing only homogeneous groups.
+#'
+#' @examples
+#' env_anova <- data.frame(
+#'   environment = c("Loc1", "Loc2", "Loc3"),
+#'   ms_error = c(10, 12, 30),
+#'   df_error = c(20, 20, 20)
+#' )
+#'
+#' group_tests <- make_environment_groups(env_anova, n_sim = 2000)
+#' get_compatible_groups(group_tests)
 #'
 #' @export
 get_compatible_groups <- function(group_tests) {
@@ -93,6 +112,16 @@ get_compatible_groups <- function(group_tests) {
 #' @param compatible_groups Output from [get_compatible_groups()].
 #'
 #' @return A tibble with maximal compatible groups only.
+#'
+#' @examples
+#' env_anova <- data.frame(
+#'   environment = c("Loc1", "Loc2", "Loc3"),
+#'   ms_error = c(10, 12, 30),
+#'   df_error = c(20, 20, 20)
+#' )
+#'
+#' group_tests <- make_environment_groups(env_anova, n_sim = 2000)
+#' get_maximal_groups(get_compatible_groups(group_tests))
 #'
 #' @export
 get_maximal_groups <- function(compatible_groups) {

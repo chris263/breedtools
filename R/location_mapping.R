@@ -32,6 +32,13 @@
 #'
 #' read_locations(locations)
 #'
+#' # Breedbase-style location file, checked against the phenotype locations
+#' loc_file <- system.file("extdata", "breedbase_locations.csv", package = "breedtools")
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' read_locations(loc_file, phenotype_data = pheno)
+#'
 #' @export
 read_locations <- function(
     file,
@@ -146,11 +153,14 @@ read_locations <- function(
 #' @return A `leaflet` htmlwidget.
 #'
 #' @examples
-#' \dontrun{
-#' result <- run_environment_stratification("phenotype.csv", trait = "yield")
-#' locations <- read_locations("locations.csv", ignore_case = TRUE)
-#' map_environment_groups(result, locations, ignore_case = TRUE)
-#' }
+#' pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' loc_file <- system.file("extdata", "breedbase_locations.csv", package = "breedtools")
+#'
+#' result <- run_environment_stratification(pheno_file, trait = "fresh root yield")
+#' locations <- read_locations(loc_file, phenotype_data = result)
+#'
+#' group_map <- map_environment_groups(result, locations)
+#' if (interactive()) group_map
 #'
 #' @export
 map_environment_groups <- function(
@@ -291,7 +301,9 @@ extract_phenotype_locations <- function(
     phenotype_location_col = NULL,
     match_by = "location"
 ) {
-  if (is.list(phenotype_data) && !is.null(phenotype_data$env_info)) {
+  is_result_list <- is.list(phenotype_data) && !is.data.frame(phenotype_data)
+
+  if (is_result_list && !is.null(phenotype_data$env_info)) {
     env_info <- tibble::as_tibble(phenotype_data$env_info)
 
     if (match_by %in% names(env_info)) {
@@ -299,7 +311,21 @@ extract_phenotype_locations <- function(
     }
   }
 
-  if (is.list(phenotype_data) && !is.null(phenotype_data$pheno)) {
+  if (is_result_list && is.null(phenotype_data$pheno) &&
+    !is.null(phenotype_data$group_membership)) {
+    env_tables <- list(phenotype_data$group_membership, phenotype_data$ungrouped)
+    env_values <- unlist(lapply(env_tables, function(tab) {
+      if (is.data.frame(tab) && match_by %in% names(tab)) {
+        as.character(tab[[match_by]])
+      }
+    }))
+
+    if (length(env_values) > 0) {
+      return(clean_reference_locations(env_values))
+    }
+  }
+
+  if (is_result_list && !is.null(phenotype_data$pheno)) {
     phenotype_data <- phenotype_data$pheno
   }
 

@@ -18,3 +18,15 @@ A symmetric integer matrix of pairwise block concurrences.
 Counts how many times each pair of entries appears together in the same
 incomplete block across all locations.
 }
+\examples{
+design <- augmented_prep_design(
+  treatments = paste0("G", seq_len(12)),
+  locations = c("Loc1", "Loc2"),
+  block_size = 4,
+  n_candidates = 5,
+  seed = 1
+)
+conc <- augmented_prep_concurrence(design$design)
+table(conc[upper.tri(conc)])
+
+}

@@ -52,22 +52,30 @@ control flag, and plot order.}
 }
 \description{
 Randomizes unreplicated treatments and replicated controls in an augmented
-row-column design. Each row-column block receives one copy of each control,
-and controls are constrained so they do not share a row or column within a
-block. Candidate layouts are scored and the best candidate is returned.
+row-column design. Each row-column block receives one copy of each control.
+Controls never share a row or column within a block, the same control never
+appears twice in a field row or field column, and every field row and column
+contains at least one control so that row and column effects are estimable.
+Candidate check layouts are scored for spatial spread and row/column
+balance; the best candidate whose row, column, and block effects are all
+estimable from the checks is returned.
+}
+\details{
+The layout must leave positive error degrees of freedom (see
+\code{\link[=augmented_row_column_capacity]{augmented_row_column_capacity()}}); otherwise an error is raised.
 }
 \examples{
-treatments <- paste0("G", seq_len(28))
-controls <- c("Check1", "Check2")
+treatments <- paste0("G", seq_len(108))
+controls <- paste0("Check", seq_len(4))
 
 design <- augmented_row_column_design(
   treatments = treatments,
   controls = controls,
-  rows_in_field = 6,
-  cols_in_field = 6,
-  rows_per_block = 3,
-  cols_per_block = 3,
-  n_candidates = 5,
+  rows_in_field = 12,
+  cols_in_field = 12,
+  rows_per_block = 4,
+  cols_per_block = 4,
+  n_candidates = 50,
   seed = 123
 )
 

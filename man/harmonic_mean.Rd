@@ -15,3 +15,8 @@ Harmonic mean.
 \description{
 Calculate harmonic mean
 }
+\examples{
+harmonic_mean(c(2, 3, 4, NA))
+
+}
+\keyword{internal}

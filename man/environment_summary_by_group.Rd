@@ -17,3 +17,14 @@ Group summary with display metadata.
 \description{
 Summarize environment names by group
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+lin <- lin_group_environments(prepared$data)
+membership <- add_environment_metadata(lin$group_membership, prepared$env_info)
+environment_summary_by_group(lin$group_summary, membership)
+
+}

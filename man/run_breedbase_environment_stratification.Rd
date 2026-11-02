@@ -32,15 +32,15 @@ detects the experimental design, calculates ANOVA, and groups environments
 using a Lin-style genotype-by-environment interaction test.
 }
 \examples{
-\dontrun{
+pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+
 result <- run_breedbase_environment_stratification(
-  file = "breedbase_trials_pheno.xlsx",
-  trait_col = "phenotype",
+  file = pheno_file,
+  trait_col = "fresh root yield",
   alpha = 0.05
 )
 
 result$group_summary
 result$group_membership
-}
 
 }

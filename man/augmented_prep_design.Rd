@@ -10,9 +10,13 @@ augmented_prep_design(
   block_size = 8,
   prep_prop = NULL,
   n_duplicate_per_location = NULL,
+  replications_per_repeated_entry = 2,
+  n_blocks_per_location = NULL,
   n_candidates = 1000,
   seed = NULL,
   field_cols = NULL,
+  rows_per_block = NULL,
+  blocks_per_row = NULL,
   serpentine = TRUE,
   output_file = NULL
 )
@@ -22,7 +26,9 @@ augmented_prep_design(
 
 \item{locations}{Character vector of location names.}
 
-\item{block_size}{Maximum incomplete block size.}
+\item{block_size}{Maximum final incomplete block size. Can be a single
+integer or a named vector indexed by location. Actual block sizes may
+differ by one plot when totals do not divide evenly.}
 
 \item{prep_prop}{Optional proportion of entries to duplicate per location.
 If \code{NULL}, entries are split across locations so each entry is duplicated
@@ -32,12 +38,34 @@ at approximately one location.}
 each location. Can be a single integer, a vector matching \code{locations}, or a
 named vector indexed by location.}
 
-\item{n_candidates}{Number of candidate designs to generate and score.}
+\item{replications_per_repeated_entry}{Total number of plots for entries
+selected for p-rep replication at a location. The default \code{2} gives one
+base plot plus one extra plot. Can be a single integer or a named vector
+indexed by location.}
+
+\item{n_blocks_per_location}{Optional number of incomplete blocks at each
+location. If \code{NULL}, the number of blocks is the minimum needed so no block
+is larger than \code{block_size}. Can be a single integer or a named vector
+indexed by location.}
+
+\item{n_candidates}{Maximum number of candidate designs to generate and
+score. The search stops early when a candidate reaches the best possible
+score (no entry repeated within a block and no pair of entries sharing more
+than one block); \code{summary$n_candidates_evaluated} reports how many were
+generated.}
 
 \item{seed}{Optional random seed.}
 
 \item{field_cols}{Optional number of field columns for row/column layout.
 Can be a single integer or a named vector indexed by location.}
+
+\item{rows_per_block}{Optional number of physical field rows each incomplete
+block should occupy. Can be a single integer or a named vector for selected
+locations. Must be used with \code{blocks_per_row} for those locations.}
+
+\item{blocks_per_row}{Optional number of incomplete blocks to place side by
+side in each field row band. Can be a single integer or a named vector for
+selected locations. Must be used with \code{rows_per_block} for those locations.}
 
 \item{serpentine}{Logical. If \code{TRUE}, row/column coordinates use serpentine
 ordering within each location.}
@@ -50,7 +78,7 @@ A list with design inputs, summary diagnostics, complete plot-level
 design, Breedbase-compatible design columns, block summary, replication
 summary, repeated-entry groups, and pairwise concurrence matrix. In the
 complete design, \code{repeated_at} is the location where the entry receives its
-extra p-rep plot, or \code{"not_repeated"} when the entry is not selected for
+extra p-rep plot(s), or \code{"not_repeated"} when the entry is not selected for
 extra replication.
 }
 \description{
@@ -62,14 +90,24 @@ into incomplete blocks. Candidate designs are scored to reduce pairwise
 block concurrence, especially avoiding pairs that occur together more than
 once.
 }
+\details{
+The incomplete block structure is independent from the field geometry:
+\code{block_size} and \code{n_blocks_per_location} define block membership. By
+default, \code{field_cols} lays the ordered plots into rows and columns. For a
+rectangular block layout, use \code{rows_per_block} and \code{blocks_per_row} to place
+multiple blocks side by side within each location.
+}
 \examples{
 design <- augmented_prep_design(
   treatments = paste0("G", seq_len(12)),
   locations = c("Loc1", "Loc2", "Loc3"),
-  block_size = 5,
+  block_size = c(Loc1 = 5, Loc2 = 5, Loc3 = 6),
+  n_blocks_per_location = c(Loc1 = 4, Loc2 = 4, Loc3 = 4),
+  n_duplicate_per_location = c(Loc1 = 4, Loc2 = 2, Loc3 = 4),
+  replications_per_repeated_entry = c(Loc1 = 2, Loc2 = 3, Loc3 = 2),
   n_candidates = 5,
   seed = 123,
-  field_cols = 5
+  field_cols = 8
 )
 
 design$summary

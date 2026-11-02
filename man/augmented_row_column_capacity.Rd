@@ -25,19 +25,22 @@ augmented_row_column_capacity(
 one copy of each control.}
 }
 \value{
-A one-row tibble with number of blocks, total plots, check plots, and
-entry plots available for unreplicated treatments.
+A one-row tibble with number of blocks, total plots, check plots,
+entry plots available for unreplicated treatments, and \code{error_df}, the
+error degrees of freedom of the row-column ANOVA,
+\verb{check_plots - n_controls - (rows - 1) - (cols - 1) - (row groups - 1)(column groups - 1)}. A design is only analyzable when
+\code{error_df > 0}.
 }
 \description{
 Calculate augmented row-column design capacity
 }
 \examples{
 augmented_row_column_capacity(
-  rows_in_field = 6,
-  cols_in_field = 6,
-  rows_per_block = 3,
-  cols_per_block = 3,
-  n_controls = 2
+  rows_in_field = 12,
+  cols_in_field = 12,
+  rows_per_block = 4,
+  cols_per_block = 4,
+  n_controls = 4
 )
 
 }

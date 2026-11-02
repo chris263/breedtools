@@ -19,3 +19,13 @@ Data frame with Lin GE test result.
 \description{
 Test one Lin environment group
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+envs <- prepared$env_info$environment[1:2]
+lin_test_group(prepared$data, envs, alpha = 0.05)
+
+}

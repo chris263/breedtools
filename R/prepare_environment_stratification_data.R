@@ -10,6 +10,16 @@
 #' @return A list with standardized phenotype data, environment metadata, and
 #' selected trait column.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' head(prepared$data)
+#' prepared$env_info
+#' prepared$trait_col
+#'
 #' @export
 prepare_environment_stratification_data <- function(
     pheno,

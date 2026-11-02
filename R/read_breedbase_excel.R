@@ -9,10 +9,17 @@
 #' @return A tibble containing combined data from all non-empty sheets.
 #'
 #' @examples
-#' \dontrun{
-#' pheno_raw <- read_breedbase_file("breedbase_trials_pheno.xlsx")
-#' }
+#' xlsx_file <- system.file("extdata", "breedbase_pheno.xlsx", package = "breedtools")
 #'
+#' # Deprecated (emits a deprecation warning): use read_breedbase_file()
+#' pheno <- suppressWarnings(read_breedbase_excel(xlsx_file))
+#'
+#' # Preferred
+#' pheno <- read_breedbase_file(xlsx_file)
+#' head(pheno)
+#'
+#' @keywords internal
+#' @export
 read_breedbase_excel <- function(file, ...) {
   .Deprecated("read_breedbase_file")
   read_breedbase_file(file, ...)

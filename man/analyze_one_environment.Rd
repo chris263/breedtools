@@ -18,3 +18,14 @@ Runs an individual ANOVA for one environment. If more than one replicate is
 present, the model is \code{value ~ replicate + genotype}; otherwise, the model is
 \code{value ~ genotype}.
 }
+\examples{
+df <- data.frame(
+  environment = "Loc1",
+  genotype = factor(rep(c("G1", "G2", "G3"), times = 2)),
+  replicate = factor(rep(1:2, each = 3)),
+  value = c(10, 12, 15, 11, 13, 14)
+)
+
+analyze_one_environment(df)
+
+}

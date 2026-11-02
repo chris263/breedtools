@@ -9,9 +9,11 @@ plot_augmented_row_column_design(
   label = c("all_entries", "type", "block", "none"),
   fill = c("type", "block", "rowgroup", "colgroup", "is_control"),
   show_plot_labels = TRUE,
-  show_block_labels = TRUE,
+  show_block_labels = FALSE,
+  block_label_position = c("background", "center"),
   label_cex = NULL,
-  block_label_cex = 0.9,
+  block_label_cex = NULL,
+  block_label_col = NULL,
   block_lwd = 2,
   main = NULL,
   legend = TRUE,
@@ -31,12 +33,18 @@ or \code{"none"}.}
 \item{show_plot_labels}{Logical. If \code{TRUE}, labels are printed inside cells
 unless \code{label = "none"}.}
 
-\item{show_block_labels}{Logical. If \code{TRUE}, block numbers are printed at
-the center of each block.}
+\item{show_block_labels}{Logical. If \code{TRUE}, block numbers are printed.
+Defaults to \code{FALSE} so block labels do not overlap accession labels.}
+
+\item{block_label_position}{Position for block labels when
+\code{show_block_labels = TRUE}. Use \code{"background"} for a faint watermark
+behind accession labels or \code{"center"} for a regular center label.}
 
 \item{label_cex}{Optional text size for plot-cell labels.}
 
-\item{block_label_cex}{Text size for block labels.}
+\item{block_label_cex}{Optional text size for block labels.}
+
+\item{block_label_col}{Color for block labels.}
 
 \item{block_lwd}{Line width for block boundaries.}
 
@@ -56,13 +64,13 @@ row and column labels, and thick outlines around row-column blocks.
 }
 \examples{
 design <- augmented_row_column_design(
-  treatments = paste0("G", seq_len(28)),
-  controls = c("Check1", "Check2"),
-  rows_in_field = 6,
-  cols_in_field = 6,
-  rows_per_block = 3,
-  cols_per_block = 3,
-  n_candidates = 3,
+  treatments = paste0("G", seq_len(108)),
+  controls = paste0("Check", seq_len(4)),
+  rows_in_field = 12,
+  cols_in_field = 12,
+  rows_per_block = 4,
+  cols_per_block = 4,
+  n_candidates = 20,
   seed = 123
 )
 

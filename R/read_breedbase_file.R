@@ -16,11 +16,23 @@
 #' @return A tibble containing the loaded phenotype data.
 #'
 #' @examples
-#' \dontrun{
-#' pheno <- read_breedbase_file("breedbase_trials_pheno.xlsx")
-#' pheno_csv <- read_breedbase_file("breedbase_trials_pheno.csv")
-#' design <- read_breedbase_file("augmented_row_column.design")
-#' }
+#' # CSV phenotype download
+#' pheno_csv <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' head(pheno_csv)
+#'
+#' # Excel workbook: all non-empty sheets are combined
+#' pheno_xlsx <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.xlsx", package = "breedtools")
+#' )
+#' table(pheno_xlsx$.sheet)
+#'
+#' # A single sheet
+#' read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.xlsx", package = "breedtools"),
+#'   sheet = 1
+#' )
 #'
 #' @export
 read_breedbase_file <- function(file, sheet = NULL, ...) {

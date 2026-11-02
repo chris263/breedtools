@@ -17,3 +17,13 @@ A list with a summary table and common genotype names.
 \description{
 Calculate Lin genotype-by-environment sum of squares
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+envs <- prepared$env_info$environment[1:2]
+lin_ss_ge(prepared$data, envs)$summary
+
+}

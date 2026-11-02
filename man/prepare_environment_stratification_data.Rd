@@ -21,3 +21,14 @@ selected trait column.
 Reads a Breedbase-style phenotype data frame and standardizes it for
 environment stratification.
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+head(prepared$data)
+prepared$env_info
+prepared$trait_col
+
+}

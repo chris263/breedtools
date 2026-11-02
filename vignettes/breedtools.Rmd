@@ -1,0 +1,174 @@
+---
+title: "Augmented designs with breedtools"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Augmented designs with breedtools}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5)
+```
+
+This vignette walks through the two trial designs in `breedtools`, from
+planning the layout to ranking entries by adjusted means:
+
+* **Augmented row-column design**: many unreplicated entries plus a few
+  replicated checks, with row, column, and block effects estimated from the
+  checks.
+* **Augmented p-rep design**: multi-location trials without checks. Every
+  entry is planted once at every location, and a subset is repeated.
+
+The phenotypes here are simulated. A longer script that you can run section
+by section in RStudio ships with the package:
+
+```{r, eval = FALSE}
+file.edit(system.file("examples", "breedtools_workflow.R", package = "breedtools"))
+```
+
+```{r setup}
+library(breedtools)
+```
+
+## Augmented row-column design
+
+### Plan the layout
+
+Row, column, and block effects are estimated from the check plots only, so a
+layout must leave error degrees of freedom after estimating them. Check this
+before you plant:
+
+```{r}
+augmented_row_column_capacity(
+  rows_in_field = 12, cols_in_field = 12,
+  rows_per_block = 4, cols_per_block = 4,
+  n_controls = 4
+)
+```
+
+`entry_plots` is the number of test entries that fit, and `error_df` must be
+positive. More error df give more reliable F-tests and more precise adjusted
+means, at the cost of entry plots.
+
+### Generate and inspect
+
+```{r}
+rc <- augmented_row_column_design(
+  treatments = sprintf("LINE_%03d", 1:108),
+  controls = c("CHECK_A", "CHECK_B", "CHECK_C", "CHECK_D"),
+  rows_in_field = 12, cols_in_field = 12,
+  rows_per_block = 4, cols_per_block = 4,
+  n_candidates = 200,
+  seed = 2026
+)
+rc$summary
+head(rc$design)
+```
+
+Each block holds one plot of each check, and every field row and column
+contains a check:
+
+```{r}
+checks <- rc$design[rc$design$is_control == 1, ]
+table(checks$all_entries, checks$block)
+all(1:12 %in% checks$row) && all(1:12 %in% checks$col)
+```
+
+```{r, fig.height = 6}
+plot_augmented_row_column_design(rc, label = "all_entries", fill = "type")
+```
+
+`rc$breedbase_design` holds the columns for a 'Breedbase' upload. Pass
+`output_file` to `augmented_row_column_design()` to write a tab-delimited
+copy.
+
+### Analyze
+
+Simulate yields with a fertility gradient down the rows and a few lost plots:
+
+```{r}
+set.seed(1)
+field <- rc$design
+field$yield <- 60 + 0.8 * field$row - 0.3 * field$col +
+  ifelse(field$is_control == 1, 5, 0) + rnorm(nrow(field), sd = 3)
+field$yield[c(7, 50, 101)] <- NA
+
+rc_fit <- analyze_augmented_row_column_design(field, response = "yield")
+rc_fit
+```
+
+The ANOVA degrees of freedom are those estimable from the observed plots, so
+the F-tests stay valid with missing plots.
+
+### Adjusted entry means
+
+`rc_fit$adjusted_means` ranks the genotypes by their adjusted mean (BLUE):
+the expected value of the genotype in an average plot of the field. For an
+unreplicated entry, this is its plot value corrected for the row, column, and
+block effects of that plot, as estimated from the checks. Rank and select on
+these, not on the raw values:
+
+```{r}
+head(rc_fit$adjusted_means)
+rc_fit$diagnostics[, c("anova_error_df", "sigma", "mean_sed", "lsd_5pct")]
+```
+
+`std_error` includes the uncertainty in the spatial correction. With only a
+few error df, as here, that uncertainty is large, which is a reason to prefer
+layouts with more check plots.
+
+## Augmented p-rep design
+
+### Generate
+
+```{r}
+prep <- augmented_prep_design(
+  treatments = sprintf("G%03d", 1:120),
+  locations = c("North", "Central", "South"),
+  block_size = 10,
+  prep_prop = 0.2,
+  field_cols = 10,
+  n_candidates = 200,
+  seed = 2026
+)
+prep$summary[, c("n_locations", "n_entries", "n_plots", "n_blocks",
+                 "max_pairwise_concurrence")]
+table(table(prep$design$all_entries))
+```
+
+Each location gets 20% of the entries as extra plots. Incomplete blocks are
+chosen so that pairs of entries rarely share a block more than once.
+
+```{r, fig.height = 6}
+plot_augmented_prep_design(prep, locations = "North", fill = "entry_type")
+```
+
+### Analyze and rank
+
+```{r}
+set.seed(2)
+genotype_effect <- setNames(rnorm(120, sd = 4), sprintf("G%03d", 1:120))
+block_id <- interaction(prep$design$location, prep$design$block)
+block_effect <- setNames(rnorm(nlevels(block_id), sd = 2), levels(block_id))
+
+trial <- prep$design
+trial$yield <- 50 + c(North = 0, Central = 8, South = -5)[trial$location] +
+  block_effect[as.character(block_id)] +
+  genotype_effect[trial$all_entries] + rnorm(nrow(trial), sd = 3)
+
+prep_fit <- analyze_augmented_prep_design(trial, response = "yield")
+prep_fit
+```
+
+Adjusted means correct for the location and block of every plot. Because
+the data are simulated, we can check that they track the true genotype
+effects more closely than the raw means do:
+
+```{r}
+means <- prep_fit$adjusted_means
+c(
+  raw = cor(means$raw_mean, genotype_effect[means$genotype]),
+  adjusted = cor(means$adjusted_mean, genotype_effect[means$genotype])
+)
+```

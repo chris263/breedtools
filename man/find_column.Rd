@@ -19,3 +19,9 @@ The first matching column name.
 \description{
 Find the first matching column
 }
+\examples{
+df <- data.frame(locationName = "Loc1", germplasmName = "G1")
+find_column(df, c("germplasmName", "accession_name"), "accession")
+
+}
+\keyword{internal}

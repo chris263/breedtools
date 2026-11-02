@@ -16,3 +16,29 @@ test_that("hartley_fmax_test works", {
   expect_true("homogeneous" %in% names(result))
   expect_equal(result$k, 3)
 })
+
+test_that("hartley_critical_sim does not change the global RNG state", {
+  set.seed(42)
+  before <- .Random.seed
+  hartley_critical_sim(c(10, 12), n_sim = 100, seed = 123)
+  expect_identical(.Random.seed, before)
+
+  # Reproducible with the same seed
+  expect_identical(
+    hartley_critical_sim(c(10, 12), n_sim = 100, seed = 1),
+    hartley_critical_sim(c(10, 12), n_sim = 100, seed = 1)
+  )
+})
+
+test_that("hartley_critical_sim removes .Random.seed if none existed", {
+  old <- if (exists(".Random.seed", envir = .GlobalEnv)) {
+    get(".Random.seed", envir = .GlobalEnv)
+  }
+  on.exit(if (!is.null(old)) assign(".Random.seed", old, envir = .GlobalEnv))
+
+  if (exists(".Random.seed", envir = .GlobalEnv)) {
+    rm(".Random.seed", envir = .GlobalEnv)
+  }
+  hartley_critical_sim(c(10, 12), n_sim = 100, seed = 123)
+  expect_false(exists(".Random.seed", envir = .GlobalEnv))
+})

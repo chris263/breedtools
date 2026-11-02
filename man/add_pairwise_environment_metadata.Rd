@@ -17,3 +17,13 @@ Pairwise table with metadata.
 \description{
 Add environment metadata to pairwise Lin results
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+lin <- lin_group_environments(prepared$data)
+add_pairwise_environment_metadata(lin$pairwise, prepared$env_info)
+
+}

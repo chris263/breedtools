@@ -45,10 +45,13 @@ environment group use the same marker color. Ungrouped environments are shown
 with \code{ungrouped_color}.
 }
 \examples{
-\dontrun{
-result <- run_environment_stratification("phenotype.csv", trait = "yield")
-locations <- read_locations("locations.csv", ignore_case = TRUE)
-map_environment_groups(result, locations, ignore_case = TRUE)
-}
+pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+loc_file <- system.file("extdata", "breedbase_locations.csv", package = "breedtools")
+
+result <- run_environment_stratification(pheno_file, trait = "fresh root yield")
+locations <- read_locations(loc_file, phenotype_data = result)
+
+group_map <- map_environment_groups(result, locations)
+if (interactive()) group_map
 
 }

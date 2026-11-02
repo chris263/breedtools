@@ -63,4 +63,11 @@ locations <- data.frame(
 
 read_locations(locations)
 
+# Breedbase-style location file, checked against the phenotype locations
+loc_file <- system.file("extdata", "breedbase_locations.csv", package = "breedtools")
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+read_locations(loc_file, phenotype_data = pheno)
+
 }

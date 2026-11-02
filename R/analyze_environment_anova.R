@@ -9,6 +9,16 @@
 #'
 #' @return A tibble with ANOVA summary statistics.
 #'
+#' @examples
+#' df <- data.frame(
+#'   environment = "Loc1",
+#'   genotype = factor(rep(c("G1", "G2", "G3"), times = 2)),
+#'   replicate = factor(rep(1:2, each = 3)),
+#'   value = c(10, 12, 15, 11, 13, 14)
+#' )
+#'
+#' analyze_one_environment(df)
+#'
 #' @export
 analyze_one_environment <- function(df) {
   env_name <- unique(df$environment)

@@ -11,7 +11,7 @@ run_environment_stratification(
   sep = NULL,
   normalize_names = TRUE,
   export_json = FALSE,
-  output_dir = ".",
+  output_dir = NULL,
   prefix = "environment_stratification"
 )
 }
@@ -28,9 +28,12 @@ or an already loaded data frame.}
 
 \item{normalize_names}{Logical. If \code{TRUE}, normalize Breedbase column names.}
 
-\item{export_json}{Logical. If \code{TRUE}, writes JSON result files.}
+\item{export_json}{Logical. If \code{TRUE}, writes a JSON result file to
+\code{output_dir}.}
 
-\item{output_dir}{Output directory for JSON files.}
+\item{output_dir}{Output directory for the JSON file. Defaults to \code{NULL}, in
+which case nothing is written; it must be supplied when
+\code{export_json = TRUE}.}
 
 \item{prefix}{Prefix for JSON output files.}
 }
@@ -44,15 +47,26 @@ ANOVA, tests genotype-by-environment interaction for environment groups,
 and returns compatible environment groups.
 }
 \examples{
-\dontrun{
+pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+
 result <- run_environment_stratification(
-  phenotype_file = "phenotype.tsv",
-  trait = "plant height",
+  phenotype_file = pheno_file,
+  trait = "fresh root yield",
   alpha = 0.05
 )
 
 result$group_summary
 result$group_membership
-}
+
+# Export the result as JSON to a temporary directory
+out_dir <- file.path(tempdir(), "stratification")
+result <- run_environment_stratification(
+  phenotype_file = pheno_file,
+  trait = "fresh root yield",
+  export_json = TRUE,
+  output_dir = out_dir
+)
+list.files(out_dir)
+unlink(out_dir, recursive = TRUE)
 
 }

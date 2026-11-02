@@ -7,6 +7,14 @@
 #'
 #' @return Normalized character vector.
 #'
+#' @examples
+#' normalize_column_name(c(
+#'   "fresh root yield|CO_334:0000013",
+#'   "plant.height.CO_334.0000018",
+#'   "germplasmName"
+#' ))
+#'
+#' @keywords internal
 #' @export
 normalize_column_name <- function(x) {
   x <- gsub("\\.CO.*", "", x)
@@ -23,6 +31,11 @@ normalize_column_name <- function(x) {
 #'
 #' @return The first matching column name.
 #'
+#' @examples
+#' df <- data.frame(locationName = "Loc1", germplasmName = "G1")
+#' find_column(df, c("germplasmName", "accession_name"), "accession")
+#'
+#' @keywords internal
 #' @export
 find_column <- function(data, candidates, label = "column") {
   matches <- candidates[candidates %in% colnames(data)]
@@ -46,6 +59,10 @@ find_column <- function(data, candidates, label = "column") {
 #'
 #' @return Harmonic mean.
 #'
+#' @examples
+#' harmonic_mean(c(2, 3, 4, NA))
+#'
+#' @keywords internal
 #' @export
 harmonic_mean <- function(x) {
   x <- x[!is.na(x) & x > 0]
@@ -79,6 +96,16 @@ environment_display_label <- function(environment, location, trial, year) {
 #' @param env_info Data frame with environment, location, trial, and year.
 #'
 #' @return Data frame with an added `environment_label` column.
+#'
+#' @examples
+#' env_info <- data.frame(
+#'   environment = c("Loc1_T1", "Loc2_T2"),
+#'   location = c("Loc1", "Loc2"),
+#'   trial = c("T1", "T2"),
+#'   year = c("2025", NA)
+#' )
+#'
+#' complete_environment_info(env_info)
 #'
 #' @export
 complete_environment_info <- function(env_info) {
@@ -115,6 +142,18 @@ complete_environment_info <- function(env_info) {
 #'
 #' @return Joined data frame.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' membership <- data.frame(
+#'   group_id = "Group_1",
+#'   environment = prepared$env_info$environment[1:2]
+#' )
+#' add_environment_metadata(membership, prepared$env_info)
+#'
 #' @export
 add_environment_metadata <- function(results, env_info, env_col = "environment") {
   if (nrow(results) == 0 || !(env_col %in% colnames(results))) {
@@ -135,6 +174,15 @@ add_environment_metadata <- function(results, env_info, env_col = "environment")
 #'
 #' @return Pairwise table with metadata.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' lin <- lin_group_environments(prepared$data)
+#' add_pairwise_environment_metadata(lin$pairwise, prepared$env_info)
+#'
 #' @export
 add_pairwise_environment_metadata <- function(pairwise, env_info) {
   if (nrow(pairwise) == 0) {
@@ -143,34 +191,34 @@ add_pairwise_environment_metadata <- function(pairwise, env_info) {
 
   env1_info <- env_info |>
     dplyr::rename(
-      env1 = .data$environment,
-      env1_name = .data$environment_label,
-      env1_location = .data$location,
-      env1_trial = .data$trial,
-      env1_year = .data$year
+      env1 = "environment",
+      env1_name = "environment_label",
+      env1_location = "location",
+      env1_trial = "trial",
+      env1_year = "year"
     )
 
   env2_info <- env_info |>
     dplyr::rename(
-      env2 = .data$environment,
-      env2_name = .data$environment_label,
-      env2_location = .data$location,
-      env2_trial = .data$trial,
-      env2_year = .data$year
+      env2 = "environment",
+      env2_name = "environment_label",
+      env2_location = "location",
+      env2_trial = "trial",
+      env2_year = "year"
     )
 
   pairwise |>
     dplyr::left_join(env1_info, by = "env1") |>
     dplyr::left_join(env2_info, by = "env2") |>
     dplyr::select(
-      .data$env1_location,
-      .data$env1_trial,
-      .data$env1_year,
-      .data$env1_name,
-      .data$env2_location,
-      .data$env2_trial,
-      .data$env2_year,
-      .data$env2_name,
+      "env1_location",
+      "env1_trial",
+      "env1_year",
+      "env1_name",
+      "env2_location",
+      "env2_trial",
+      "env2_year",
+      "env2_name",
       dplyr::everything(),
       -dplyr::any_of(c("env1", "env2", "environments"))
     )
@@ -182,6 +230,16 @@ add_pairwise_environment_metadata <- function(pairwise, env_info) {
 #' @param group_membership Group membership table.
 #'
 #' @return Group summary with display metadata.
+#'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' lin <- lin_group_environments(prepared$data)
+#' membership <- add_environment_metadata(lin$group_membership, prepared$env_info)
+#' environment_summary_by_group(lin$group_summary, membership)
 #'
 #' @export
 environment_summary_by_group <- function(group_summary, group_membership) {
@@ -203,11 +261,11 @@ environment_summary_by_group <- function(group_summary, group_membership) {
     dplyr::select(-dplyr::any_of("environments")) |>
     dplyr::left_join(display_summary, by = "group_id") |>
     dplyr::select(
-      .data$group_id,
-      .data$environments,
-      .data$locations,
-      .data$trials,
-      .data$years,
+      "group_id",
+      "environments",
+      "locations",
+      "trials",
+      "years",
       dplyr::everything()
     )
 }

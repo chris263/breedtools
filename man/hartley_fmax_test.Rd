@@ -14,11 +14,22 @@ It must include columns \code{environment}, \code{ms_error}, and \code{df_error}
 
 \item{n_sim}{Number of simulations for the critical value.}
 
-\item{seed}{Random seed.}
+\item{seed}{Random seed passed to \code{\link[=hartley_critical_sim]{hartley_critical_sim()}}. The user's
+global random number generator state is not modified.}
 }
 \value{
 A tibble with observed Fmax, critical Fmax, and homogeneity decision.
 }
 \description{
 Hartley Fmax test for residual variance homogeneity
+}
+\examples{
+env_anova <- data.frame(
+  environment = c("Loc1", "Loc2", "Loc3"),
+  ms_error = c(10, 12, 15),
+  df_error = c(20, 20, 20)
+)
+
+hartley_fmax_test(env_anova, n_sim = 2000)
+
 }

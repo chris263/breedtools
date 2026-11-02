@@ -2,6 +2,10 @@
 #'
 #' @return Empty data frame.
 #'
+#' @examples
+#' empty_pairwise()
+#'
+#' @keywords internal
 #' @export
 empty_pairwise <- function() {
   data.frame(
@@ -27,6 +31,10 @@ empty_pairwise <- function() {
 #'
 #' @return Empty data frame.
 #'
+#' @examples
+#' empty_group_summary()
+#'
+#' @keywords internal
 #' @export
 empty_group_summary <- function() {
   data.frame(
@@ -51,6 +59,10 @@ empty_group_summary <- function() {
 #'
 #' @return Empty data frame.
 #'
+#' @examples
+#' empty_group_membership()
+#'
+#' @keywords internal
 #' @export
 empty_group_membership <- function() {
   data.frame(
@@ -63,6 +75,10 @@ empty_group_membership <- function() {
 #'
 #' @return Empty data frame.
 #'
+#' @examples
+#' empty_ungrouped()
+#'
+#' @keywords internal
 #' @export
 empty_ungrouped <- function() {
   data.frame(
@@ -77,6 +93,10 @@ empty_ungrouped <- function() {
 #'
 #' @return Empty data frame.
 #'
+#' @examples
+#' empty_anova()
+#'
+#' @keywords internal
 #' @export
 empty_anova <- function() {
   data.frame(

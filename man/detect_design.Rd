@@ -16,3 +16,14 @@ A list with \code{design}, \code{formula}, and \code{message}.
 Detects whether the data look like CRD, RCBD, row-column, alpha-lattice,
 or augmented/block-only design.
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+design <- detect_design(prepared$data)
+design$design
+design$formula
+
+}

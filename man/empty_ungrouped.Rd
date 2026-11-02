@@ -12,3 +12,8 @@ Empty data frame.
 \description{
 Empty ungrouped environment table
 }
+\examples{
+empty_ungrouped()
+
+}
+\keyword{internal}

@@ -39,18 +39,56 @@ column added.}
 summaries.}
 }
 \value{
-A list with the analysis input, fitted model, model formula, ANOVA
-table, formatted ANOVA table, plot-level fitted values and residuals,
-genotype summaries, and model diagnostics.
+An object of class \code{augmented_row_column_analysis}: a list with
+\describe{
+\item{input, formula, model}{The column mapping, model formula, and an
+\code{lm} fit on the check plots.}
+\item{anova, anova_df, anova_formatted}{Sequential ANOVA (estimable df),
+design df formulas, and a formatted ANOVA table.}
+\item{plot_results}{The input data with fitted values and residuals.}
+\item{genotype_summary}{One row per genotype with raw, fitted, and
+adjusted means and the standard error of the adjusted mean.}
+\item{adjusted_means}{Genotypes ranked by adjusted mean (best first).}
+\item{diagnostics}{Error df, residual standard deviation, R-squared,
+\code{mean_sed} (mean standard error of a difference between two adjusted
+means), \code{lsd_5pct} (the matching least significant difference), and
+flags for rank deficiency or a saturated fit.}
+\item{message}{A note when F-tests or adjusted means are not estimable.}
+}
 }
 \description{
 Fits the fixed-effects model:
 \code{y = mean + rowgroup + colgroup + rowgroup:colgroup + rowgroup:row + colgroup:col + genotype + error}.
-The formatted ANOVA table reports degrees of freedom from augmented
-row-column design formulas using field rows (\code{k}), field columns (\code{s}), row
-groups (\code{gk}), column groups (\code{gs}), check cultivars (\code{vc}), and
-unreplicated entries (\code{ve}).
+Sums of squares are sequential, in the order above. Degrees of freedom are
+the ranks actually estimable from the observed (non-missing) plots. For a
+complete design they equal the augmented row-column formulas, reported in
+\code{anova_df}, which use field rows (\code{k}), field columns (\code{s}), row groups
+(\code{gk}), column groups (\code{gs}), check cultivars (\code{vc}), and unreplicated
+entries (\code{ve}):
+row groups \code{gk - 1}, rows within row groups \code{k - gk}, column groups
+\code{gs - 1}, columns within column groups \code{s - gs}, blocks
+\code{(gk - 1)(gs - 1)}, genotypes \code{vc + ve - 1}, and error as the remainder of
+\code{k * s - 1}.
 }
+\details{
+Unreplicated entries each fit their own plot exactly, so the model is fitted
+without a dense genotype design matrix: the residual comes from the
+replicated (check) plots alone. \code{model} is the corresponding \code{lm} fit on the
+check plots, with aliased columns removed. This keeps the analysis fast for
+large trials.
+}
+\section{Adjusted means}{
+
+Genotype effects are fixed, so the adjusted means are best linear unbiased
+estimates (BLUEs). Each is the genotype effect plus the average row,
+column, and block effect over all observed plots, i.e. the expected value
+of the genotype in an average plot of the field. For an unreplicated entry
+this is its observed value corrected for the row, column, and block
+effects of its plot, estimated from the checks; its standard error
+combines the plot error and the uncertainty of that correction. Use
+\code{adjusted_mean} (not \code{raw_mean}) to rank and select entries.
+}
+
 \examples{
 design <- augmented_row_column_design(
   treatments = paste0("G", seq_len(108)),
@@ -66,6 +104,7 @@ design <- augmented_row_column_design(
 design_data <- design$design
 design_data$yield <- rnorm(nrow(design_data), mean = 100, sd = 10)
 analysis <- analyze_augmented_row_column_design(design_data, response = "yield")
-analysis$anova
+analysis
+head(analysis$adjusted_means)
 
 }

@@ -14,24 +14,40 @@
 #' @param block_col Optional block column.
 #' @param max_group_size Maximum environment group size to test.
 #' @param n_sim Number of simulations for Hartley critical value.
-#' @param seed Random seed.
-#' @param export Logical. If `TRUE`, writes CSV files.
-#' @param output_dir Directory where CSV files should be written.
+#' @param seed Random seed for the Hartley critical value simulation. The
+#'   user's global random number generator state is not modified.
+#' @param export Logical. If `TRUE`, writes CSV files to `output_dir`.
+#' @param output_dir Directory where CSV files should be written. Defaults to
+#'   `NULL`, in which case nothing is written; it must be supplied when
+#'   `export = TRUE`.
 #'
 #' @return A list containing cleaned data, ANOVA results, Hartley test,
 #'   all group tests, compatible groups, maximal compatible groups, and detected
 #'   columns.
 #'
 #' @examples
-#' \dontrun{
+#' pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#'
 #' result <- run_breedbase_variance_check(
-#'   file = "breedbase_trials_pheno.xlsx",
-#'   trait_col = "phenotype"
+#'   file = pheno_file,
+#'   trait_col = "fresh root yield|CO_334:0000013",
+#'   n_sim = 2000
 #' )
 #'
 #' result$env_anova
 #' result$maximal_compatible_groups
-#' }
+#'
+#' # Export CSV files to a temporary directory
+#' out_dir <- file.path(tempdir(), "variance_check")
+#' result <- run_breedbase_variance_check(
+#'   file = pheno_file,
+#'   trait_col = "fresh root yield|CO_334:0000013",
+#'   n_sim = 2000,
+#'   export = TRUE,
+#'   output_dir = out_dir
+#' )
+#' list.files(out_dir)
+#' unlink(out_dir, recursive = TRUE)
 #'
 #' @export
 run_breedbase_variance_check <- function(
@@ -46,8 +62,12 @@ run_breedbase_variance_check <- function(
     n_sim = 100000,
     seed = 123,
     export = FALSE,
-    output_dir = "."
+    output_dir = NULL
 ) {
+  if (isTRUE(export) && is.null(output_dir)) {
+    stop("`output_dir` must be supplied when `export = TRUE`.", call. = FALSE)
+  }
+
   pheno_raw <- load_or_use_data_frame(file, "file")
 
   pheno <- prepare_breedbase_pheno(

@@ -16,7 +16,7 @@ run_breedbase_variance_check(
   n_sim = 1e+05,
   seed = 123,
   export = FALSE,
-  output_dir = "."
+  output_dir = NULL
 )
 }
 \arguments{
@@ -39,11 +39,14 @@ already loaded data frame.}
 
 \item{n_sim}{Number of simulations for Hartley critical value.}
 
-\item{seed}{Random seed.}
+\item{seed}{Random seed for the Hartley critical value simulation. The
+user's global random number generator state is not modified.}
 
-\item{export}{Logical. If \code{TRUE}, writes CSV files.}
+\item{export}{Logical. If \code{TRUE}, writes CSV files to \code{output_dir}.}
 
-\item{output_dir}{Directory where CSV files should be written.}
+\item{output_dir}{Directory where CSV files should be written. Defaults to
+\code{NULL}, in which case nothing is written; it must be supplied when
+\code{export = TRUE}.}
 }
 \value{
 A list containing cleaned data, ANOVA results, Hartley test,
@@ -56,14 +59,27 @@ performs Hartley Fmax tests, and identifies compatible environment groups for
 joint analysis.
 }
 \examples{
-\dontrun{
+pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+
 result <- run_breedbase_variance_check(
-  file = "breedbase_trials_pheno.xlsx",
-  trait_col = "phenotype"
+  file = pheno_file,
+  trait_col = "fresh root yield|CO_334:0000013",
+  n_sim = 2000
 )
 
 result$env_anova
 result$maximal_compatible_groups
-}
+
+# Export CSV files to a temporary directory
+out_dir <- file.path(tempdir(), "variance_check")
+result <- run_breedbase_variance_check(
+  file = pheno_file,
+  trait_col = "fresh root yield|CO_334:0000013",
+  n_sim = 2000,
+  export = TRUE,
+  output_dir = out_dir
+)
+list.files(out_dir)
+unlink(out_dir, recursive = TRUE)
 
 }

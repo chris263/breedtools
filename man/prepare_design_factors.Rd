@@ -15,3 +15,12 @@ Data frame with design columns converted to factors.
 \description{
 Prepare design factors
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+str(prepare_design_factors(prepared$data))
+
+}

@@ -12,3 +12,8 @@ Empty data frame.
 \description{
 Empty pairwise Lin result table
 }
+\examples{
+empty_pairwise()
+
+}
+\keyword{internal}

@@ -16,3 +16,12 @@ Normalized character vector.
 Removes ontology suffixes such as \code{.CO...} or \verb{|CO_...} and replaces dots
 with spaces.
 }
+\examples{
+normalize_column_name(c(
+  "fresh root yield|CO_334:0000013",
+  "plant.height.CO_334.0000018",
+  "germplasmName"
+))
+
+}
+\keyword{internal}

@@ -15,3 +15,14 @@ A tibble containing only homogeneous groups.
 \description{
 Get compatible environment groups
 }
+\examples{
+env_anova <- data.frame(
+  environment = c("Loc1", "Loc2", "Loc3"),
+  ms_error = c(10, 12, 30),
+  df_error = c(20, 20, 20)
+)
+
+group_tests <- make_environment_groups(env_anova, n_sim = 2000)
+get_compatible_groups(group_tests)
+
+}

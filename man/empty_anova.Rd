@@ -12,3 +12,8 @@ Empty data frame.
 \description{
 Empty ANOVA result table
 }
+\examples{
+empty_anova()
+
+}
+\keyword{internal}

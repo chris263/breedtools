@@ -15,3 +15,12 @@ ANOVA table as a data frame.
 \description{
 Calculate design-aware ANOVA
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+calculate_environment_stratification_anova(prepared$data)
+
+}

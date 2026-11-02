@@ -5,6 +5,15 @@
 #'
 #' @return A list with a summary table and common genotype names.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' envs <- prepared$env_info$environment[1:2]
+#' lin_ss_ge(prepared$data, envs)$summary
+#'
 #' @export
 lin_ss_ge <- function(data, envs) {
   d <- data |>
@@ -47,10 +56,10 @@ lin_ss_ge <- function(data, envs) {
     )
 
   wide <- cell_means |>
-    dplyr::select(.data$accession_name, .data$environment, .data$mean_y) |>
+    dplyr::select("accession_name", "environment", "mean_y") |>
     tidyr::pivot_wider(
-      names_from = .data$environment,
-      values_from = .data$mean_y
+      names_from = "environment",
+      values_from = "mean_y"
     ) |>
     dplyr::arrange(.data$accession_name)
 
@@ -96,6 +105,16 @@ lin_ss_ge <- function(data, envs) {
 #' @param common_genotypes Character vector of common genotypes.
 #'
 #' @return A list with MSE, residual df, and message.
+#'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' envs <- prepared$env_info$environment[1:2]
+#' genotypes <- unique(prepared$data$accession_name)
+#' lin_error_mse(prepared$data, envs, genotypes)
 #'
 #' @export
 lin_error_mse <- function(data, envs, common_genotypes) {
@@ -145,6 +164,15 @@ lin_error_mse <- function(data, envs, common_genotypes) {
 #' @param alpha Significance level.
 #'
 #' @return Data frame with Lin GE test result.
+#'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' envs <- prepared$env_info$environment[1:2]
+#' lin_test_group(prepared$data, envs, alpha = 0.05)
 #'
 #' @export
 lin_test_group <- function(data, envs, alpha = 0.05) {
@@ -201,6 +229,16 @@ lin_test_group <- function(data, envs, alpha = 0.05) {
 #' @return A list with pairwise tests, group summary, group membership, and
 #' ungrouped environments.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' lin <- lin_group_environments(prepared$data, alpha = 0.05)
+#' lin$group_summary
+#' lin$group_membership
+#'
 #' @export
 lin_group_environments <- function(data, alpha = 0.05) {
   all_envs <- sort(unique(as.character(data$environment)))
@@ -229,7 +267,7 @@ lin_group_environments <- function(data, alpha = 0.05) {
     res$env2 <- x[2]
     res
   })) |>
-    dplyr::select(.data$env1, .data$env2, dplyr::everything()) |>
+    dplyr::select("env1", "env2", dplyr::everything()) |>
     dplyr::arrange(.data$ss_ge)
 
   remaining_envs <- all_envs
@@ -296,7 +334,7 @@ lin_group_environments <- function(data, alpha = 0.05) {
 
   if (length(group_tests) > 0) {
     group_summary <- dplyr::bind_rows(group_tests) |>
-      dplyr::select(.data$group_id, dplyr::everything())
+      dplyr::select("group_id", dplyr::everything())
 
     group_membership <- dplyr::bind_rows(lapply(seq_along(groups), function(i) {
       data.frame(

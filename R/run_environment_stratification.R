@@ -11,24 +11,38 @@
 #' @param sep Deprecated. File delimiters are detected from the extension by
 #'   `read_breedbase_file()`.
 #' @param normalize_names Logical. If `TRUE`, normalize Breedbase column names.
-#' @param export_json Logical. If `TRUE`, writes JSON result files.
-#' @param output_dir Output directory for JSON files.
+#' @param export_json Logical. If `TRUE`, writes a JSON result file to
+#'   `output_dir`.
+#' @param output_dir Output directory for the JSON file. Defaults to `NULL`, in
+#'   which case nothing is written; it must be supplied when
+#'   `export_json = TRUE`.
 #' @param prefix Prefix for JSON output files.
 #'
 #' @return A list with summary, ANOVA results, pairwise tests, group summary,
 #' group membership, ungrouped environments, and message.
 #'
 #' @examples
-#' \dontrun{
+#' pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#'
 #' result <- run_environment_stratification(
-#'   phenotype_file = "phenotype.tsv",
-#'   trait = "plant height",
+#'   phenotype_file = pheno_file,
+#'   trait = "fresh root yield",
 #'   alpha = 0.05
 #' )
 #'
 #' result$group_summary
 #' result$group_membership
-#' }
+#'
+#' # Export the result as JSON to a temporary directory
+#' out_dir <- file.path(tempdir(), "stratification")
+#' result <- run_environment_stratification(
+#'   phenotype_file = pheno_file,
+#'   trait = "fresh root yield",
+#'   export_json = TRUE,
+#'   output_dir = out_dir
+#' )
+#' list.files(out_dir)
+#' unlink(out_dir, recursive = TRUE)
 #'
 #' @export
 run_environment_stratification <- function(
@@ -38,9 +52,13 @@ run_environment_stratification <- function(
     sep = NULL,
     normalize_names = TRUE,
     export_json = FALSE,
-    output_dir = ".",
+    output_dir = NULL,
     prefix = "environment_stratification"
 ) {
+  if (isTRUE(export_json) && is.null(output_dir)) {
+    stop("`output_dir` must be supplied when `export_json = TRUE`.", call. = FALSE)
+  }
+
   if (is.na(alpha) || alpha <= 0 || alpha >= 1) {
     stop("Alpha must be a number between 0 and 1.", call. = FALSE)
   }

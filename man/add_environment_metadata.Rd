@@ -19,3 +19,16 @@ Joined data frame.
 \description{
 Add environment metadata to result table
 }
+\examples{
+pheno <- read_breedbase_file(
+  system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+)
+prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+
+membership <- data.frame(
+  group_id = "Group_1",
+  environment = prepared$env_info$environment[1:2]
+)
+add_environment_metadata(membership, prepared$env_info)
+
+}

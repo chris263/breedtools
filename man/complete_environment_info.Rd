@@ -15,3 +15,14 @@ Data frame with an added \code{environment_label} column.
 \description{
 Complete environment metadata
 }
+\examples{
+env_info <- data.frame(
+  environment = c("Loc1_T1", "Loc2_T2"),
+  location = c("Loc1", "Loc2"),
+  trial = c("T1", "T2"),
+  year = c("2025", NA)
+)
+
+complete_environment_info(env_info)
+
+}

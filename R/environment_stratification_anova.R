@@ -17,6 +17,16 @@ has_numeric_levels <- function(data, column) {
 #'
 #' @return A list with `design`, `formula`, and `message`.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' design <- detect_design(prepared$data)
+#' design$design
+#' design$formula
+#'
 #' @export
 detect_design <- function(data) {
   design_text <- ""
@@ -146,6 +156,14 @@ detect_design <- function(data) {
 #'
 #' @return Data frame with design columns converted to factors.
 #'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' str(prepare_design_factors(prepared$data))
+#'
 #' @export
 prepare_design_factors <- function(data) {
   data |>
@@ -164,6 +182,14 @@ prepare_design_factors <- function(data) {
 #' @param data Standardized phenotype data.
 #'
 #' @return ANOVA table as a data frame.
+#'
+#' @examples
+#' pheno <- read_breedbase_file(
+#'   system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+#' )
+#' prepared <- prepare_environment_stratification_data(pheno, trait = "fresh root yield")
+#'
+#' calculate_environment_stratification_anova(prepared$data)
 #'
 #' @export
 calculate_environment_stratification_anova <- function(data) {

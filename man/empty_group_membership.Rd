@@ -12,3 +12,8 @@ Empty data frame.
 \description{
 Empty group membership table
 }
+\examples{
+empty_group_membership()
+
+}
+\keyword{internal}

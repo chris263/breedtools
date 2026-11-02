@@ -6,9 +6,14 @@
 #' @param df_error_vec Numeric vector of residual degrees of freedom.
 #' @param alpha Significance level. Default is `0.05`.
 #' @param n_sim Number of simulations. Default is `100000`.
-#' @param seed Random seed.
+#' @param seed Random seed used for the simulation. The user's global random
+#'   number generator state is restored on exit. Use `NULL` to draw from the
+#'   current random number stream without setting a seed.
 #'
 #' @return A numeric critical value.
+#'
+#' @examples
+#' hartley_critical_sim(c(20, 20, 20), alpha = 0.05, n_sim = 2000)
 #'
 #' @export
 hartley_critical_sim <- function(
@@ -26,6 +31,20 @@ hartley_critical_sim <- function(
   }
 
   if (!is.null(seed)) {
+    old_seed <- if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+      get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    } else {
+      NULL
+    }
+    on.exit({
+      if (is.null(old_seed)) {
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          rm(".Random.seed", envir = .GlobalEnv)
+        }
+      } else {
+        assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
     set.seed(seed)
   }
 
@@ -48,9 +67,19 @@ hartley_critical_sim <- function(
 #' It must include columns `environment`, `ms_error`, and `df_error`.
 #' @param alpha Significance level. Default is `0.05`.
 #' @param n_sim Number of simulations for the critical value.
-#' @param seed Random seed.
+#' @param seed Random seed passed to [hartley_critical_sim()]. The user's
+#'   global random number generator state is not modified.
 #'
 #' @return A tibble with observed Fmax, critical Fmax, and homogeneity decision.
+#'
+#' @examples
+#' env_anova <- data.frame(
+#'   environment = c("Loc1", "Loc2", "Loc3"),
+#'   ms_error = c(10, 12, 15),
+#'   df_error = c(20, 20, 20)
+#' )
+#'
+#' hartley_fmax_test(env_anova, n_sim = 2000)
 #'
 #' @export
 hartley_fmax_test <- function(
@@ -100,3 +129,4 @@ hartley_fmax_test <- function(
     homogeneous = fmax_obs <= fmax_crit
   )
 }
+

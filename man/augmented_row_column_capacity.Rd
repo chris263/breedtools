@@ -5,11 +5,14 @@
 \title{Calculate augmented row-column design capacity}
 \usage{
 augmented_row_column_capacity(
-  rows_in_field,
-  cols_in_field,
-  rows_per_block,
-  cols_per_block,
-  n_controls
+  rows_in_field = NULL,
+  cols_in_field = NULL,
+  rows_per_block = NULL,
+  cols_per_block = NULL,
+  n_controls,
+  rows_per_rowgroup = NULL,
+  cols_per_colgroup = NULL,
+  checks_per_block = NULL
 )
 }
 \arguments{
@@ -17,22 +20,43 @@ augmented_row_column_capacity(
 
 \item{cols_in_field}{Number of columns in the whole field.}
 
-\item{rows_per_block}{Number of rows in each row-column block.}
+\item{rows_per_block}{Number of rows in each row group (equal groups).}
 
-\item{cols_per_block}{Number of columns in each row-column block.}
+\item{cols_per_block}{Number of columns in each column group (equal
+groups).}
 
-\item{n_controls}{Number of replicated checks/controls. Each block receives
-one copy of each control.}
+\item{n_controls}{Number of replicated checks/controls (\code{vc}).}
+
+\item{rows_per_rowgroup}{Optional vector with the number of rows of each
+row group (\code{kb(i)}), for unequal groups. Replaces \code{rows_per_block}.}
+
+\item{cols_per_colgroup}{Optional vector with the number of columns of
+each column group (\code{sb(j)}). Replaces \code{cols_per_block}.}
+
+\item{checks_per_block}{Optional number of check plots per block
+(\code{pb(i, j)}): a single number, a matrix with one row per row group and
+one column per column group, or a vector by row group. Defaults to
+\code{n_controls} (every block a complete block of checks). Smaller values
+give incomplete blocks; larger values give extra check replication.}
 }
 \value{
-A one-row tibble with number of blocks, total plots, check plots,
-entry plots available for unreplicated treatments, and \code{error_df}, the
-error degrees of freedom of the row-column ANOVA,
-\verb{check_plots - n_controls - (rows - 1) - (cols - 1) - (row groups - 1)(column groups - 1)}. A design is only analyzable when
-\code{error_df > 0}.
+A one-row tibble with the field size, number of groups and blocks,
+check and entry plots, \code{error_df}, the error degrees of freedom of the
+row-column ANOVA,
+\verb{check_plots - n_controls - (rows - 1) - (cols - 1) - (row groups - 1)(column groups - 1)} (a design is only analyzable when
+\code{error_df > 0}; Clarke and Stefanova (2011) recommend about 50),
+\code{check_fraction}, and the smallest slack of the row-group and column-group
+conditions of Piepho and Williams (2016), which must be non-negative for
+the row-group and column-group sub-designs to be estimable on their own.
 }
 \description{
-Calculate augmented row-column design capacity
+Reports the plot counts, error degrees of freedom and feasibility of an
+augmented row-column layout with superimposed blocks (Piepho and
+Williams, 2016). Rows are grouped into row groups and columns into column
+groups; their intersections are the blocks. Groups can have equal sizes
+(\code{rows_per_block}, \code{cols_per_block}) or unequal sizes
+(\code{rows_per_rowgroup}, \code{cols_per_colgroup}), and blocks can hold any number
+of check plots (\code{checks_per_block}).
 }
 \examples{
 augmented_row_column_capacity(
@@ -43,4 +67,17 @@ augmented_row_column_capacity(
   n_controls = 4
 )
 
+# Example 3 of Piepho and Williams (2016): unequal groups and blocks.
+augmented_row_column_capacity(
+  n_controls = 4,
+  rows_per_rowgroup = c(6, 5, 6, 5),
+  cols_per_colgroup = c(3, 4, 3),
+  checks_per_block = rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+)
+
+}
+\references{
+Piepho, H.-P. and Williams, E. R. (2016). Augmented row-column
+designs for a small number of checks. Agronomy Journal 108, 2256-2262.
+\doi{10.2134/agronj2016.06.0325}
 }

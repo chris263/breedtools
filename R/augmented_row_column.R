@@ -1,18 +1,42 @@
 #' Calculate augmented row-column design capacity
 #'
+#' Reports the plot counts, error degrees of freedom and feasibility of an
+#' augmented row-column layout with superimposed blocks (Piepho and
+#' Williams, 2016). Rows are grouped into row groups and columns into column
+#' groups; their intersections are the blocks. Groups can have equal sizes
+#' (`rows_per_block`, `cols_per_block`) or unequal sizes
+#' (`rows_per_rowgroup`, `cols_per_colgroup`), and blocks can hold any number
+#' of check plots (`checks_per_block`).
+#'
 #' @param rows_in_field Number of rows in the whole field.
 #' @param cols_in_field Number of columns in the whole field.
-#' @param rows_per_block Number of rows in each row-column block.
-#' @param cols_per_block Number of columns in each row-column block.
-#' @param n_controls Number of replicated checks/controls. Each block receives
-#'   one copy of each control.
+#' @param rows_per_block Number of rows in each row group (equal groups).
+#' @param cols_per_block Number of columns in each column group (equal
+#'   groups).
+#' @param n_controls Number of replicated checks/controls (`vc`).
+#' @param rows_per_rowgroup Optional vector with the number of rows of each
+#'   row group (`kb(i)`), for unequal groups. Replaces `rows_per_block`.
+#' @param cols_per_colgroup Optional vector with the number of columns of
+#'   each column group (`sb(j)`). Replaces `cols_per_block`.
+#' @param checks_per_block Optional number of check plots per block
+#'   (`pb(i, j)`): a single number, a matrix with one row per row group and
+#'   one column per column group, or a vector by row group. Defaults to
+#'   `n_controls` (every block a complete block of checks). Smaller values
+#'   give incomplete blocks; larger values give extra check replication.
 #'
-#' @return A one-row tibble with number of blocks, total plots, check plots,
-#' entry plots available for unreplicated treatments, and `error_df`, the
-#' error degrees of freedom of the row-column ANOVA,
+#' @return A one-row tibble with the field size, number of groups and blocks,
+#' check and entry plots, `error_df`, the error degrees of freedom of the
+#' row-column ANOVA,
 #' `check_plots - n_controls - (rows - 1) - (cols - 1) -
-#' (row groups - 1)(column groups - 1)`. A design is only analyzable when
-#' `error_df > 0`.
+#' (row groups - 1)(column groups - 1)` (a design is only analyzable when
+#' `error_df > 0`; Clarke and Stefanova (2011) recommend about 50),
+#' `check_fraction`, and the smallest slack of the row-group and column-group
+#' conditions of Piepho and Williams (2016), which must be non-negative for
+#' the row-group and column-group sub-designs to be estimable on their own.
+#'
+#' @references Piepho, H.-P. and Williams, E. R. (2016). Augmented row-column
+#'   designs for a small number of checks. Agronomy Journal 108, 2256-2262.
+#'   \doi{10.2134/agronj2016.06.0325}
 #'
 #' @examples
 #' augmented_row_column_capacity(
@@ -23,95 +47,104 @@
 #'   n_controls = 4
 #' )
 #'
+#' # Example 3 of Piepho and Williams (2016): unequal groups and blocks.
+#' augmented_row_column_capacity(
+#'   n_controls = 4,
+#'   rows_per_rowgroup = c(6, 5, 6, 5),
+#'   cols_per_colgroup = c(3, 4, 3),
+#'   checks_per_block = rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+#' )
+#'
 #' @export
 augmented_row_column_capacity <- function(
-    rows_in_field,
-    cols_in_field,
-    rows_per_block,
-    cols_per_block,
-    n_controls
+    rows_in_field = NULL,
+    cols_in_field = NULL,
+    rows_per_block = NULL,
+    cols_per_block = NULL,
+    n_controls,
+    rows_per_rowgroup = NULL,
+    cols_per_colgroup = NULL,
+    checks_per_block = NULL
 ) {
-  rows_in_field <- arc_positive_integer(rows_in_field, "rows_in_field")
-  cols_in_field <- arc_positive_integer(cols_in_field, "cols_in_field")
-  rows_per_block <- arc_positive_integer(rows_per_block, "rows_per_block")
-  cols_per_block <- arc_positive_integer(cols_per_block, "cols_per_block")
-  n_controls <- arc_positive_integer(n_controls, "n_controls")
-
-  if (rows_in_field %% rows_per_block != 0) {
-    stop("`rows_in_field` must be divisible by `rows_per_block`.", call. = FALSE)
-  }
-
-  if (cols_in_field %% cols_per_block != 0) {
-    stop("`cols_in_field` must be divisible by `cols_per_block`.", call. = FALSE)
-  }
-
-  if (n_controls > rows_per_block || n_controls > cols_per_block) {
-    stop(
-      "`n_controls` must fit in each block without duplicated check rows or columns.",
-      call. = FALSE
-    )
-  }
-
-  n_block_rows <- rows_in_field / rows_per_block
-  n_block_cols <- cols_in_field / cols_per_block
-  n_blocks <- n_block_rows * n_block_cols
-  total_plots <- rows_in_field * cols_in_field
-  check_plots <- n_blocks * n_controls
-  entry_plots <- total_plots - check_plots
-  error_df <- check_plots - n_controls - (rows_in_field - 1) - (cols_in_field - 1) -
-    (n_block_rows - 1) * (n_block_cols - 1)
-
-  tibble::tibble(
-    rows_in_field = rows_in_field,
-    cols_in_field = cols_in_field,
-    rows_per_block = rows_per_block,
-    cols_per_block = cols_per_block,
-    n_block_rows = n_block_rows,
-    n_block_cols = n_block_cols,
-    n_blocks = n_blocks,
-    n_controls = n_controls,
-    total_plots = total_plots,
-    check_plots = check_plots,
-    entry_plots = entry_plots,
-    error_df = error_df
+  spec <- arc_group_spec(
+    rows_in_field, cols_in_field, rows_per_block, cols_per_block,
+    rows_per_rowgroup, cols_per_colgroup, checks_per_block, n_controls
   )
+  arc_spec_capacity(spec)
 }
 
 #' Generate an augmented row-column field design
 #'
-#' Randomizes unreplicated treatments and replicated controls in an augmented
-#' row-column design. Each row-column block receives one copy of each control.
-#' Controls never share a row or column within a block, the same control never
-#' appears twice in a field row or field column, and every field row and column
-#' contains at least one control so that row and column effects are estimable.
-#' Candidate check layouts are scored for spatial spread and row/column
-#' balance; the best candidate whose row, column, and block effects are all
-#' estimable from the checks is returned.
+#' Randomizes unreplicated treatments and replicated controls (checks) in an
+#' augmented row-column design with superimposed blocks (Piepho and
+#' Williams, 2016). Adjacent rows form row groups and adjacent columns form
+#' column groups; each intersection is a block that receives a given number
+#' of check plots. Row, column and block effects are all estimable from the
+#' checks, and the layout must leave positive error degrees of freedom (see
+#' [augmented_row_column_capacity()]).
 #'
-#' The layout must leave positive error degrees of freedom (see
-#' [augmented_row_column_capacity()]); otherwise an error is raised.
+#' Two check-allocation methods are available:
+#' \describe{
+#'   \item{`"latin"`}{For equal groups where every block is a complete block
+#'     of checks (one copy of each). Checks are placed with covering Latin
+#'     rectangles, so controls never share a row or column within a block,
+#'     the same control never appears twice in a field row or column, and
+#'     every field row and column has a check. Candidates are scored for
+#'     spatial spread and row/column balance.}
+#'   \item{`"optimal"`}{The general strategy of Piepho and Williams (2016):
+#'     unequal group sizes and any number of check plots per block
+#'     (incomplete blocks or extra replication of checks). Check labels are
+#'     first allocated to blocks balancing row groups, column groups and
+#'     blocks (Step 2); check plots are then placed within blocks and the
+#'     layout improved by a local search that maximizes the D-criterion of
+#'     the check-plot model `row + column + rowgroup:colgroup + check`
+#'     (Steps 3-5). Check plots next to each other (same column in
+#'     consecutive rows, or same row in consecutive columns) are avoided,
+#'     inside blocks above all, and spatial spread breaks ties. Entries fill the
+#'     remaining plots at random (Step 6).}
+#' }
+#' `method = "auto"` uses `"latin"` when it applies and `"optimal"`
+#' otherwise.
 #'
 #' @param treatments Character vector of unreplicated treatment/entry names.
+#'   Its length must equal the number of entry plots.
 #' @param controls Character vector of replicated check/control names.
 #' @param rows_in_field Number of rows in the whole field.
 #' @param cols_in_field Number of columns in the whole field.
-#' @param rows_per_block Number of rows in each row-column block.
-#' @param cols_per_block Number of columns in each row-column block.
+#' @param rows_per_block Number of rows in each row group (equal groups).
+#' @param cols_per_block Number of columns in each column group (equal
+#'   groups).
 #' @param plot_type Plot numbering order. Use `"serpentine"` or `"cartesian"`.
-#' @param n_candidates Number of candidate layouts to generate and score.
+#' @param n_candidates Number of candidate layouts (`"latin"`) or random
+#'   restarts of the local search (`"optimal"`, at most 50; the search stops
+#'   after 3 restarts without improvement).
 #' @param seed Optional random seed.
 #' @param output_file Optional path for writing the complete design as a
 #'   tab-delimited file.
+#' @param rows_per_rowgroup,cols_per_colgroup Optional vectors of unequal
+#'   group sizes, as in [augmented_row_column_capacity()].
+#' @param checks_per_block Optional number of check plots per block, as in
+#'   [augmented_row_column_capacity()].
+#' @param method Check allocation method: `"auto"`, `"latin"` or
+#'   `"optimal"`.
 #'
 #' @return A list with:
 #' \describe{
 #'   \item{input}{Validated design inputs.}
-#'   \item{summary}{Design size and optimization summary.}
+#'   \item{summary}{Design size, error df, method, and the D-criterion
+#'   `d_criterion` (`det(X'X)^(1/p)` of the check-plot model; higher is
+#'   better), and the number of pairs of neighbouring check plots (same
+#'   column in consecutive rows, or same row in consecutive columns) inside a
+#'   block and across block boundaries.}
 #'   \item{design}{Complete plot-level design with row, column, block, entry,
 #'   control flag, and plot order.}
 #'   \item{breedbase_design}{Breedbase-compatible columns:
 #'   `plots`, `block`, `all_entries`, `rep`, and `is_control`.}
 #' }
+#'
+#' @references Piepho, H.-P. and Williams, E. R. (2016). Augmented row-column
+#'   designs for a small number of checks. Agronomy Journal 108, 2256-2262.
+#'   \doi{10.2134/agronj2016.06.0325}
 #'
 #' @examples
 #' treatments <- paste0("G", seq_len(108))
@@ -131,20 +164,39 @@ augmented_row_column_capacity <- function(
 #' head(design$design)
 #' design$summary
 #'
+#' # Example 3 of Piepho and Williams (2016): 173 entries, 4 checks, unequal
+#' # row and column groups, and 3 to 5 check plots per block.
+#' pb <- rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+#' ex3 <- augmented_row_column_design(
+#'   treatments = paste0("E", 1:173),
+#'   controls = c("A", "B", "C", "D"),
+#'   rows_per_rowgroup = c(6, 5, 6, 5),
+#'   cols_per_colgroup = c(3, 4, 3),
+#'   checks_per_block = pb,
+#'   n_candidates = 3,
+#'   seed = 1
+#' )
+#' ex3$summary[, c("method", "check_plots", "entry_plots", "error_df", "d_criterion")]
+#'
 #' @export
 augmented_row_column_design <- function(
     treatments,
     controls,
-    rows_in_field,
-    cols_in_field,
-    rows_per_block,
-    cols_per_block,
+    rows_in_field = NULL,
+    cols_in_field = NULL,
+    rows_per_block = NULL,
+    cols_per_block = NULL,
     plot_type = c("serpentine", "cartesian"),
     n_candidates = 1000,
     seed = NULL,
-    output_file = NULL
+    output_file = NULL,
+    rows_per_rowgroup = NULL,
+    cols_per_colgroup = NULL,
+    checks_per_block = NULL,
+    method = c("auto", "latin", "optimal")
 ) {
   plot_type <- match.arg(plot_type)
+  method <- match.arg(method)
   n_candidates <- arc_positive_integer(n_candidates, "n_candidates")
 
   if (!is.null(seed)) {
@@ -172,65 +224,78 @@ augmented_row_column_design <- function(
     cols_in_field = cols_in_field,
     rows_per_block = rows_per_block,
     cols_per_block = cols_per_block,
+    rows_per_rowgroup = rows_per_rowgroup,
+    cols_per_colgroup = cols_per_colgroup,
+    checks_per_block = checks_per_block,
     n_candidates = n_candidates,
-    plot_type = plot_type
+    plot_type = plot_type,
+    method = method
   )
+  spec <- inputs$spec
+  capacity <- arc_spec_capacity(spec)
 
-  dims <- arc_design_dims(
-    rows_in_field = inputs$rows_in_field,
-    cols_in_field = inputs$cols_in_field,
-    rows_per_block = inputs$rows_per_block,
-    cols_per_block = inputs$cols_per_block,
-    n_controls = length(inputs$controls)
-  )
+  if (inputs$method == "optimal") {
+    searched <- arc_flex_search(spec, inputs$n_candidates)
+    if (searched$score$rank < searched$score$p) {
+      stop(
+        "Unable to generate an augmented row-column design in which all row, ",
+        "column, and block effects are estimable from the checks. ",
+        "Try increasing `n_candidates`, adding check plots, or changing the groups.",
+        call. = FALSE
+      )
+    }
+    design_full <- arc_flex_build_design(
+      searched$state, spec, inputs$treatments, inputs$controls, inputs$plot_type
+    )
+    n_valid_candidates <- searched$n_evaluated
+    best_score <- -searched$score$value
+  } else {
+    dims <- arc_design_dims(
+      rows_in_field = inputs$rows_in_field,
+      cols_in_field = inputs$cols_in_field,
+      rows_per_block = inputs$rows_per_block,
+      cols_per_block = inputs$cols_per_block,
+      n_controls = length(inputs$controls)
+    )
 
-  # Candidates only differ in check positions, so each candidate is a cheap
-  # integer vector of check coordinates. Entries and plot numbering are
-  # assigned once, for the selected candidate.
-  best_slots <- NULL
-  best_score <- Inf
-  n_valid_candidates <- 0L
-
-  for (i in seq_len(inputs$n_candidates)) {
-    slots <- arc_make_check_slots(dims)
-    candidate_score <- arc_score_check_slots(slots, dims)
-
-    # The estimability check (a small QR) only runs for candidates that would
-    # replace the current best.
-    if (candidate_score < best_score && arc_checks_estimable(slots, dims)) {
-      best_score <- candidate_score
-      best_slots <- slots
+    # Candidates only differ in check positions, so each candidate is a cheap
+    # integer vector of check coordinates. Entries and plot numbering are
+    # assigned once, for the selected candidate.
+    best_slots <- NULL
+    best_score <- Inf
+    n_valid_candidates <- 0L
+    for (i in seq_len(inputs$n_candidates)) {
+      slots <- arc_make_check_slots(dims)
+      candidate_score <- arc_score_check_slots(slots, dims)
+      # The estimability check (a small QR) only runs for candidates that
+      # would replace the current best.
+      if (candidate_score < best_score && arc_checks_estimable(slots, dims)) {
+        best_score <- candidate_score
+        best_slots <- slots
+      }
+      n_valid_candidates <- n_valid_candidates + 1L
     }
 
-    n_valid_candidates <- n_valid_candidates + 1L
-  }
+    if (is.null(best_slots)) {
+      stop(
+        "Unable to generate an augmented row-column design in which all row, ",
+        "column, and block effects are estimable from the checks. ",
+        "Try increasing `n_candidates`, adding checks, or changing the block dimensions.",
+        call. = FALSE
+      )
+    }
 
-  if (is.null(best_slots)) {
-    stop(
-      "Unable to generate an augmented row-column design in which all row, ",
-      "column, and block effects are estimable from the checks. ",
-      "Try increasing `n_candidates`, adding checks, or changing the block dimensions.",
-      call. = FALSE
+    best_slots <- arc_polish_latin(best_slots, dims)
+    design_full <- arc_build_design(
+      slots = best_slots,
+      dims = dims,
+      treatments = inputs$treatments,
+      controls = inputs$controls,
+      plot_type = inputs$plot_type
     )
   }
 
-  best_design <- arc_build_design(
-    slots = best_slots,
-    dims = dims,
-    treatments = inputs$treatments,
-    controls = inputs$controls,
-    plot_type = inputs$plot_type
-  )
-
-  capacity <- augmented_row_column_capacity(
-    rows_in_field = inputs$rows_in_field,
-    cols_in_field = inputs$cols_in_field,
-    rows_per_block = inputs$rows_per_block,
-    cols_per_block = inputs$cols_per_block,
-    n_controls = length(inputs$controls)
-  )
-
-  design <- best_design |>
+  design <- design_full |>
     dplyr::transmute(
       plots = .data$plots,
       row = .data$row,
@@ -249,10 +314,14 @@ augmented_row_column_design <- function(
 
   summary <- capacity |>
     dplyr::mutate(
+      method = inputs$method,
       plot_type = inputs$plot_type,
       n_candidates = inputs$n_candidates,
       n_valid_candidates = n_valid_candidates,
-      design_score = best_score
+      design_score = best_score,
+      d_criterion = arc_design_d_criterion(design, spec),
+      adjacent_checks_in_blocks = arc_design_adjacent(design, spec)[["inside"]],
+      adjacent_checks_across_blocks = arc_design_adjacent(design, spec)[["across"]]
     )
 
   result <- list(
@@ -263,6 +332,10 @@ augmented_row_column_design <- function(
       cols_in_field = inputs$cols_in_field,
       rows_per_block = inputs$rows_per_block,
       cols_per_block = inputs$cols_per_block,
+      rows_per_rowgroup = spec$kb,
+      cols_per_colgroup = spec$sb,
+      checks_per_block = spec$pb,
+      method = inputs$method,
       plot_type = inputs$plot_type,
       n_candidates = inputs$n_candidates,
       seed = seed
@@ -535,8 +608,23 @@ plot_augmented_row_column_design <- function(
 #' @param row_col Name of the field row column.
 #' @param col_col Name of the field column column.
 #' @param type_col Optional entry type column. Used only for genotype summaries.
-#' @param control_col Optional control flag column. Used only for genotype
-#'   summaries.
+#' @param control_col Optional control flag column. Identifies the checks
+#'   for `entries = "random"`; otherwise used only for genotype summaries.
+#' @param random_blocks Logical. If `TRUE`, rows within row groups, columns
+#'   within column groups and blocks are random effects, which recovers
+#'   inter-block information (Wolfinger et al., 1997; Möhring et al., 2015).
+#'   Row and column groups stay fixed. Fitted by REML with 'lme4'.
+#' @param entries `"fixed"` (default) or `"random"`. With `"random"`, checks
+#'   are fixed and the unreplicated entries are random effects from a common
+#'   breeding population (Piepho, Williams and Fleck, 2006); entry values are
+#'   then BLUPs. Fitted by REML with 'lme4'.
+#' @param spatial Logical. If `TRUE`, the plot errors get a spatial add-on: a
+#'   two-dimensional P-spline surface over rows and columns fitted with the
+#'   'SpATS' package, with row and column groups fixed and rows, columns and
+#'   blocks random. Genotypes are fixed.
+#' @param spatial_nseg Optional number of P-spline segments for columns and
+#'   rows, `c(col, row)`. Defaults to half the number of columns and rows
+#'   (at least 3, at most 40).
 #'
 #' @return An object of class `augmented_row_column_analysis`: a list with
 #' \describe{
@@ -552,12 +640,24 @@ plot_augmented_row_column_design <- function(
 #'     `mean_sed` (mean standard error of a difference between two adjusted
 #'     means), `lsd_5pct` (the matching least significant difference), and
 #'     flags for rank deficiency or a saturated fit.}
+#'   \item{variance_components, mixed_model}{For mixed or spatial fits: the
+#'     REML variance components and the `lmerMod` or `SpATS` fit; otherwise
+#'     `NULL`.}
 #'   \item{message}{A note when F-tests or adjusted means are not estimable.}
 #' }
 #'
+#' @section Mixed and spatial models:
+#' The ANOVA table always comes from the fixed-effects model of Piepho and
+#' Williams (2016, Eq. 1). With `random_blocks`, `entries = "random"` or
+#' `spatial`, the adjusted means, their standard errors, `mean_sed` and
+#' `lsd_5pct` come from the corresponding REML fit instead. Standard errors
+#' are exact prediction standard errors from the mixed-model equations for
+#' the estimated variance components; `lsd_5pct` uses the fixed-model error
+#' df as an approximation.
+#'
 #' @section Adjusted means:
-#' Genotype effects are fixed, so the adjusted means are best linear unbiased
-#' estimates (BLUEs). Each is the genotype effect plus the average row,
+#' With the default fixed-effects model, genotype effects are fixed, so the
+#' adjusted means are best linear unbiased estimates (BLUEs). Each is the genotype effect plus the average row,
 #' column, and block effect over all observed plots, i.e. the expected value
 #' of the genotype in an average plot of the field. For an unreplicated entry
 #' this is its observed value corrected for the row, column, and block
@@ -593,10 +693,21 @@ analyze_augmented_row_column_design <- function(
     row_col = "row",
     col_col = "col",
     type_col = "type",
-    control_col = "is_control"
+    control_col = "is_control",
+    random_blocks = FALSE,
+    entries = c("fixed", "random"),
+    spatial = FALSE,
+    spatial_nseg = NULL
 ) {
+  entries <- match.arg(entries)
+  if (is.list(data) && !is.data.frame(data) && !is.null(data$design)) {
+    data <- data$design
+  }
   if (!is.data.frame(data)) {
     stop("`data` must be a data frame.", call. = FALSE)
+  }
+  if (isTRUE(spatial) && entries == "random") {
+    stop("`spatial = TRUE` is only available with `entries = \"fixed\"`.", call. = FALSE)
   }
 
   required_cols <- c(response, genotype_col, rowgroup_col, colgroup_col, row_col, col_col)
@@ -727,9 +838,37 @@ analyze_augmented_row_column_design <- function(
   genotype_summary$fitted_mean[is.nan(genotype_summary$fitted_mean)] <- NA_real_
   genotype_summary$residual_mean[is.nan(genotype_summary$residual_mean)] <- NA_real_
 
-  adjusted_parts <- arc_attach_adjusted_means(genotype_summary, fit_parts$adjusted_means)
-  genotype_summary <- adjusted_parts$genotype_summary
+  # Mixed-model and spatial alternatives (Piepho and Williams, 2016,
+  # Analysis section) replace the fixed-effects adjusted means; the ANOVA
+  # always comes from the fixed-effects model.
+  model_type <- "fixed"
+  adjusted_source <- fit_parts$adjusted_means
   precision <- fit_parts$precision
+  variance_components <- NULL
+  mixed_model <- NULL
+  spatial_effective_dim <- NA_real_
+  if (isTRUE(spatial) || isTRUE(random_blocks) || entries == "random") {
+    analysis_data$is_check <- if (control_col %in% names(data) && !all(is.na(analysis_data$is_control))) {
+      analysis_data$is_control == 1L
+    } else {
+      analysis_data$genotype %in% names(which(table(analysis_data$genotype) > 1))
+    }
+    alt <- if (isTRUE(spatial)) {
+      model_type <- "spatial"
+      arc_rc_spatial(analysis_data, spatial_nseg, fit_parts$error_df)
+    } else {
+      model_type <- "mixed"
+      arc_rc_mixed(analysis_data, isTRUE(random_blocks), entries == "random", fit_parts$error_df)
+    }
+    adjusted_source <- alt$adjusted_means
+    precision <- alt$precision
+    variance_components <- alt$variance_components
+    mixed_model <- alt$model
+    if (!is.null(alt$spatial_effective_dim)) spatial_effective_dim <- alt$spatial_effective_dim
+  }
+
+  adjusted_parts <- arc_attach_adjusted_means(genotype_summary, adjusted_source)
+  genotype_summary <- adjusted_parts$genotype_summary
 
   error_df <- fit_parts$error_df
   rss <- fit_parts$rss
@@ -759,11 +898,18 @@ analyze_augmented_row_column_design <- function(
       isTRUE(!is.na(sigma) && sigma < sqrt(.Machine$double.eps)),
     mean_sed = precision$mean_sed,
     lsd_5pct = precision$lsd_5pct,
-    anova_warning = NA_character_
+    anova_warning = NA_character_,
+    model_type = model_type,
+    spatial_effective_dim = spatial_effective_dim,
+    singular_fit = if (inherits(mixed_model, "lmerMod")) lme4::isSingular(mixed_model) else NA
   )
 
   analysis_message <- arc_augmented_analysis_message(diagnostics)
-  analysis_message <- arc_append_estimability_message(analysis_message, fit_parts$adjusted_means)
+  analysis_message <- arc_append_estimability_message(analysis_message, adjusted_source)
+  if (entries == "random") {
+    note <- "Entry values are BLUPs (entries random); checks are BLUEs."
+    analysis_message <- if (is.null(analysis_message) || is.na(analysis_message) || !nzchar(analysis_message)) note else paste(analysis_message, note)
+  }
 
   result <- list(
     input = list(
@@ -774,7 +920,10 @@ analyze_augmented_row_column_design <- function(
       row_col = row_col,
       col_col = col_col,
       type_col = type_col,
-      control_col = control_col
+      control_col = control_col,
+      random_blocks = isTRUE(random_blocks),
+      entries = entries,
+      spatial = isTRUE(spatial)
     ),
     formula = model_formula,
     model = fit,
@@ -785,6 +934,8 @@ analyze_augmented_row_column_design <- function(
     genotype_summary = genotype_summary,
     adjusted_means = adjusted_parts$adjusted_means,
     diagnostics = diagnostics,
+    variance_components = variance_components,
+    mixed_model = mixed_model,
     message = analysis_message
   )
 
@@ -848,36 +999,31 @@ arc_validate_inputs <- function(
     rows_per_block,
     cols_per_block,
     n_candidates,
-    plot_type
+    plot_type,
+    rows_per_rowgroup = NULL,
+    cols_per_colgroup = NULL,
+    checks_per_block = NULL,
+    method = "auto"
 ) {
   treatments <- as.character(treatments)
   controls <- as.character(controls)
 
   treatments <- treatments[!is.na(treatments) & treatments != ""]
   controls <- controls[!is.na(controls) & controls != ""]
-
-  rows_in_field <- arc_positive_integer(rows_in_field, "rows_in_field")
-  cols_in_field <- arc_positive_integer(cols_in_field, "cols_in_field")
-  rows_per_block <- arc_positive_integer(rows_per_block, "rows_per_block")
-  cols_per_block <- arc_positive_integer(cols_per_block, "cols_per_block")
   n_candidates <- arc_positive_integer(n_candidates, "n_candidates")
 
   if (length(controls) == 0) {
     stop("At least one control/check is required.", call. = FALSE)
   }
-
   if (length(treatments) == 0) {
     stop("At least one treatment/entry is required.", call. = FALSE)
   }
-
   if (anyDuplicated(controls)) {
     stop("`controls` contains duplicated names.", call. = FALSE)
   }
-
   if (anyDuplicated(treatments)) {
     stop("`treatments` contains duplicated names.", call. = FALSE)
   }
-
   overlap <- intersect(treatments, controls)
   if (length(overlap) > 0) {
     stop(
@@ -887,21 +1033,18 @@ arc_validate_inputs <- function(
     )
   }
 
-  capacity <- augmented_row_column_capacity(
-    rows_in_field = rows_in_field,
-    cols_in_field = cols_in_field,
-    rows_per_block = rows_per_block,
-    cols_per_block = cols_per_block,
-    n_controls = length(controls)
+  spec <- arc_group_spec(
+    rows_in_field, cols_in_field, rows_per_block, cols_per_block,
+    rows_per_rowgroup, cols_per_colgroup, checks_per_block, length(controls)
   )
+  capacity <- arc_spec_capacity(spec)
+  n_controls <- length(controls)
 
-  expected_entries <- capacity$entry_plots
-
-  if (length(treatments) != expected_entries) {
+  if (length(treatments) != capacity$entry_plots) {
     stop(
       "The number of treatments does not match the available entry plots. ",
       "Expected ",
-      expected_entries,
+      capacity$entry_plots,
       " treatments, but received ",
       length(treatments),
       ".",
@@ -909,41 +1052,64 @@ arc_validate_inputs <- function(
     )
   }
 
-  n_block_rows <- rows_in_field / rows_per_block
-  n_block_cols <- cols_in_field / cols_per_block
-  if (n_block_cols > rows_per_block) {
+  # The Latin construction needs equal groups, complete blocks of checks and
+  # room for every check in distinct rows and columns of each block.
+  latin_ok <- spec$regular &&
+    spec$gs <= spec$kb[1] && spec$gk <= spec$sb[1] &&
+    n_controls <= spec$kb[1] && n_controls <= spec$sb[1]
+  if (method == "latin" && !spec$regular) {
     stop(
-      "`rows_per_block` must be at least the number of column groups ",
-      "to avoid repeating the same control in a field row.",
+      "Method \"latin\" needs equal row and column groups and one copy of every check ",
+      "per block. Use method \"optimal\".",
       call. = FALSE
     )
   }
-  if (n_block_rows > cols_per_block) {
-    stop(
-      "`cols_per_block` must be at least the number of row groups ",
-      "to avoid repeating the same control in a field column.",
-      call. = FALSE
-    )
+  if (method == "latin") {
+    if (n_controls > spec$kb[1] || n_controls > spec$sb[1]) {
+      stop(
+        "`n_controls` must fit in each block without duplicated check rows or columns.",
+        call. = FALSE
+      )
+    }
+    if (spec$gs > spec$kb[1]) {
+      stop(
+        "`rows_per_block` must be at least the number of column groups ",
+        "to avoid repeating the same control in a field row.",
+        call. = FALSE
+      )
+    }
+    if (spec$gk > spec$sb[1]) {
+      stop(
+        "`cols_per_block` must be at least the number of row groups ",
+        "to avoid repeating the same control in a field column.",
+        call. = FALSE
+      )
+    }
+  }
+  if (method == "auto") {
+    method <- if (latin_ok) "latin" else "optimal"
   }
 
-  n_controls <- length(controls)
-  if (n_controls * n_block_cols < rows_per_block) {
+  row_checks <- rowSums(spec$pb)
+  if (any(row_checks < spec$kb)) {
+    i <- which(row_checks < spec$kb)[1]
     stop(
-      "Not every field row can contain a check: each row group has only ",
-      n_controls * n_block_cols, " check plots for ", rows_per_block,
-      " rows. Use more checks, more column groups, or fewer `rows_per_block`.",
+      "Not every field row can contain a check: row group ", i, " has only ",
+      row_checks[i], " check plots for ", spec$kb[i],
+      " rows. Use more checks, more column groups, or fewer rows per row group.",
       call. = FALSE
     )
   }
-  if (n_controls * n_block_rows < cols_per_block) {
+  col_checks <- colSums(spec$pb)
+  if (any(col_checks < spec$sb)) {
+    j <- which(col_checks < spec$sb)[1]
     stop(
-      "Not every field column can contain a check: each column group has only ",
-      n_controls * n_block_rows, " check plots for ", cols_per_block,
-      " columns. Use more checks, more row groups, or fewer `cols_per_block`.",
+      "Not every field column can contain a check: column group ", j, " has only ",
+      col_checks[j], " check plots for ", spec$sb[j],
+      " columns. Use more checks, more row groups, or fewer columns per column group.",
       call. = FALSE
     )
   }
-
   if (capacity$error_df <= 0) {
     stop(
       "This layout leaves no error degrees of freedom (error df = ",
@@ -956,12 +1122,14 @@ arc_validate_inputs <- function(
   list(
     treatments = treatments,
     controls = controls,
-    rows_in_field = rows_in_field,
-    cols_in_field = cols_in_field,
-    rows_per_block = rows_per_block,
-    cols_per_block = cols_per_block,
+    rows_in_field = spec$k,
+    cols_in_field = spec$s,
+    rows_per_block = if (length(unique(spec$kb)) == 1) spec$kb[1] else NA_integer_,
+    cols_per_block = if (length(unique(spec$sb)) == 1) spec$sb[1] else NA_integer_,
     n_candidates = n_candidates,
-    plot_type = plot_type
+    plot_type = plot_type,
+    method = method,
+    spec = spec
   )
 }
 
@@ -1641,16 +1809,20 @@ arc_make_check_slots <- function(dims) {
 # {0, ..., a - 1} and column offsets {0, a, 2a, ...} (plus random extra
 # columns), whose sums cover every residue mod n. Random symbol, row, and
 # column permutations then randomize it while keeping both properties.
+# Latin rectangle of symbols (rows within a block) for checks (rows) by
+# blocks (columns): symbols are distinct within each column and within each
+# row. Each of the longer dimension's lines takes a cyclic run of symbols
+# starting at evenly spaced offsets, so every symbol is used either
+# floor(n / n_symbols) or ceiling(n / n_symbols) times: rows (or columns)
+# within a group receive equal numbers of check plots. Random rotation,
+# symbol relabelling and row/column order keep the layout randomized.
 arc_covering_latin_rectangle <- function(n_rows, n_cols, n_symbols) {
   transpose <- n_rows > n_cols
   a <- if (transpose) n_cols else n_rows
   b <- if (transpose) n_rows else n_cols
 
-  m <- min(b, ceiling(n_symbols / a))
-  stepped <- (seq_len(m) - 1L) * a
-  extra <- setdiff(seq_len(n_symbols) - 1L, stepped)
-  extra <- extra[sample.int(length(extra), b - m)]
-  offsets <- outer(seq_len(a) - 1L, c(stepped, extra), "+") %% n_symbols
+  starts <- (sample.int(n_symbols, 1L) - 1L + floor((seq_len(b) - 1L) * n_symbols / b)) %% n_symbols
+  offsets <- outer(seq_len(a) - 1L, starts, "+") %% n_symbols
 
   if (transpose) {
     offsets <- t(offsets)
@@ -1663,6 +1835,43 @@ arc_covering_latin_rectangle <- function(n_rows, n_cols, n_symbols) {
 
 # Lower is better: penalize adjacent checks and unequal check counts across
 # field rows and columns. Row/column/block constraints hold by construction.
+# Moves checks apart by swapping two rows within a row group or two columns
+# within a column group. Such swaps keep every property of the Latin
+# construction (one of each check per block in distinct rows and columns, no
+# check twice in a field row or column, estimability) and only change which
+# plots are neighbours; a swap is kept when it does not worsen the score.
+arc_polish_latin <- function(slots, dims, n_iter = 2000L) {
+  score <- arc_score_check_slots(slots, dims)
+  rb <- dims$rows_per_block
+  cb <- dims$cols_per_block
+  for (it in seq_len(n_iter)) {
+    trial <- slots
+    if (stats::runif(1) < 0.5 && rb > 1) {
+      g <- sample.int(dims$n_block_rows, 1L) - 1L
+      ab <- g * rb + sample.int(rb, 2L)
+      hit_a <- slots$row == ab[1]
+      hit_b <- slots$row == ab[2]
+      trial$row[hit_a] <- ab[2]
+      trial$row[hit_b] <- ab[1]
+    } else if (cb > 1) {
+      g <- sample.int(dims$n_block_cols, 1L) - 1L
+      ab <- g * cb + sample.int(cb, 2L)
+      hit_a <- slots$col == ab[1]
+      hit_b <- slots$col == ab[2]
+      trial$col[hit_a] <- ab[2]
+      trial$col[hit_b] <- ab[1]
+    } else {
+      next
+    }
+    trial_score <- arc_score_check_slots(trial, dims)
+    if (trial_score <= score) {
+      slots <- trial
+      score <- trial_score
+    }
+  }
+  slots
+}
+
 arc_score_check_slots <- function(slots, dims) {
   nr <- dims$rows_in_field
   nc <- dims$cols_in_field

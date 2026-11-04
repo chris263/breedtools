@@ -149,6 +149,15 @@ read_locations <- function(
 #'   coordinates are named by display labels.
 #' @param strict Logical. If `TRUE`, stop when any environment location has no
 #'   matching coordinates.
+#' @param tiles Background map. The default, `"breedbase"`, uses the same maps
+#'   as the 'Breedbase' Locations page: Esri Street (shown first),
+#'   Topographical and Satellite, with a switch in the top-right corner. They
+#'   need no account or API key and work in the RStudio viewer and in saved
+#'   HTML files. `"street"`, `"topo"` or `"satellite"` shows only that map.
+#'   `"OpenStreetMap"` uses OpenStreetMap's own tiles (these may be refused
+#'   outside a website). Any other value is passed to
+#'   [leaflet::addProviderTiles()] as a provider name; some commercial
+#'   providers need an API key.
 #'
 #' @return A `leaflet` htmlwidget.
 #'
@@ -170,7 +179,8 @@ map_environment_groups <- function(
     group_palette = NULL,
     ungrouped_color = "#7A7A7A",
     match_by = "location",
-    strict = TRUE
+    strict = TRUE,
+    tiles = "breedbase"
 ) {
   match_by <- match.arg(match_by, c("location", "environment", "environment_label"))
 
@@ -230,8 +240,8 @@ map_environment_groups <- function(
   joined$marker_color <- unname(group_palette[joined$group_id])
   joined$marker_color[joined$group_id == "Ungrouped" | is.na(joined$marker_color)] <- ungrouped_color
 
-  leaflet::leaflet(joined) |>
-    leaflet::addProviderTiles(leaflet::providers$CartoDB.Positron) |>
+  map <- add_base_map(leaflet::leaflet(joined), tiles)
+  map |>
     leaflet::addCircleMarkers(
       lng = ~longitude,
       lat = ~latitude,
@@ -255,6 +265,56 @@ map_environment_groups <- function(
       opacity = 0.85,
       title = "Environment group"
     )
+}
+
+# Keyless Esri maps, the same ones the 'Breedbase' Locations page uses.
+esri_base_maps <- list(
+  street = list(
+    group = "Street",
+    url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution = "Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012"
+  ),
+  topo = list(
+    group = "Topographical",
+    url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution = "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community"
+  ),
+  satellite = list(
+    group = "Satellite",
+    url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution = "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+  )
+)
+
+add_base_map <- function(map, tiles) {
+  if (!is.character(tiles) || length(tiles) != 1L || is.na(tiles) || !nzchar(tiles)) {
+    stop("`tiles` must be one map name, such as \"breedbase\".", call. = FALSE)
+  }
+  if (identical(tiles, "breedbase")) {
+    for (layer in esri_base_maps) {
+      map <- leaflet::addTiles(
+        map,
+        urlTemplate = layer$url,
+        attribution = layer$attribution,
+        group = layer$group
+      )
+    }
+    # The first group listed is the one shown when the map opens.
+    groups <- vapply(esri_base_maps, `[[`, character(1), "group")
+    return(leaflet::addLayersControl(
+      map,
+      baseGroups = unname(groups),
+      options = leaflet::layersControlOptions(collapsed = FALSE)
+    ))
+  }
+  if (tiles %in% names(esri_base_maps)) {
+    layer <- esri_base_maps[[tiles]]
+    return(leaflet::addTiles(map, urlTemplate = layer$url, attribution = layer$attribution))
+  }
+  if (identical(tiles, "OpenStreetMap")) {
+    return(leaflet::addTiles(map, attribution = "&copy; OpenStreetMap contributors"))
+  }
+  leaflet::addProviderTiles(map, tiles)
 }
 
 `%||%` <- function(x, y) {

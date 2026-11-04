@@ -1,8 +1,8 @@
 ---
-title: "Augmented designs with breedtools"
+title: "Designing and analysing breeding trials with breedtools"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Augmented designs with breedtools}
+  %\VignetteIndexEntry{Designing and analysing breeding trials with breedtools}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,31 +11,52 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5)
 ```
 
-This vignette walks through the two trial designs in `breedtools`, from
-planning the layout to ranking entries by adjusted means:
-
-* **Augmented row-column design**: many unreplicated entries plus a few
-  replicated checks, with row, column, and block effects estimated from the
-  checks.
-* **Augmented p-rep design**: multi-location trials without checks. Every
-  entry is planted once at every location, and a subset is repeated.
-
-The phenotypes here are simulated. A longer script that you can run section
-by section in RStudio ships with the package:
-
-```{r, eval = FALSE}
-file.edit(system.file("examples", "breedtools_workflow.R", package = "breedtools"))
-```
+`breedtools` designs and analyses plant breeding trials, from early
+generations with a single plot per entry to fully replicated trials, saves
+the designs directly into a 'Breedbase' database, and helps decide which
+environments can be analysed together. This tutorial goes through every
+design and analysis in the package, using simulated phenotypes.
 
 ```{r setup}
 library(breedtools)
 ```
 
-## Augmented row-column design
+## Which design?
 
-### Plan the layout
+| Situation | Design | Generate | Analyse |
+|---|---|---|---|
+| Seed for one plot per entry, one location | Augmented row-column design with replicated checks | `augmented_row_column_design()` | `analyze_augmented_row_column_design()` |
+| Seed for one plot per entry per location, several locations | Augmented p-rep design (part of the entries repeated at each location, no checks needed) | `augmented_prep_design()` | `analyze_augmented_prep_design()`, `analyze_augmented_prep_two_stage()` |
+| Seed for every entry in every replicate | Resolvable (spatial) row-column design | `resolvable_row_column_design()` | `analyze_resolvable_row_column()` |
+| Phenotypes from several trials in 'Breedbase' | Variance check and environment grouping | `run_breedbase_variance_check()`, `run_environment_stratification()` | |
+| A design ready to plant | Save it as a trial in a 'Breedbase' program and folder | `save_breedbase()` | |
 
-Row, column, and block effects are estimated from the check plots only, so a
+Every design function returns a list with `summary`, the plot-level `design`
+(the field book) and `breedbase_design` (the columns for a 'Breedbase'
+upload), and accepts `seed` for a reproducible randomization and
+`output_file` for a tab-delimited copy. Every analysis returns adjusted
+entry means (`adjusted_means`) ranked best first, with standard errors, the
+mean standard error of a difference (`mean_sed`) and the 5% least
+significant difference (`lsd_5pct`).
+
+A longer script that you can run section by section in RStudio ships with
+the package:
+
+```{r, eval = FALSE}
+file.edit(system.file("examples", "breedtools_workflow.R", package = "breedtools"))
+```
+
+# 1. Augmented row-column designs
+
+Unreplicated entries are tested together with a few replicated checks. Rows
+and columns are grouped into row groups and column groups, and each
+intersection is a block that receives check plots. Row, column and block
+effects are estimated from the checks and used to adjust the entries
+(Federer, Nair and Raghavarao, 1975; Piepho and Williams, 2016).
+
+## Plan the layout
+
+Row, column and block effects are estimated from the check plots only, so a
 layout must leave error degrees of freedom after estimating them. Check this
 before you plant:
 
@@ -48,10 +69,26 @@ augmented_row_column_capacity(
 ```
 
 `entry_plots` is the number of test entries that fit, and `error_df` must be
-positive. More error df give more reliable F-tests and more precise adjusted
-means, at the cost of entry plots.
+positive (Clarke and Stefanova, 2011, recommend about 50 when the field is
+large enough). `min_rowgroup_slack` and `min_colgroup_slack` are the
+conditions of Piepho and Williams (2016) for the row-group and column-group
+sub-designs; negative values warn that those sub-designs cannot be
+estimated on their own.
 
-### Generate and inspect
+`augmented_row_column_layouts()` lists every analyzable layout of a field in
+one call, most entry plots first, so you can see the trade-off between entry
+plots and error df. Give `n_entries` to keep only the layouts that fit your
+entries, and `min_error_df` to require a minimum precision:
+
+```{r}
+augmented_row_column_layouts(rows_in_field = 12, cols_in_field = 12, n_controls = 2:5)
+augmented_row_column_layouts(12, 12, n_controls = 2:6, min_error_df = 6, n_entries = 100)
+```
+
+`method` shows which construction `augmented_row_column_design()` will use
+for the layout (see below).
+
+## Generate and inspect
 
 ```{r}
 rc <- augmented_row_column_design(
@@ -62,12 +99,15 @@ rc <- augmented_row_column_design(
   n_candidates = 200,
   seed = 2026
 )
-rc$summary
+rc$summary[, c("method", "total_plots", "check_plots", "entry_plots",
+               "error_df", "d_criterion")]
 head(rc$design)
 ```
 
-Each block holds one plot of each check, and every field row and column
-contains a check:
+For regular layouts like this one, checks are placed with covering Latin
+rectangles (`method = "latin"`): each block holds one plot of each check,
+checks never share a row or column within a block, and every field row and
+column contains a check:
 
 ```{r}
 checks <- rc$design[rc$design$is_control == 1, ]
@@ -79,11 +119,76 @@ all(1:12 %in% checks$row) && all(1:12 %in% checks$col)
 plot_augmented_row_column_design(rc, label = "all_entries", fill = "type")
 ```
 
-`rc$breedbase_design` holds the columns for a 'Breedbase' upload. Pass
-`output_file` to `augmented_row_column_design()` to write a tab-delimited
-copy.
+`check_design()` runs the standard checks of any design and prints one
+`[OK]` or `[FAIL]` line per check; it works the same way for p-rep and
+resolvable row-column designs. Add checks of your own with
+`check_result()`, and count them with `check_summary()`:
 
-### Analyze
+```{r}
+check_design(rc)
+check_result("all 108 entries in the field book", sum(rc$design$is_control == 0) == 108)
+check_summary()
+```
+
+## Flexible layouts (Piepho and Williams, 2016)
+
+Row and column groups need not be equal, and blocks can hold fewer check
+plots than there are checks (incomplete blocks) or more (extra replication).
+Such layouts use `method = "optimal"`: check labels are allocated to blocks
+in a balanced way and the check plots are then placed by a local search that
+maximizes the D-criterion of the check-plot model, with spatial spread as a
+tie-breaker. This reproduces Example 3 of Piepho and Williams (2016): 173
+entries and 4 checks on 22 rows and 10 columns, with blocks of 3 to 5 check
+plots.
+
+```{r}
+pb <- rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+augmented_row_column_capacity(
+  n_controls = 4,
+  rows_per_rowgroup = c(6, 5, 6, 5),
+  cols_per_colgroup = c(3, 4, 3),
+  checks_per_block = pb
+)[, c("total_plots", "check_plots", "entry_plots", "error_df")]
+
+ex3 <- augmented_row_column_design(
+  treatments = paste0("E", 1:173),
+  controls = c("A", "B", "C", "D"),
+  rows_per_rowgroup = c(6, 5, 6, 5),
+  cols_per_colgroup = c(3, 4, 3),
+  checks_per_block = pb,
+  n_candidates = 3,
+  seed = 1
+)
+ex3$summary[, c("method", "error_df", "d_criterion")]
+table(ex3$design$block[ex3$design$is_control == 1])
+```
+
+```{r, fig.height = 7}
+plot_augmented_row_column_design(ex3, label = "type", fill = "type")
+```
+
+A single number in `checks_per_block` gives the same number of check plots
+in every block. With 6 checks and 5 check plots per block, every block is an
+incomplete block of checks:
+
+```{r}
+incomplete <- augmented_row_column_design(
+  treatments = paste0("E", 1:279), controls = paste0("C", 1:6),
+  rows_in_field = 18, cols_in_field = 18, rows_per_block = 6, cols_per_block = 6,
+  checks_per_block = 5, n_candidates = 2, seed = 1
+)
+incomplete$summary[, c("method", "check_plots", "entry_plots", "error_df")]
+```
+
+Both methods follow the same placement rules as the paper's designs: no
+check plots next to each other inside a block, every check in a block (or
+column, or row) that has room for all checks, and even numbers of check plots
+in the rows and columns of each group. For regular layouts the Latin
+construction is fast and usually at least as D-efficient; `method =
+"optimal"` is used for layouts it cannot make (unequal groups, incomplete
+blocks, extra check replication).
+
+## Analyse
 
 Simulate yields with a fertility gradient down the rows and a few lost plots:
 
@@ -98,14 +203,14 @@ rc_fit <- analyze_augmented_row_column_design(field, response = "yield")
 rc_fit
 ```
 
-The ANOVA degrees of freedom are those estimable from the observed plots, so
-the F-tests stay valid with missing plots.
-
-### Adjusted entry means
+The model is that of Piepho and Williams (2016, Eq. 1): row groups, rows
+within row groups, column groups, columns within column groups, blocks and
+genotypes. The ANOVA degrees of freedom are those estimable from the
+observed plots, so the F-tests stay valid with missing plots.
 
 `rc_fit$adjusted_means` ranks the genotypes by their adjusted mean (BLUE):
 the expected value of the genotype in an average plot of the field. For an
-unreplicated entry, this is its plot value corrected for the row, column, and
+unreplicated entry, this is its plot value corrected for the row, column and
 block effects of that plot, as estimated from the checks. Rank and select on
 these, not on the raw values:
 
@@ -118,9 +223,47 @@ rc_fit$diagnostics[, c("anova_error_df", "sigma", "mean_sed", "lsd_5pct")]
 few error df, as here, that uncertainty is large, which is a reason to prefer
 layouts with more check plots.
 
-## Augmented p-rep design
+## Mixed and spatial analyses
 
-### Generate
+When blocks are not complete replicates of the checks, treating rows,
+columns and blocks as random recovers inter-block information
+(`random_blocks = TRUE`). Entries from one breeding population can also be
+modelled as random with the checks fixed (`entries = "random"`), which gives
+BLUPs. Both are fitted by REML with 'lme4'; the ANOVA table is always the
+fixed-effects table.
+
+```{r, eval = requireNamespace("lme4", quietly = TRUE)}
+rc_random <- analyze_augmented_row_column_design(field, response = "yield",
+                                                 random_blocks = TRUE)
+rc_random$variance_components
+rc_blup <- analyze_augmented_row_column_design(field, response = "yield",
+                                               random_blocks = TRUE,
+                                               entries = "random")
+head(rc_blup$adjusted_means)
+rc_blup$message
+```
+
+A smooth two-dimensional P-spline surface over the field can be added as a
+spatial component with 'SpATS' (`spatial = TRUE`); rows, columns and blocks
+are then random:
+
+```{r, eval = requireNamespace("SpATS", quietly = TRUE)}
+rc_spatial <- analyze_augmented_row_column_design(field, response = "yield",
+                                                  spatial = TRUE)
+rc_spatial$diagnostics[, c("model_type", "mean_sed", "spatial_effective_dim")]
+```
+
+Compare `mean_sed` between the fixed, mixed and spatial fits to see which
+model gives the most precise comparisons for your trial.
+
+# 2. Augmented p-rep designs
+
+In a multi-location trial without checks, every entry is planted once at
+every location, and a subset of the entries is repeated at each location to
+estimate the error and the block effects (Williams, Piepho and Whitaker,
+2011). Typically every entry is repeated at exactly one location.
+
+## Generate
 
 ```{r}
 prep <- augmented_prep_design(
@@ -133,18 +276,93 @@ prep <- augmented_prep_design(
   seed = 2026
 )
 prep$summary[, c("n_locations", "n_entries", "n_plots", "n_blocks",
-                 "max_pairwise_concurrence")]
+                 "max_pairwise_concurrence", "n_disconnected_locations",
+                 "efficiency_factor")]
 table(table(prep$design$all_entries))
 ```
 
-Each location gets 20% of the entries as extra plots. Incomplete blocks are
-chosen so that pairs of entries rarely share a block more than once.
+Each location gets 20% of the entries as extra plots. The design search
+(`method = "search"`, the default):
+
+* spreads the p-rep plots evenly over the blocks;
+* places them so that they connect all blocks of a location, so each
+  location can also be analysed on its own (a warning is given when there
+  are too few p-rep plots for that);
+* keeps pairs of entries from sharing a block more than once
+  (`max_pairwise_concurrence = 1` is a (0,1)-design);
+* returns the most efficient of several optimal candidates
+  (`efficiency_factor` is the average efficiency factor of the paper; compare
+  it only between designs with the same number of plots).
+
+The search accepts any proportion of p-rep entries (`prep_prop` or
+`n_duplicate_per_location`, which can differ between locations), more than
+two plots per repeated entry (`replications_per_repeated_entry`), a fixed
+number of blocks, and a resolvable layout in which each location is split
+into replicates that each hold every p-rep entry once:
+
+```{r}
+prep_res <- augmented_prep_design(
+  treatments = sprintf("G%03d", 1:60),
+  locations = c("A", "B"),
+  block_size = 8,
+  n_duplicate_per_location = c(A = 18, B = 12),
+  resolvable = TRUE,
+  field_cols = 8,
+  seed = 1
+)
+pp <- prep_res$design[prep_res$design$entry_type == "p_rep_entry_at_this_location", ]
+table(pp$location, pp$replicate)
+```
 
 ```{r, fig.height = 6}
 plot_augmented_prep_design(prep, locations = "North", fill = "entry_type")
 ```
 
-### Analyze and rank
+## Algebraic constructions
+
+Williams, Piepho and Whitaker (2011) also give two algebraic constructions in
+which every entry is duplicated at exactly one location and each location is
+a resolvable two-replicate design with `m` p-rep entries in every block
+(final block size `(l + 1) m / 2`). `augmented_prep_parameters()` lists the
+feasible settings, as in Table 3 of the paper:
+
+```{r}
+augmented_prep_parameters(n_treatments = 120, n_locations = 3, max_block_size = 10)
+```
+
+`method = "alpha"` uses partial alpha-arrays (Sections 2.1-2.2 of the paper)
+and `method = "alpha2"` uses augmented alpha(2)-arrays (Section 2.4; even `m`
+and an odd number of blocks per replicate). The number of p-rep entries per
+block is set with `n_prep_per_block`, or chosen as the largest that fits in
+`block_size`:
+
+```{r}
+prep_alpha <- augmented_prep_design(
+  treatments = sprintf("G%03d", 1:120),
+  locations = c("North", "Central", "South"),
+  method = "alpha",
+  block_size = 10,
+  field_cols = 10,
+  seed = 2026
+)
+prep_alpha2 <- augmented_prep_design(
+  treatments = paste0("G", 1:42),
+  locations = c("L1", "L2", "L3"),
+  method = "alpha2",
+  block_size = 4,
+  seed = 1
+)
+rbind(
+  search = prep$summary[, c("method", "n_plots", "n_blocks", "max_pairwise_concurrence", "efficiency_factor")],
+  alpha = prep_alpha$summary[, c("method", "n_plots", "n_blocks", "max_pairwise_concurrence", "efficiency_factor")],
+  alpha2 = prep_alpha2$summary[, c("method", "n_plots", "n_blocks", "max_pairwise_concurrence", "efficiency_factor")]
+)
+```
+
+The `prep_alpha2` design is Example 3 of the paper: 42 entries in three
+locations, each with 14 blocks of 4 plots.
+
+## Analyse and rank
 
 ```{r}
 set.seed(2)
@@ -161,6 +379,8 @@ prep_fit <- analyze_augmented_prep_design(trial, response = "yield")
 prep_fit
 ```
 
+The model is `location + block(location) + genotype`; for resolvable designs
+replicates within locations are added and blocks are nested in replicates.
 Adjusted means correct for the location and block of every plot. Because
 the data are simulated, we can check that they track the true genotype
 effects more closely than the raw means do:
@@ -169,6 +389,465 @@ effects more closely than the raw means do:
 means <- prep_fit$adjusted_means
 c(
   raw = cor(means$raw_mean, genotype_effect[means$genotype]),
-  adjusted = cor(means$adjusted_mean, genotype_effect[means$genotype])
+  adjusted = prediction_accuracy(prep_fit, genotype_effect)
 )
 ```
+
+`prediction_accuracy()` is the correlation between the adjusted means and
+the true values; use `method = "spearman"` to measure how well the ranking is
+recovered.
+
+Each location can also be analysed on its own (the paper's per-location
+incomplete-block analysis), because the design keeps every location
+connected:
+
+```{r}
+north <- analyze_augmented_prep_design(trial[trial$location == "North", ], response = "yield")
+north$anova_formatted
+```
+
+## Genotype-by-location interaction
+
+When locations are a sample of environments, add the interaction back at the
+analysis stage. `genotype_by_location = "random"` fits it as a random effect
+by REML (with 'lme4') and reports the variance components;
+`genotype_by_location = "fixed"` fits it as a fixed effect, so the error
+comes from the p-rep entries only.
+
+```{r, eval = requireNamespace("lme4", quietly = TRUE)}
+prep_gxl <- analyze_augmented_prep_design(trial, response = "yield",
+                                          genotype_by_location = "random")
+prep_gxl$variance_components
+```
+
+```{r}
+prep_gxl_fixed <- analyze_augmented_prep_design(trial, response = "yield",
+                                                genotype_by_location = "fixed")
+prep_gxl_fixed$anova_formatted
+```
+
+## Two-stage analysis: heterogeneous variances and spatial trends
+
+Locations rarely have the same error variance, and fields often have smooth
+fertility trends. `analyze_augmented_prep_two_stage()` first analyses every
+location on its own (stage 1), then combines the location means weighted by
+their precision with a REML genotype-by-location variance (stage 2; Möhring
+and Piepho, 2009), so noisy locations count less:
+
+```{r}
+trial_het <- trial
+noisy <- trial_het$location == "South"
+trial_het$yield[noisy] <- trial_het$yield[noisy] + rnorm(sum(noisy), sd = 6)
+
+two <- analyze_augmented_prep_two_stage(trial_het, response = "yield")
+two
+```
+
+`weighting = "full"` (default) uses the full covariance of the stage-1
+means, `"diagonal"` only their variances, and `"none"` an unweighted
+analysis:
+
+```{r}
+two_diag <- analyze_augmented_prep_two_stage(trial_het, response = "yield", weighting = "diagonal")
+two_none <- analyze_augmented_prep_two_stage(trial_het, response = "yield", weighting = "none")
+# Correlation with the true genotype values (known because the data are simulated):
+c(full = prediction_accuracy(two, genotype_effect),
+  diagonal = prediction_accuracy(two_diag, genotype_effect),
+  none = prediction_accuracy(two_none, genotype_effect))
+```
+
+With `stage1 = "spatial"`, each location is fitted with a two-dimensional
+P-spline surface over rows and columns using the 'SpATS' package; this needs
+the field coordinates from `field_cols`:
+
+```{r, eval = requireNamespace("SpATS", quietly = TRUE)}
+two_spatial <- analyze_augmented_prep_two_stage(trial_het, response = "yield",
+                                                stage1 = "spatial")
+two_spatial$locations[, c("location", "residual_variance", "spatial_effective_dim")]
+```
+
+# 3. Resolvable row-column designs
+
+When there is enough seed to replicate every entry, a resolvable row-column
+design places each treatment once in every replicate of `k` rows and `s`
+columns (Williams, John and Whitaker, 2006). The search first maximizes the
+average efficiency factor of the row-column design and of its row and
+column components, then the spatial efficiency factor of the
+two-dimensional linear variance (LV + RC) model, which spreads treatments
+over neighbours and edge plots without needing prior values for spatial
+parameters. `latinize = TRUE` builds a latinized design for contiguous
+replicates, so that no treatment appears twice in a long column.
+
+```{r}
+rrc <- resolvable_row_column_design(
+  treatments = paste0("T", 1:42),
+  n_reps = 3,
+  rows_per_rep = 6,
+  cols_per_rep = 7,
+  latinize = TRUE,
+  n_starts = 1,
+  seed = 1
+)
+rrc$summary[, c("efficiency_rc", "efficiency_rows", "efficiency_cols",
+                "efficiency_spatial", "upper_bound_spatial", "latin_ok")]
+```
+
+```{r, fig.height = 7}
+plot_resolvable_row_column_design(rrc)
+```
+
+Other options: replicates placed side by side
+(`replicate_layout = "horizontal"`, giving long rows), t-latinized designs
+(`latin_t`, latinization within groups of `t` adjacent replicates), and
+fewer treatments than plots per replicate (the remaining plots become
+fillers, as in Example 1 of the paper with 59 provenances in replicates of
+60 plots):
+
+```{r}
+provenances <- resolvable_row_column_design(
+  treatments = paste0("P", 1:59), n_reps = 4, rows_per_rep = 6, cols_per_rep = 10,
+  latinize = TRUE, n_starts = 1, n_iter = 2000, seed = 1
+)
+provenances$summary[, c("n_treatments", "n_fillers", "efficiency_rc",
+                        "efficiency_spatial", "latin_ok")]
+```
+
+## Evaluate a design
+
+`resolvable_row_column_efficiency()` evaluates any resolvable row-column
+design, including one produced elsewhere: the efficiency factors, the
+spatial upper bound, treatment neighbours and edge positions, and, given
+assumed parameters, the average pairwise variance under an autoregressive
+model (the criterion used in Section 4 of the paper to compare designs):
+
+```{r}
+eff <- resolvable_row_column_efficiency(
+  rrc, ar = list(eta_r = 35, eta_c = 60, psi = 10, rho_r = 0.5, rho_c = 0.5)
+)
+eff[c("efficiency_rc", "efficiency_spatial", "upper_bound_spatial", "ar_criterion")]
+head(eff$neighbours)
+```
+
+An existing design (for example from CycDesigN) can be laid out, exported
+and analysed with `start_design`; with `n_iter = 1` and `spatial = FALSE`
+it is kept as it is:
+
+```{r}
+kept <- resolvable_row_column_design(paste0("T", 1:42), 3, 6, 7,
+                                     start_design = rrc$design,
+                                     n_iter = 1, spatial = FALSE)
+all.equal(kept$summary$efficiency_rc, rrc$summary$efficiency_rc)
+```
+
+## Analyse
+
+`analyze_resolvable_row_column()` fits, by REML, the standard row-column
+mixed model (`model = "rc"`: replicates and treatments fixed, rows and
+columns within replicates random), the two-dimensional linear variance model
+(`"lv"`, LV + RC) and rows and columns plus a separable AR1 x AR1 process
+(`"ar"`, AR + RC). With `compare = TRUE` (default) the sequence of models is
+compared by REML deviance, the paper's way of deciding whether spatial terms
+are needed. For latinized designs, the long columns can be fitted as fixed
+effects (`long_col`):
+
+```{r}
+set.seed(3)
+rrc_trial <- rrc$design
+rrc_trial$y <- 20 + 2 * sin(rrc_trial$row / 3) + rnorm(nrow(rrc_trial))
+rrc_fit <- analyze_resolvable_row_column(rrc_trial, response = "y", model = "lv",
+                                         long_col = "long_col")
+rrc_fit$model_comparison[, c("model", "n_variance_parameters", "deviance", "AIC", "lrt_p_value")]
+rrc_fit$variance_parameters
+head(rrc_fit$adjusted_means)
+```
+
+`row_variance` and `column_variance` are the variance components of rows and
+columns within replicates. `equal_phi = TRUE` uses one spatial parameter for
+rows and columns (square plots), and `lv_terms` adds the row-column
+interaction term `phi_rc`.
+
+# 4. Multi-environment trials from 'Breedbase'
+
+Before combining trials, check that their error variances are similar and
+group environments with a similar ranking of genotypes. The package ships
+an example 'Breedbase' phenotype file with four trials.
+
+```{r}
+pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+raw <- read_breedbase_file(pheno_file)
+dim(raw)
+table(raw$locationName)
+```
+
+`read_breedbase_file()` reads `.csv`, `.txt`, `.xls` and `.xlsx` files (all
+non-empty sheets of a workbook are combined). Column names are detected
+automatically; `prepare_breedbase_pheno()` selects the trait and the design
+columns, and `analyze_environment_anova()` gives one ANOVA per environment:
+
+```{r}
+trait <- "fresh root yield|CO_334:0000013"
+pheno <- prepare_breedbase_pheno(raw, trait_col = trait)
+env_anova <- analyze_environment_anova(pheno)
+env_anova[, c("environment", "n_genotypes", "ms_genotype", "ms_error", "mean", "cv_percent")]
+```
+
+## Homogeneity of error variances
+
+`run_breedbase_variance_check()` applies Hartley's Fmax test (with a
+simulated critical value that allows different error df) to all
+environments and finds the largest groups of environments whose error
+variances are compatible:
+
+```{r}
+variance_check <- run_breedbase_variance_check(pheno_file, trait_col = trait, n_sim = 20000)
+variance_check$overall_hartley
+variance_check$maximal_compatible_groups
+```
+
+## Grouping environments by genotype-by-environment interaction
+
+`run_environment_stratification()` groups environments with Lin's (1982)
+test: environments are grouped when their genotype-by-environment
+interaction is not significant, so they rank genotypes similarly.
+
+```{r}
+strata <- run_environment_stratification(pheno_file, trait = "fresh root yield")
+strata$group_summary[, c("group_id", "locations", "n_env", "ms_ge", "f_value", "p_value")]
+strata$group_membership
+```
+
+With coordinates of the locations, the groups can be drawn on an
+interactive map:
+
+```{r}
+locations <- read_locations(
+  system.file("extdata", "breedbase_locations.csv", package = "breedtools"),
+  phenotype_data = strata
+)
+locations
+group_map <- map_environment_groups(strata, locations)
+class(group_map)
+```
+
+Print `group_map` to open the 'leaflet' map. `run_environment_stratification()`
+can also export the results as JSON (`export_json = TRUE, output_dir = ...`).
+
+# 5. Field books and saving to 'Breedbase'
+
+Every design has a plot-level field book and the columns needed to upload
+the trial to 'Breedbase':
+
+```{r}
+head(prep$breedbase_design)
+head(rrc$breedbase_design)
+```
+
+Write them with `utils::write.csv()`, or pass `output_file` to the design
+function for a tab-delimited copy of the full design.
+
+## Saving a design directly to Breedbase
+
+`save_breedbase()` creates the trial and its plots in a 'Breedbase' database
+through BrAPI. In Breedbase words, a breeding program holds folders, a folder
+holds trials, and a trial holds plots. Each plot is saved with its plot
+number, accession, row and column, rep, block and whether it is a check. A
+multi-location p-rep design becomes one trial per location.
+
+Without a server, `dry_run = TRUE` shows exactly what would be sent:
+
+```{r}
+to_send <- save_breedbase(rc, trial_name = "AYT_2026_Ibadan", year = 2026,
+                          location = "Ibadan", dry_run = TRUE,
+                          description = "Advanced yield trial of 108 lines and 4 checks, Ibadan 2026")
+to_send$studies[[1]][c("studyName", "experimentalDesign")]
+str(to_send$plots[[1]][[1]])
+```
+
+With your database, log in (the password is asked for in a pop-up or read
+from the `BREEDBASE_PASSWORD` environment variable; never write it in a
+script), look up the names, make a dry run, and save:
+
+```{r, eval = FALSE}
+con <- breedbase_login("https://cassavabase.org", username = "your_username")
+breedbase_programs(con)
+breedbase_folders(con, program = "IITA")
+breedbase_locations(con)
+
+# Check the location and every entry and check before designing (or pass the
+# design itself). All problems are listed together, with close matches:
+breedbase_check(con, accessions = c(paste0("G", 1:108), paste0("C", 1:4)),
+                location = "Ibadan", program = "IITA", folder = "AYT 2026",
+                trial_name = "AYT_2026_Ibadan")
+
+# Checks everything (program, folder, location, accessions, trial name)
+# without writing:
+save_breedbase(rc, con, program = "IITA", folder = "AYT 2026",
+               trial_name = "AYT_2026_Ibadan", year = 2026, location = "Ibadan",
+               create_folder = TRUE, dry_run = TRUE,
+               description = "Advanced yield trial of 108 lines and 4 checks, Ibadan 2026")
+
+# Saves after you type 'yes', then reads the plots back to verify:
+saved <- save_breedbase(rc, con, program = "IITA", folder = "AYT 2026",
+                        trial_name = "AYT_2026_Ibadan", year = 2026,
+                        location = "Ibadan", create_folder = TRUE,
+                        description = "Advanced yield trial of 108 lines and 4 checks, Ibadan 2026")
+saved$trial_page
+
+# The folder is optional: without it the trial is saved directly in the
+# breeding program.
+save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026_Ibadan",
+               year = 2026, location = "Ibadan", dry_run = TRUE,
+               description = "Advanced yield trial of 108 lines and 4 checks, Ibadan 2026")
+```
+
+Every entry and check must already exist as an accession in the database,
+and the location must exist too. Run `breedbase_check()` before building the
+design so that wrong names are fixed first; `save_breedbase()` repeats the
+same checks and lists every problem together before writing anything.
+
+The new trial needs a name (`trial_name`) and a description
+(`description`, required: for example its purpose, material, location and
+season; it is shown on the trial page in Breedbase), and every plot needs a
+name that is unique in the whole database. By default plot names are made as
+`trialName_accession_block_rep`:
+
+```{r}
+head(vapply(to_send$plots[[1]], function(p) p$observationUnitName, character(1)))
+```
+
+Choose another pattern with `plot_name_pattern` (fields `{trial}`,
+`{accession}`, `{block}`, `{rep}`, `{plot}`, `{row}`, `{col}`), or give your
+own names with `plot_names`, one per plot or the name of a column you added
+to the field book:
+
+```{r}
+own <- save_breedbase(rc, trial_name = "AYT_2026_Ibadan", year = 2026, location = "Ibadan",
+                      plot_name_pattern = "{trial}_{plot}_r{row}c{col}", dry_run = TRUE,
+                      description = "Advanced yield trial of 108 lines and 4 checks, Ibadan 2026")
+head(vapply(own$plots[[1]], function(p) p$observationUnitName, character(1)))
+```
+
+## Saving phenotypic data to Breedbase
+
+After harvest, the values go to the plots of the saved trial, matched by plot
+name and trait name. The trait name is the one shown in Breedbase, with or
+without its ontology id (`"fresh root yield"` or
+`"fresh root yield|CO_334:0000013"`, as in a Breedbase phenotype download).
+`phenotype_template()` gives a sheet with the plot names of the trial and an
+empty column per trait:
+
+```{r}
+sheet <- phenotype_template(rc, trial_name = "AYT_2026_Ibadan",
+                            traits = c("fresh root yield", "dry matter content percentage"))
+head(sheet)
+```
+
+Fill it in (here with simulated values; empty cells are skipped) and see what
+would be sent, one row per value:
+
+```{r}
+set.seed(1)
+sheet$`fresh root yield` <- round(rnorm(nrow(sheet), 25, 4), 1)
+sheet$`dry matter content percentage` <- round(rnorm(nrow(sheet), 32, 3), 1)
+obs <- save_breedbase_phenotypes(sheet, dry_run = TRUE)
+head(obs)
+```
+
+With your database, every plot and trait is checked first and all problems
+are listed together; then the values are saved in batches and read back.
+Your account needs "submitter" rights. Long data (one row per value) works
+too, and a time-stamp column allows repeated measurements of a trait:
+
+```{r, eval = FALSE}
+save_breedbase_phenotypes(sheet, con, dry_run = TRUE)   # check plots and traits
+save_breedbase_phenotypes(sheet, con)                   # save and verify
+
+long <- data.frame(plot_name = sheet$plot_name, trait = "fresh root yield",
+                   value = sheet$`fresh root yield`, date = "2026-09-01 10:00:00")
+save_breedbase_phenotypes(long, con, trait = "trait", value = "value", timestamp = "date")
+```
+
+## Saving analysis results to Breedbase
+
+A first-stage analysis gives one value per field plot: the genotype's
+adjusted mean plus the plot's residual, so blocks, rows, columns and (with
+SpATS) the spatial trend are removed. It is saved on the plots of the field
+trial as its own trait, so raw and adjusted values stay apart: the measured
+trait composed with a statistic, as Breedbase does, e.g.
+"fresh root yield|Adjusted Means from Spatial Correction using SpATS R". That
+trait is found in Breedbase, or created (after you confirm) when it does not
+exist yet; `breedbase_adjusted_trait()` shows it first. Your own traits can be
+given with `as_trait`. A second-stage result, one value per genotype, is saved as a new
+Breedbase analysis, as the Breedbase mixed-models tool does.
+
+```{r}
+field <- rc$design
+field$yield <- sheet$`fresh root yield`[match(field$plots, sheet$plot_number)]
+fit_yield <- analyze_augmented_row_column_design(field, "yield")
+
+stage1 <- first_stage_values(fit_yield, rc, trial_name = "AYT_2026_Ibadan", trait = "fresh root yield")
+head(stage1)
+stage2 <- second_stage_values(fit_yield, trait = "fresh root yield")
+head(stage2)
+```
+
+```{r, eval = FALSE}
+breedbase_adjusted_trait(con, "fresh root yield")   # the trait for adjusted values: exists?
+save_breedbase_first_stage(stage1, con)              # creates it if needed, then saves
+save_breedbase_analysis(stage2, con, analysis_name = "AYT_2026_Ibadan_means", program = "IITA",
+                        description = "Adjusted means, row-column model")
+```
+
+`first_stage_values()` works with every analysis of the package, including
+the stage-1 fits per location of `analyze_augmented_prep_two_stage()` and
+`analyze_resolvable_row_column()`.
+
+# Validation
+
+The package source includes two scripts in `scripts/`:
+
+* `validate_designs.R` is a step-by-step tour to run section by section in
+  RStudio. It designs, plots, saves, simulates and analyses a trial of every
+  kind and prints `[OK]` checks, including comparisons with the published
+  examples (Table 2 of Piepho and Williams, 2016; Examples 1 and 3 of
+  Williams, Piepho and Whitaker, 2011; Table 1 of Williams, John and
+  Whitaker, 2006).
+* `run_all_checks.R` is the full automated test battery (thousands of
+  checks against `lm()`, 'lme4', brute-force matrix algebra and the
+  published tables, plus simulations of type I error, power and coverage).
+  Run it from the package root with `Rscript scripts/run_all_checks.R`
+  (add `--quick` for a shorter run, or `--only rrc,prep` for selected
+  sections); it exits with an error if any check fails.
+
+# References
+
+Clarke, G. P. Y. and Stefanova, K. T. (2011). Optimal design for
+early-generation plant-breeding trials with unreplicated or partially
+replicated test lines. *Australian and New Zealand Journal of Statistics*
+53, 461-480.
+
+Federer, W. T., Nair, R. C. and Raghavarao, D. (1975). Some augmented
+row-column designs. *Biometrics* 31, 361-375.
+
+Hartley, H. O. (1950). The maximum F-ratio as a short-cut test for
+heterogeneity of variance. *Biometrika* 37, 308-312.
+
+Lin, C. S. (1982). Grouping genotypes by a cluster method directly related
+to genotype-environment interaction mean square. *Theoretical and Applied
+Genetics* 62, 277-280.
+
+Möhring, J. and Piepho, H.-P. (2009). Comparison of weighting in two-stage
+analysis of plant breeding trials. *Crop Science* 49, 1977-1988.
+
+Piepho, H.-P. and Williams, E. R. (2016). Augmented row-column designs for a
+small number of checks. *Agronomy Journal* 108, 2256-2262.
+
+Rodríguez-Álvarez, M. X., Boer, M. P., van Eeuwijk, F. A. and Eilers,
+P. H. C. (2018). Correcting for spatial heterogeneity in plant breeding
+experiments with P-splines. *Spatial Statistics* 23, 52-71.
+
+Williams, E. R., John, J. A. and Whitaker, D. (2006). Construction of
+resolvable spatial row-column designs. *Biometrics* 62, 103-108.
+
+Williams, E., Piepho, H.-P. and Whitaker, D. (2011). Augmented p-rep
+designs. *Biometrical Journal* 53, 19-27.

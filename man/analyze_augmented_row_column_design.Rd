@@ -13,7 +13,11 @@ analyze_augmented_row_column_design(
   row_col = "row",
   col_col = "col",
   type_col = "type",
-  control_col = "is_control"
+  control_col = "is_control",
+  random_blocks = FALSE,
+  entries = c("fixed", "random"),
+  spatial = FALSE,
+  spatial_nseg = NULL
 )
 }
 \arguments{
@@ -35,8 +39,27 @@ column added.}
 
 \item{type_col}{Optional entry type column. Used only for genotype summaries.}
 
-\item{control_col}{Optional control flag column. Used only for genotype
-summaries.}
+\item{control_col}{Optional control flag column. Identifies the checks
+for \code{entries = "random"}; otherwise used only for genotype summaries.}
+
+\item{random_blocks}{Logical. If \code{TRUE}, rows within row groups, columns
+within column groups and blocks are random effects, which recovers
+inter-block information (Wolfinger et al., 1997; Möhring et al., 2015).
+Row and column groups stay fixed. Fitted by REML with 'lme4'.}
+
+\item{entries}{\code{"fixed"} (default) or \code{"random"}. With \code{"random"}, checks
+are fixed and the unreplicated entries are random effects from a common
+breeding population (Piepho, Williams and Fleck, 2006); entry values are
+then BLUPs. Fitted by REML with 'lme4'.}
+
+\item{spatial}{Logical. If \code{TRUE}, the plot errors get a spatial add-on: a
+two-dimensional P-spline surface over rows and columns fitted with the
+'SpATS' package, with row and column groups fixed and rows, columns and
+blocks random. Genotypes are fixed.}
+
+\item{spatial_nseg}{Optional number of P-spline segments for columns and
+rows, \code{c(col, row)}. Defaults to half the number of columns and rows
+(at least 3, at most 40).}
 }
 \value{
 An object of class \code{augmented_row_column_analysis}: a list with
@@ -53,6 +76,9 @@ adjusted means and the standard error of the adjusted mean.}
 \code{mean_sed} (mean standard error of a difference between two adjusted
 means), \code{lsd_5pct} (the matching least significant difference), and
 flags for rank deficiency or a saturated fit.}
+\item{variance_components, mixed_model}{For mixed or spatial fits: the
+REML variance components and the \code{lmerMod} or \code{SpATS} fit; otherwise
+\code{NULL}.}
 \item{message}{A note when F-tests or adjusted means are not estimable.}
 }
 }
@@ -77,10 +103,21 @@ replicated (check) plots alone. \code{model} is the corresponding \code{lm} fit 
 check plots, with aliased columns removed. This keeps the analysis fast for
 large trials.
 }
+\section{Mixed and spatial models}{
+
+The ANOVA table always comes from the fixed-effects model of Piepho and
+Williams (2016, Eq. 1). With \code{random_blocks}, \code{entries = "random"} or
+\code{spatial}, the adjusted means, their standard errors, \code{mean_sed} and
+\code{lsd_5pct} come from the corresponding REML fit instead. Standard errors
+are exact prediction standard errors from the mixed-model equations for
+the estimated variance components; \code{lsd_5pct} uses the fixed-model error
+df as an approximation.
+}
+
 \section{Adjusted means}{
 
-Genotype effects are fixed, so the adjusted means are best linear unbiased
-estimates (BLUEs). Each is the genotype effect plus the average row,
+With the default fixed-effects model, genotype effects are fixed, so the
+adjusted means are best linear unbiased estimates (BLUEs). Each is the genotype effect plus the average row,
 column, and block effect over all observed plots, i.e. the expected value
 of the genotype in an average plot of the field. For an unreplicated entry
 this is its observed value corrected for the row, column, and block

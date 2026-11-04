@@ -1,21 +1,40 @@
 Package: breedtools
-Title: Design and Analysis of Augmented Plant Breeding Trials
+Title: Design, Analysis and 'Breedbase' Storage of Plant Breeding Trials
 Version: 0.1.0
 Authors@R:
     person("Christiano", "Simoes", email = "ccsimoes263@gmail.com", role = c("aut", "cre"))
-Description: Generates and analyzes field trial designs for early-generation
-    plant breeding. Creates augmented row-column designs with replicated
-    checks (Federer, Nair and Raghavarao (1975) <doi:10.2307/2529426>) and
-    multi-location augmented partially replicated (p-rep) designs (Williams,
-    Piepho and Whitaker (2011) <doi:10.1002/bimj.201000102>), draws field
-    maps, and exports field books in 'Breedbase' format. Analyses give
+Description: Designs and analyses plant breeding field trials, from
+    early generations with a single plot per entry to fully replicated
+    trials, and saves the designs to a 'Breedbase' database. Designs:
+    augmented row-column designs with replicated checks (Federer, Nair and
+    Raghavarao (1975) <doi:10.2307/2529426>), including unequal row and
+    column groups, incomplete blocks, extra check replication and
+    D-optimal check placement (Piepho and Williams (2016)
+    <doi:10.2134/agronj2016.06.0325>); multi-location augmented partially
+    replicated (p-rep) designs built by search or from alpha and alpha(2)
+    arrays (Williams, Piepho and Whitaker (2011) <doi:10.1002/bimj.201000102>);
+    and resolvable spatial row-column designs optimized for row-column and
+    linear variance efficiency, with latinized options (Williams, John and
+    Whitaker (2006) <doi:10.1111/j.1541-0420.2005.00393.x>). Analyses give
     analysis of variance tables with degrees of freedom estimable from the
-    observed plots and spatially adjusted entry means (best linear unbiased
-    estimates) with standard errors. Also loads 'Breedbase' phenotype files,
-    checks residual variance homogeneity across environments with Hartley's
-    Fmax test (Hartley (1950) <doi:10.1093/biomet/37.3-4.308>), and groups
-    environments by genotype-by-environment interaction (Lin (1982)
-    <doi:10.1007/BF00276251>).
+    observed plots and adjusted entry means with standard errors, from
+    fixed models, mixed models with random blocks or random entries (best
+    linear unbiased predictions), genotype-by-location interaction, spatial
+    P-spline models with 'SpATS' (Rodriguez-Alvarez et al. (2018)
+    <doi:10.1016/j.spasta.2017.10.003>), two-stage weighted analysis of
+    multi-location trials with heterogeneous error variances (Mohring and
+    Piepho (2009) <doi:10.2135/cropsci2009.02.0083>), and residual maximum
+    likelihood fits of row-column, linear variance and autoregressive
+    spatial models. Draws field maps, writes field books, checks designs,
+    and saves designs as trials with their plots into a 'Breedbase'
+    breeding program and folder through the Breeding API ('BrAPI'), and
+    later the phenotypic data of those plots by plot and trait name,
+    first-stage plot values as a trait and second-stage genotype values as
+    a 'Breedbase' analysis. Also
+    loads 'Breedbase' phenotype files, checks residual variance homogeneity
+    across environments with Hartley's Fmax test (Hartley (1950)
+    <doi:10.1093/biomet/37.3-4.308>), and groups environments by
+    genotype-by-environment interaction (Lin (1982) <doi:10.1007/BF00276251>).
 License: GPL-3
 URL: https://github.com/chris263/breedtools
 BugReports: https://github.com/chris263/breedtools/issues
@@ -42,6 +61,11 @@ Imports:
 Suggests:
     knitr,
     rmarkdown,
+    lme4,
+    httr2 (>= 1.1.0),
+    askpass,
+    Matrix,
+    SpATS,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

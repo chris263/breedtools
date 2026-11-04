@@ -12,13 +12,17 @@ augmented_prep_design(
   n_duplicate_per_location = NULL,
   replications_per_repeated_entry = 2,
   n_blocks_per_location = NULL,
+  resolvable = FALSE,
   n_candidates = 1000,
   seed = NULL,
   field_cols = NULL,
   rows_per_block = NULL,
   blocks_per_row = NULL,
   serpentine = TRUE,
-  output_file = NULL
+  output_file = NULL,
+  method = c("search", "alpha", "alpha2"),
+  n_prep_per_block = NULL,
+  n_efficiency_candidates = 5
 )
 }
 \arguments{
@@ -27,32 +31,39 @@ augmented_prep_design(
 \item{locations}{Character vector of location names.}
 
 \item{block_size}{Maximum final incomplete block size. Can be a single
-integer or a named vector indexed by location. Actual block sizes may
-differ by one plot when totals do not divide evenly.}
+integer or a named vector indexed by location (the algebraic methods use
+its smallest value). Actual block sizes may differ by one plot when
+totals do not divide evenly.}
 
-\item{prep_prop}{Optional proportion of entries to duplicate per location.
-If \code{NULL}, entries are split across locations so each entry is duplicated
-at approximately one location.}
+\item{prep_prop}{Optional proportion of entries to duplicate per location
+(\code{method = "search"} only). If \code{NULL}, entries are split across locations
+so each entry is duplicated at approximately one location.}
 
 \item{n_duplicate_per_location}{Optional number of entries duplicated at
-each location. Can be a single integer, a vector matching \code{locations}, or a
-named vector indexed by location.}
+each location (\code{method = "search"} only). Can be a single integer, a
+vector matching \code{locations}, or a named vector indexed by location.}
 
 \item{replications_per_repeated_entry}{Total number of plots for entries
 selected for p-rep replication at a location. The default \code{2} gives one
 base plot plus one extra plot. Can be a single integer or a named vector
-indexed by location.}
+indexed by location. Must be 2 for the algebraic methods.}
 
 \item{n_blocks_per_location}{Optional number of incomplete blocks at each
-location. If \code{NULL}, the number of blocks is the minimum needed so no block
-is larger than \code{block_size}. Can be a single integer or a named vector
-indexed by location.}
+location (\code{method = "search"} only). If \code{NULL}, the number of blocks is
+the minimum needed so no block is larger than \code{block_size}. Can be a
+single integer or a named vector indexed by location.}
 
-\item{n_candidates}{Maximum number of candidate designs to generate and
-score. The search stops early when a candidate reaches the best possible
-score (no entry repeated within a block and no pair of entries sharing more
-than one block); \code{summary$n_candidates_evaluated} reports how many were
-generated.}
+\item{resolvable}{Logical (\code{method = "search"}). If \code{TRUE}, each location
+is laid out as a resolvable design: the blocks are grouped into
+\code{replications_per_repeated_entry} replicates, each replicate holds every
+p-rep entry of that location exactly once plus an even share of the
+unreplicated entries, and all replicates have the same number of blocks.
+If \code{n_blocks_per_location} is given it must be a multiple of the number
+of replicates. Designs from the algebraic methods are always resolvable.}
+
+\item{n_candidates}{Maximum number of candidate designs (\code{"search"}) or of
+random starting arrays (\code{"alpha"}, \code{"alpha2"}) to generate.
+\code{summary$n_candidates_evaluated} reports how many were used.}
 
 \item{seed}{Optional random seed.}
 
@@ -72,6 +83,19 @@ ordering within each location.}
 
 \item{output_file}{Optional tab-delimited output file for the complete
 design.}
+
+\item{method}{Construction method: \code{"search"}, \code{"alpha"} or \code{"alpha2"}
+(see Details).}
+
+\item{n_prep_per_block}{For the algebraic methods, the number \code{m} of p-rep
+entries in every block. If \code{NULL}, the largest feasible \code{m} whose blocks
+fit in \code{block_size} is used.}
+
+\item{n_efficiency_candidates}{Number of optimal candidates (no entry
+repeated within a block, connected locations, and no pair of entries
+sharing more than one block) to compare on the average efficiency factor;
+the one with the highest efficiency is returned. Use \code{1} to return the
+first optimal candidate. Efficiency is compared for up to 2000 entries.}
 }
 \value{
 A list with design inputs, summary diagnostics, complete plot-level
@@ -79,23 +103,69 @@ design, Breedbase-compatible design columns, block summary, replication
 summary, repeated-entry groups, and pairwise concurrence matrix. In the
 complete design, \code{repeated_at} is the location where the entry receives its
 extra p-rep plot(s), or \code{"not_repeated"} when the entry is not selected for
-extra replication.
+extra replication. \code{replicate} is the replicate (superblock) of the plot
+for resolvable designs, and 1 otherwise; the Breedbase \code{rep} column is
+\code{replicate} for resolvable designs and the plot's occurrence number
+otherwise.
 }
 \description{
-Creates an augmented partially replicated (p-rep) design inspired by the
-Williams, Piepho, and Whitaker approach. Instead of replicated checks, a
-subset of test entries is replicated at each location, while all entries
-appear once at each location and the additional replicated entries are placed
-into incomplete blocks. Candidate designs are scored to reduce pairwise
-block concurrence, especially avoiding pairs that occur together more than
-once.
+Creates a multi-location augmented partially replicated (p-rep) design
+(Williams, Piepho and Whitaker, 2011). Instead of replicated checks, a
+subset of the test entries is replicated at each location: every entry is
+planted once at every location, and the entries chosen for p-rep at a
+location get extra plots there. All plots of a location are arranged in
+incomplete blocks, chosen so that pairs of entries share a block at most
+once across the whole trial ((0,1)-designs).
 }
 \details{
-The incomplete block structure is independent from the field geometry:
-\code{block_size} and \code{n_blocks_per_location} define block membership. By
+Three construction methods are available through \code{method}:
+\describe{
+\item{\code{"search"} (default)}{A flexible randomized search. Any number of
+entries, locations, block sizes, p-rep proportions (\code{prep_prop},
+\code{n_duplicate_per_location}), replication levels
+(\code{replications_per_repeated_entry}) and block counts can be used, with
+an optional resolvable layout (\code{resolvable}).}
+\item{\code{"alpha"}}{The partial alpha-array construction of Section 2.1 of
+the paper. An alpha-array for \code{l * m} rows and \verb{2l} replicates is
+searched, the \verb{m x 2} rectangles on its diagonal give the two-replicate
+design for the p-rep entries of each location, and half of the
+remaining elements of each column are deleted (Section 2.2) so that the
+design is a (0,1)-design. Every entry is duplicated at exactly one
+location, each location is resolvable with two replicates of \code{s}
+blocks, and each block holds \code{m} p-rep entries; the final block size is
+\verb{(l + 1) m / 2} (blocks of the two replicates differ by one plot when
+this is not an integer).}
+\item{\code{"alpha2"}}{The augmented alpha(2)-array construction of
+Section 2.4, for even \code{m} and an odd number of blocks per replicate
+\code{s}. Every block has \verb{(l + 1) m / 2} plots.}
+}
+For the algebraic methods, \code{m} is set with \code{n_prep_per_block} (or chosen as
+the largest value whose blocks fit in \code{block_size}), the number of blocks
+and of duplicated entries follow from the construction, and
+\code{replications_per_repeated_entry} must be 2. When the number of entries is
+not a multiple of the array size, the surplus array positions are dropped
+as dummy entries, so some blocks are one plot smaller.
+\code{augmented_prep_parameters()} lists the feasible parameter sets.
+
+The incomplete block structure is independent from the field geometry. By
 default, \code{field_cols} lays the ordered plots into rows and columns. For a
 rectangular block layout, use \code{rows_per_block} and \code{blocks_per_row} to place
 multiple blocks side by side within each location.
+
+With \code{method = "search"}, the p-rep plots of every location are spread
+evenly over its blocks, and the p-rep entries are placed so that they link
+all blocks of the location (the location is connected), so entry effects
+can also be estimated from each location on its own. A warning is given
+when there are too few p-rep plots to connect the blocks. After the random
+greedy search, the best candidates are improved by swapping plots between
+blocks to remove pairs of entries that share more than one block.
+
+For all methods, \code{summary} reports the maximum pairwise concurrence, the
+number of locations whose blocks are not connected, and the average
+efficiency factor \code{efficiency_factor} of the block design (Section 2.3 of
+the paper; higher is better), which can be used to compare designs.
+Entry labels, block order within replicates and plot order within blocks
+are randomized.
 }
 \examples{
 design <- augmented_prep_design(
@@ -113,4 +183,23 @@ design <- augmented_prep_design(
 design$summary
 head(design$design)
 
+# Example 1 of Williams, Piepho and Whitaker (2011): 20 entries, two
+# locations, blocks of 3 built from a partial alpha-array.
+alpha <- augmented_prep_design(
+  treatments = paste0("G", 1:20),
+  locations = c("L1", "L2"),
+  method = "alpha",
+  block_size = 3,
+  seed = 1
+)
+alpha$summary[, c("method", "m", "s", "max_pairwise_concurrence", "efficiency_factor")]
+
+}
+\references{
+Williams, E., Piepho, H.-P. and Whitaker, D. (2011). Augmented
+p-rep designs. Biometrical Journal 53, 19-27. \doi{10.1002/bimj.201000102}
+}
+\seealso{
+\code{\link[=augmented_prep_parameters]{augmented_prep_parameters()}}, \code{\link[=analyze_augmented_prep_design]{analyze_augmented_prep_design()}},
+\code{\link[=plot_augmented_prep_design]{plot_augmented_prep_design()}}
 }

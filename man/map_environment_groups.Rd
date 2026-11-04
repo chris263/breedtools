@@ -11,7 +11,8 @@ map_environment_groups(
   group_palette = NULL,
   ungrouped_color = "#7A7A7A",
   match_by = "location",
-  strict = TRUE
+  strict = TRUE,
+  tiles = "breedbase"
 )
 }
 \arguments{
@@ -35,6 +36,16 @@ coordinates are named by display labels.}
 
 \item{strict}{Logical. If \code{TRUE}, stop when any environment location has no
 matching coordinates.}
+
+\item{tiles}{Background map. The default, \code{"breedbase"}, uses the same maps
+as the 'Breedbase' Locations page: Esri Street (shown first),
+Topographical and Satellite, with a switch in the top-right corner. They
+need no account or API key and work in the RStudio viewer and in saved
+HTML files. \code{"street"}, \code{"topo"} or \code{"satellite"} shows only that map.
+\code{"OpenStreetMap"} uses OpenStreetMap's own tiles (these may be refused
+outside a website). Any other value is passed to
+\code{\link[leaflet:addProviderTiles]{leaflet::addProviderTiles()}} as a provider name; some commercial
+providers need an API key.}
 }
 \value{
 A \code{leaflet} htmlwidget.

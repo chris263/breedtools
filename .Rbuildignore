@@ -8,3 +8,4 @@
 ^[.]claude$
 ^doc$
 ^Meta$
+^[^/]+[.]pdf$

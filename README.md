@@ -2,16 +2,39 @@
 
 Design and analysis of augmented plant breeding trials.
 
-- **Augmented row-column designs**: unreplicated entries plus replicated
-  checks. Each check appears once per block, and every field row and column
-  contains a check.
-- **Augmented p-rep designs**: multi-location, partially replicated trials
-  in incomplete blocks with low pairwise concurrence.
+- **Augmented row-column designs** (Piepho and Williams, 2016):
+  unreplicated entries plus replicated checks in rows, columns and
+  superimposed blocks. Row and column groups can be unequal, blocks can
+  hold any number of check plots, and checks are placed by a D-optimal
+  search (or covering Latin rectangles for regular layouts). Analyses can
+  use random blocks, random entries (BLUPs), or a 'SpATS' spatial model.
+- **Augmented p-rep designs** (Williams, Piepho and Whitaker, 2011):
+  multi-location, partially replicated trials in incomplete blocks where
+  pairs of entries share a block at most once. Choose the construction with
+  `method`: a flexible randomized `"search"`, the paper's partial
+  alpha-array construction (`"alpha"`), or its augmented alpha(2)-array
+  construction (`"alpha2"`). `augmented_prep_parameters()` lists the
+  feasible settings, and every design reports its efficiency factor.
+- **Resolvable row-column designs** (Williams, John and Whitaker, 2006):
+  fully replicated trials with rows and columns within replicates,
+  optimized for row-column and spatial (linear variance) efficiency, with
+  latinized options; analyses with RC, LV + RC and AR + RC models by REML.
 - **Analysis**: ANOVA with degrees of freedom that are estimable from the
   observed plots, plus **adjusted entry means (BLUEs)** with standard
-  errors, the mean SED and the 5% LSD.
-- **Field maps and 'Breedbase' export**: a plot-level field book and upload
-  files.
+  errors, the mean SED and the 5% LSD. p-rep analyses fit replicates within
+  locations and can add a fixed or random (REML) genotype-by-location
+  interaction. A two-stage analysis (`analyze_augmented_prep_two_stage()`)
+  handles heterogeneous error variances across locations and optional
+  spatial adjustment with 'SpATS'.
+- **Field maps and 'Breedbase'**: a plot-level field book and upload files,
+  or save the design directly into a Breedbase breeding program and folder
+  through BrAPI with `save_breedbase()`, after checking the location and
+  accessions with `breedbase_check()`. After harvest, save the phenotypic
+  data by plot and trait name with `save_breedbase_phenotypes()` (sheet from
+  `phenotype_template()`), and the analysis results: first-stage plot values
+  as a trait of the field plots (`save_breedbase_first_stage()`) and
+  second-stage genotype means as a Breedbase analysis
+  (`save_breedbase_analysis()`).
 - **Multi-environment tools**: read 'Breedbase' phenotype files, run
   Hartley's Fmax variance check, and group environments by GxE.
 

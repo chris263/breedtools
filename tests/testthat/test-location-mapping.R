@@ -135,3 +135,23 @@ test_that("map_environment_groups can match coordinates by environment", {
 
   expect_s3_class(result, "leaflet")
 })
+
+test_that("map_environment_groups uses keyless Breedbase (Esri) maps by default", {
+  pheno_file <- system.file("extdata", "breedbase_pheno.csv", package = "breedtools")
+  loc_file <- system.file("extdata", "breedbase_locations.csv", package = "breedtools")
+  result <- run_environment_stratification(pheno_file, trait = "fresh root yield")
+  locations <- read_locations(loc_file, phenotype_data = result)
+
+  map <- map_environment_groups(result, locations)
+  methods <- vapply(map$x$calls, `[[`, character(1), "method")
+  tile_urls <- vapply(map$x$calls[methods == "addTiles"], function(x) x$args[[1]], character(1))
+  expect_length(tile_urls, 3)
+  expect_true(all(grepl("^https://server.arcgisonline.com/", tile_urls)))
+  expect_false(any(grepl("key|token", tile_urls, ignore.case = TRUE)))
+  control <- map$x$calls[[which(methods == "addLayersControl")]]
+  expect_equal(control$args[[1]], c("Street", "Topographical", "Satellite"))
+
+  sat <- map_environment_groups(result, locations, tiles = "satellite")
+  expect_match(sat$x$calls[[1]]$args[[1]], "World_Imagery")
+  expect_error(map_environment_groups(result, locations, tiles = ""), "one map name")
+})

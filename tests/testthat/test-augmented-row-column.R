@@ -495,3 +495,312 @@ test_that("augmented row-column adjusted means are NA when not estimable", {
   expect_true(all(is.na(analysis$adjusted_means$adjusted_mean)))
   expect_match(analysis$message, "not estimable")
 })
+
+# --- Piepho and Williams (2016) options --------------------------------------
+
+pw_example3 <- function(seed = 1) {
+  augmented_row_column_design(
+    treatments = paste0("E", 1:173),
+    controls = c("A", "B", "C", "D"),
+    rows_per_rowgroup = c(6, 5, 6, 5),
+    cols_per_colgroup = c(3, 4, 3),
+    checks_per_block = rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3)),
+    n_candidates = 3,
+    seed = seed
+  )
+}
+
+test_that("capacity reproduces Table 2 of Piepho and Williams (2016)", {
+  ex1 <- augmented_row_column_capacity(6, 9, 3, 3, n_controls = 3)
+  expect_equal(ex1$entry_plots, 36)
+  expect_equal(ex1$error_df, 0)
+  expect_equal(ex1$min_rowgroup_slack, 2)   # 7 <= 9
+  ex2 <- augmented_row_column_capacity(36, 18, 6, 6, n_controls = 4)
+  expect_equal(ex2$entry_plots, 576)
+  expect_equal(ex2$error_df, 6)
+  expect_equal(ex2$min_rowgroup_slack, 1)   # 11 <= 12
+  expect_equal(ex2$min_colgroup_slack, 10)  # 14 <= 24
+  ex3 <- augmented_row_column_capacity(
+    n_controls = 4,
+    rows_per_rowgroup = c(6, 5, 6, 5),
+    cols_per_colgroup = c(3, 4, 3),
+    checks_per_block = rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+  )
+  expect_equal(ex3$total_plots, 220)
+  expect_equal(ex3$check_plots, 47)
+  expect_equal(ex3$entry_plots, 173)
+  expect_equal(ex3$error_df, 7)
+  expect_true(is.na(ex3$rows_per_block))
+})
+
+test_that("Example 1 of the paper is rejected for having no error df", {
+  expect_error(
+    augmented_row_column_design(paste0("E", 1:36), LETTERS[1:3], 6, 9, 3, 3, n_candidates = 5),
+    "no error degrees of freedom"
+  )
+})
+
+test_that("Example 3 of the paper: unequal groups and blocks with 3 to 5 checks", {
+  design <- pw_example3()
+  d <- design$design
+  checks <- d[d$is_control == 1, ]
+  expect_equal(design$summary$method, "optimal")
+  expect_equal(nrow(d), 220)
+  expect_equal(nrow(checks), 47)
+  expect_equal(sum(d$type == "entry"), 173)
+  expect_equal(as.integer(table(d$rowgroup) / 10), c(6L, 5L, 6L, 5L))
+  expect_equal(as.integer(table(d$colgroup) / 22), c(3L, 4L, 3L))
+  pb <- rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+  expect_equal(as.vector(table(factor(checks$block, levels = 1:12))), as.vector(t(pb)))
+  expect_setequal(checks$row, 1:22)
+  expect_setequal(checks$col, 1:10)
+  expect_equal(anyDuplicated(paste(d$row, d$col)), 0)
+  expect_gt(design$summary$d_criterion, 0)
+
+  d$y <- stats::rnorm(nrow(d))
+  analysis <- analyze_augmented_row_column_design(d, "y")
+  expect_equal(analysis$diagnostics$residual_df, 7)
+  expect_false(anyNA(analysis$adjusted_means$adjusted_mean))
+})
+
+test_that("incomplete blocks and extra check replication are supported", {
+  incomplete <- augmented_row_column_design(
+    paste0("E", 1:279), paste0("C", 1:6), 18, 18, 6, 6,
+    checks_per_block = 5, n_candidates = 2, seed = 1
+  )
+  ck <- incomplete$design[incomplete$design$is_control == 1, ]
+  expect_true(all(table(ck$block) == 5))
+  expect_true(all(table(ck$block, ck$all_entries) <= 1))
+  expect_equal(incomplete$summary$error_df, 1)
+
+  extra <- augmented_row_column_design(
+    paste0("E", 1:90), LETTERS[1:4], 12, 12, 4, 4,
+    checks_per_block = 6, n_candidates = 2, seed = 1
+  )
+  ck <- extra$design[extra$design$is_control == 1, ]
+  expect_true(all(table(ck$block) == 6))
+  expect_true(all(table(ck$block, ck$all_entries) >= 1))
+  expect_equal(extra$summary$error_df, 24)
+})
+
+test_that("method optimal can be forced and meets the same placement rules as latin", {
+  latin <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4,
+                                       n_candidates = 50, seed = 2)
+  optimal <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4,
+                                         method = "optimal", n_candidates = 3, seed = 2)
+  expect_equal(latin$summary$method, "latin")
+  expect_equal(optimal$summary$method, "optimal")
+  # Both methods meet the placement rules; the optimal search trades a little
+  # D-efficiency for them and is never far behind the Latin construction.
+  expect_gte(optimal$summary$d_criterion, 0.9 * latin$summary$d_criterion)
+  for (d in list(latin, optimal)) {
+    expect_equal(d$summary$adjacent_checks_in_blocks, 0)
+    suppressMessages(check_reset())
+    expect_output(expect_true(check_design(d)), "even numbers of check plots")
+  }
+  suppressMessages(check_reset())
+  expect_error(
+    augmented_row_column_design(paste0("G", 1:117), paste0("C", 1:4), 12, 12, 4, 4,
+                                checks_per_block = 3, method = "latin"),
+    "latin"
+  )
+})
+
+test_that("checks_per_block is validated", {
+  expect_error(
+    augmented_row_column_capacity(12, 12, 4, 4, 4, checks_per_block = matrix(4, 2, 2)),
+    "3 x 3 matrix"
+  )
+  expect_error(augmented_row_column_capacity(12, 12, 4, 4, 4, checks_per_block = 17), "larger than")
+  expect_error(
+    augmented_row_column_capacity(n_controls = 4, rows_per_rowgroup = c(6, 5), cols_per_colgroup = 3,
+                                  rows_in_field = 12),
+    "add up"
+  )
+})
+
+rc_mixed_trial <- function() {
+  design <- augmented_row_column_design(paste0("E", 1:108), paste0("C", 1:4), 12, 12, 4, 4,
+                                        n_candidates = 20, seed = 1)
+  x <- design$design
+  set.seed(3)
+  g <- stats::setNames(stats::rnorm(112, sd = 2), unique(x$all_entries))
+  rn <- interaction(x$rowgroup, x$row)
+  cn <- interaction(x$colgroup, x$col)
+  x$y <- 20 + g[x$all_entries] + stats::rnorm(nlevels(rn))[as.integer(rn)] +
+    stats::rnorm(nlevels(cn))[as.integer(cn)] + 2 * sin(x$row / 3) + stats::rnorm(nrow(x))
+  x$rn <- rn
+  x$cn <- cn
+  list(data = x, truth = g)
+}
+
+test_that("random blocks recover inter-block information and match lme4", {
+  skip_if_not_installed("lme4")
+  trial <- rc_mixed_trial()
+  x <- trial$data
+  fit <- analyze_augmented_row_column_design(x, "y", random_blocks = TRUE)
+  expect_equal(fit$diagnostics$model_type, "mixed")
+  expect_true(inherits(fit$mixed_model, "lmerMod"))
+  expect_true("rows within row groups" %in% fit$variance_components$component)
+
+  x$gen <- factor(x$all_entries)
+  x$bl <- factor(x$block)
+  ref <- lme4::lmer(y ~ factor(rowgroup) + factor(colgroup) + gen + (1 | rn) + (1 | cn) + (1 | bl), data = x)
+  fe <- lme4::fixef(ref)
+  lv <- levels(x$gen)
+  got <- fit$adjusted_means$adjusted_mean[match(lv, fit$adjusted_means$genotype)]
+  expect_equal(got - got[1], unname(c(0, fe[paste0("gen", lv[-1])])), tolerance = 1e-4)
+  expect_equal(
+    sort(fit$variance_components$variance),
+    sort(as.data.frame(lme4::VarCorr(ref))$vcov),
+    tolerance = 1e-4
+  )
+  # The ANOVA is still the fixed-effects table.
+  fixed <- analyze_augmented_row_column_design(x, "y")
+  expect_equal(fit$anova_formatted, fixed$anova_formatted)
+})
+
+test_that("random entries give BLUPs that match lme4", {
+  skip_if_not_installed("lme4")
+  trial <- rc_mixed_trial()
+  x <- trial$data
+  fit <- analyze_augmented_row_column_design(x, "y", random_blocks = TRUE, entries = "random")
+  expect_match(fit$message, "BLUP")
+  expect_true("entries" %in% fit$variance_components$component)
+  ent <- x$all_entries[x$is_control == 0]
+
+  x$conv <- as.numeric(x$is_control == 0)
+  x$chk <- factor(ifelse(x$is_control == 1, x$all_entries, ".e"))
+  x$ent <- factor(ifelse(x$is_control == 1, ".c", x$all_entries))
+  x$bl <- factor(x$block)
+  ref <- lme4::lmer(y ~ factor(rowgroup) + factor(colgroup) + chk + (1 | rn) + (1 | cn) + (1 | bl) +
+                      (0 + conv | ent), data = x)
+  u <- lme4::ranef(ref)$ent[ent, 1]
+  ours <- fit$adjusted_means$adjusted_mean[match(ent, fit$adjusted_means$genotype)]
+  expect_equal(ours - mean(ours), u - mean(u), tolerance = 1e-4)
+  expect_true(all(fit$adjusted_means$std_error > 0))
+
+  fixed_blocks <- analyze_augmented_row_column_design(x, "y", entries = "random")
+  expect_equal(fixed_blocks$diagnostics$model_type, "mixed")
+})
+
+test_that("spatial analysis with SpATS runs and improves on a field trend", {
+  skip_if_not_installed("SpATS")
+  trial <- rc_mixed_trial()
+  fixed <- analyze_augmented_row_column_design(trial$data, "y")
+  spatial <- analyze_augmented_row_column_design(trial$data, "y", spatial = TRUE)
+  expect_equal(spatial$diagnostics$model_type, "spatial")
+  expect_gt(spatial$diagnostics$spatial_effective_dim, 0)
+  ent <- trial$data$all_entries[trial$data$is_control == 0]
+  r <- function(f) stats::cor(f$adjusted_means$adjusted_mean[match(ent, f$adjusted_means$genotype)], trial$truth[ent])
+  expect_gt(r(spatial), r(fixed))
+  expect_error(
+    analyze_augmented_row_column_design(trial$data, "y", spatial = TRUE, entries = "random"),
+    "only available"
+  )
+})
+
+test_that("augmented_row_column_layouts lists the analyzable layouts", {
+  layouts <- augmented_row_column_layouts(12, 12, n_controls = 2:5)
+  expect_s3_class(layouts, "tbl_df")
+  expect_true(all(layouts$error_df >= 1))
+  expect_true(all(diff(layouts$entry_plots) <= 0))
+  # Every listed layout agrees with augmented_row_column_capacity().
+  for (i in seq_len(nrow(layouts))) {
+    cap <- augmented_row_column_capacity(12, 12, layouts$rows_per_block[i],
+                                         layouts$cols_per_block[i], layouts$n_controls[i])
+    expect_equal(layouts$entry_plots[i], cap$entry_plots)
+    expect_equal(layouts$error_df[i], cap$error_df)
+  }
+  row <- layouts[layouts$rows_per_block == 4 & layouts$cols_per_block == 4 & layouts$n_controls == 4, ]
+  expect_equal(row$entry_plots, 108)
+  expect_equal(row$method, "latin")
+
+  fit100 <- augmented_row_column_layouts(12, 12, n_controls = 2:6, min_error_df = 6, n_entries = 100)
+  expect_true(all(fit100$entry_plots >= 100 & fit100$error_df >= 6))
+  expect_equal(fit100$spare_plots, fit100$entry_plots - 100)
+
+  # Each listed layout can actually be generated.
+  pick <- fit100[1, ]
+  design <- augmented_row_column_design(paste0("G", seq_len(pick$entry_plots)), paste0("C", seq_len(pick$n_controls)),
+                                        12, 12, pick$rows_per_block, pick$cols_per_block, n_candidates = 5, seed = 1)
+  expect_equal(design$summary$error_df, pick$error_df)
+
+  expect_message(none <- augmented_row_column_layouts(6, 6, n_controls = 1, min_error_df = 50), "No analyzable layout")
+  expect_equal(nrow(none), 0)
+})
+
+test_that("checks are never placed next to each other inside a block", {
+  neighbours <- function(design) {
+    ck <- design$design[design$design$is_control == 1, ]
+    key <- paste(ck$row, ck$col, ck$block)
+    sum(paste(ck$row + 1, ck$col, ck$block) %in% key) + sum(paste(ck$row, ck$col + 1, ck$block) %in% key)
+  }
+  latin <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4,
+                                       n_candidates = 50, seed = 2026)
+  pw <- augmented_row_column_design(paste0("E", 1:173), LETTERS[1:4], rows_per_rowgroup = c(6, 5, 6, 5),
+                                    cols_per_colgroup = c(3, 4, 3),
+                                    checks_per_block = rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3)),
+                                    n_candidates = 2, seed = 1)
+  dense <- augmented_row_column_design(paste0("E", 1:90), LETTERS[1:4], 12, 12, 4, 4,
+                                       checks_per_block = 6, n_candidates = 2, seed = 1)
+  for (d in list(latin, pw, dense)) {
+    expect_equal(neighbours(d), 0)
+    expect_equal(d$summary$adjacent_checks_in_blocks, 0)
+  }
+  expect_equal(latin$summary$adjacent_checks_across_blocks, 0)
+  expect_output(check_design(pw), "no checks next to each other inside a block \\(0 pairs\\)")
+  suppressMessages(check_reset())
+})
+
+test_that("blocks with at least as many check plots as checks hold every check", {
+  pb <- rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+  for (sd in 1:3) {
+    pw <- augmented_row_column_design(paste0("E", 1:173), LETTERS[1:4], rows_per_rowgroup = c(6, 5, 6, 5),
+                                      cols_per_colgroup = c(3, 4, 3), checks_per_block = pb,
+                                      n_candidates = 2, seed = sd)
+    ck <- pw$design[pw$design$is_control == 1, ]
+    tab <- table(factor(ck$block, 1:12), ck$all_entries)
+    full <- as.vector(t(pb)) >= 4
+    expect_true(all(tab[full, ] >= 1))                       # every check in 4- and 5-check blocks
+    expect_true(all(tab[full, ] <= 2))                       # at most one repeat
+    expect_true(all(tab[!full, ] <= 1))                      # incomplete blocks: distinct checks
+  }
+  expect_output(expect_true(check_design(pw)), "checks spread evenly in each block")
+  broken <- pw
+  i <- which(broken$design$is_control == 1 & broken$design$block == 2)
+  broken$design$all_entries[i] <- "A"
+  expect_output(expect_false(check_design(broken)), "\\[FAIL\\] +checks spread evenly")
+  suppressMessages(check_reset())
+})
+
+
+test_that("Figures 3 and 4 of Piepho and Williams (2016) are reproduced", {
+  # Figure 3 (Example 2): 6 x 6 blocks are complete blocks of the 4 checks,
+  # every column is a complete block with 4 check plots, every row has 2.
+  for (m in c("latin", "optimal")) {
+    f3 <- augmented_row_column_design(paste0("E", 1:576), LETTERS[1:4], 36, 18, 6, 6,
+                                      method = m, n_candidates = if (m == "latin") 100 else 2, seed = 3)
+    ck <- f3$design[f3$design$is_control == 1, ]
+    expect_true(all(table(factor(ck$block, 1:18), ck$all_entries) == 1))
+    expect_true(all(table(factor(ck$col, 1:18), ck$all_entries) == 1))
+    expect_true(all(table(factor(ck$row, 1:36)) == 2))
+    expect_equal(f3$summary$error_df, 6)
+    expect_equal(f3$summary$adjacent_checks_in_blocks, 0)
+  }
+  # Figure 4 (Example 3): 7 complete blocks and 5 with three check plots, four
+  # central blocks with five check plots (one check twice), every check in
+  # every column, rows with two or three check plots.
+  pb <- rbind(c(4, 5, 4), c(3, 5, 3), c(3, 5, 4), c(3, 5, 3))
+  f4 <- augmented_row_column_design(paste0("E", 1:173), LETTERS[1:4], rows_per_rowgroup = c(6, 5, 6, 5),
+                                    cols_per_colgroup = c(3, 4, 3), checks_per_block = pb,
+                                    n_candidates = 2, seed = 1)
+  ck <- f4$design[f4$design$is_control == 1, ]
+  tb <- table(factor(ck$block, 1:12), ck$all_entries)
+  expect_equal(sum(apply(tb, 1, function(x) all(x >= 1))), 7)
+  expect_equal(sum(rowSums(tb) == 3), 5)
+  expect_true(all(sapply(c(2, 5, 8, 11), function(b) all(tb[b, ] >= 1) && max(tb[b, ]) == 2)))
+  expect_true(all(table(factor(ck$col, 1:10), ck$all_entries) >= 1))
+  expect_true(all(table(factor(ck$row, 1:22)) %in% 2:3))
+  expect_equal(f4$summary$error_df, 7)
+})

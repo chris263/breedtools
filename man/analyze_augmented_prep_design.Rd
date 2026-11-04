@@ -13,7 +13,9 @@ analyze_augmented_prep_design(
   entry_type_col = "entry_type",
   extra_repeat_col = "is_extra_repeat",
   repeated_at_col = "repeated_at",
-  control_col = "is_control"
+  control_col = "is_control",
+  replicate_col = "replicate",
+  genotype_by_location = FALSE
 )
 }
 \arguments{
@@ -41,6 +43,20 @@ repeated. Used only for genotype summaries.}
 
 \item{control_col}{Optional control flag column. Used only for genotype
 summaries.}
+
+\item{replicate_col}{Optional replicate (superblock) column. When present
+and a location has more than one replicate, replicates nested within
+locations are fitted, and blocks are nested within replicates. Set to
+\code{NULL} to ignore it.}
+
+\item{genotype_by_location}{Genotype-by-location interaction in a
+multi-location analysis: \code{"none"} (default, or \code{FALSE}), \code{"fixed"} (or
+\code{TRUE}), or \code{"random"} (needs the 'lme4' package). With \code{"fixed"},
+adjusted means are averaged over locations. With \code{"random"}, adjusted
+means are the genotype BLUEs from the mixed model, \code{variance_components}
+gives the REML estimates, and the ANOVA table is the fixed-interaction
+table, whose genotype-by-location and error mean squares show the size of
+the interaction.}
 }
 \value{
 An object of class \code{augmented_prep_analysis}: a list with
@@ -53,16 +69,30 @@ design df formulas, and a formatted ANOVA table.}
 \item{genotype_summary}{One row per genotype with raw, fitted, and
 adjusted means and the standard error of the adjusted mean.}
 \item{adjusted_means}{Genotypes ranked by adjusted mean (best first).}
+\item{adjusted_means_vcov}{Covariance matrix of the estimable adjusted
+means, used by \code{\link[=analyze_augmented_prep_two_stage]{analyze_augmented_prep_two_stage()}} for weighting.}
 \item{diagnostics}{Error df, residual standard deviation, R-squared,
 \code{mean_sed} (mean standard error of a difference between two adjusted
 means), \code{lsd_5pct} (the matching least significant difference), and
 flags for rank deficiency or a saturated fit.}
+\item{variance_components, mixed_model}{For
+\code{genotype_by_location = "random"}: REML variance components and the
+\code{lmerMod} fit; otherwise \code{NULL}.}
 \item{message}{A note when F-tests or adjusted means are not estimable.}
 }
 }
 \description{
 Fits the fixed-effects incomplete-block model:
 \code{y = mean + location + block(location) + genotype + error}.
+For resolvable designs (a \code{replicate} column with more than one replicate
+per location) the model is
+\code{y = mean + location + replicate(location) + block(replicate, location) + genotype + error}. With \code{genotype_by_location = "fixed"} (or \code{TRUE}) a
+fixed genotype-by-location interaction is added after genotypes; the error
+is then estimated only from the p-rep entries, as in a per-location
+analysis with pooled error (Williams, Piepho and Whitaker, 2011,
+Section 3). With \code{genotype_by_location = "random"} the interaction is a
+random effect, as recommended by the paper when locations are a sample of
+environments, and the model is fitted by REML with 'lme4'.
 Sums of squares are sequential, in the order above. Degrees of freedom in
 the formatted ANOVA are those estimable from the observed (non-missing)
 plots, so F-tests stay valid when plots are missing. For a complete,
@@ -81,7 +111,21 @@ an average plot of the trial. They remove the advantage or penalty of the
 blocks and locations where each entry happened to be planted, so use
 \code{adjusted_mean} (not \code{raw_mean}) to rank and select entries. Differences
 between adjusted means are the same as those from \code{emmeans} on the fitted
-model.
+model. With \code{genotype_by_location = "fixed"} the genotype-by-location
+effects are averaged over locations, weighting each location by its share
+of the observed plots. With \code{"random"}, standard errors come from the
+REML covariance of the fixed effects, which includes the
+genotype-by-location variance; \code{lsd_5pct} uses the error df of the
+fixed-interaction model as an approximation.
+}
+
+\section{Per-location analysis}{
+
+Williams, Piepho and Whitaker (2011) suggest analysing each location with
+an incomplete-block model. Pass the rows of one location, e.g.
+\code{analyze_augmented_prep_design(data[data$location == "A", ], "yield")}.
+\code{augmented_prep_design()} keeps the blocks of every location connected,
+so this is estimable whenever the location has enough p-rep plots.
 }
 
 \examples{

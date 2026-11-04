@@ -7,8 +7,8 @@
 plot_augmented_prep_design(
   design,
   locations = NULL,
-  label = c("all_entries", "entry_type", "repeated_at", "block", "none"),
-  fill = c("entry_type", "is_extra_repeat", "repeated_at", "block"),
+  label = c("all_entries", "entry_type", "repeated_at", "block", "replicate", "none"),
+  fill = c("entry_type", "is_extra_repeat", "repeated_at", "block", "replicate"),
   show_plot_labels = TRUE,
   show_block_labels = FALSE,
   block_label_position = c("background", "center"),
@@ -18,6 +18,7 @@ plot_augmented_prep_design(
   block_lwd = 2,
   main = NULL,
   legend = TRUE,
+  caption = TRUE,
   ...
 )
 }
@@ -29,10 +30,10 @@ plot_augmented_prep_design(
 to all locations in design order.}
 
 \item{label}{Cell label to show. Use \code{"all_entries"}, \code{"entry_type"},
-\code{"repeated_at"}, \code{"block"}, or \code{"none"}.}
+\code{"repeated_at"}, \code{"block"}, \code{"replicate"}, or \code{"none"}.}
 
 \item{fill}{Cell coloring variable. Use \code{"entry_type"},
-\code{"is_extra_repeat"}, \code{"repeated_at"}, or \code{"block"}.}
+\code{"is_extra_repeat"}, \code{"repeated_at"}, \code{"block"}, or \code{"replicate"}.}
 
 \item{show_plot_labels}{Logical. If \code{TRUE}, labels are printed inside
 cells unless \code{label = "none"}.}
@@ -58,6 +59,9 @@ number of locations is used panel by panel.}
 
 \item{legend}{Logical. If \code{TRUE}, draw a legend for cell colors.}
 
+\item{caption}{Logical. If \code{TRUE}, print a short explanation of the
+colours and lines under each map.}
+
 \item{...}{Additional arguments passed to \code{graphics::plot.window()}.}
 }
 \value{
@@ -65,9 +69,17 @@ Invisibly returns the plotted design data frame with internal
 plotting coordinates.
 }
 \description{
-Draws one field grid per location for an augmented p-rep design, with
-plot cells, row and column labels, and thick outlines around incomplete
-blocks.
+Draws one field map per location for an augmented p-rep design.
+}
+\details{
+A p-rep design has no check plots: at each location some entries are
+planted more than once (repeated entries), and these replace the checks
+for estimating the error and the block effects. By default the map
+colours the repeated entries (orange, names in bold) and the entries with
+a single plot at that location (light grey). Thick black lines outline the
+incomplete blocks; in resolvable designs a thick blue line separates the
+replicates, which are labelled at the right. A caption under each map
+explains this.
 }
 \examples{
 design <- augmented_prep_design(

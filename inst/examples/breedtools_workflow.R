@@ -24,7 +24,7 @@
 # Install once (pick the option that applies to you):
 # install.packages("remotes")
 # install.packages("breedtools")                    # from CRAN (once released)
-# remotes::install_github("chris263/breedtools")    # development version
+# remotes::install_github("solgenomics/breedtools")    # development version
 # devtools::install("path/to/breedtools")           # from a local copy
 # install.packages(c("lme4", "SpATS", "httr2"))     # optional: mixed and spatial
 #                                                   # models, saving to Breedbase

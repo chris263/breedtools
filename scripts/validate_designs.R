@@ -51,7 +51,7 @@
 
 # Install once (pick the option that applies to you):
 # install.packages("remotes")
-# remotes::install_github("chris263/breedtools")    # from GitHub
+# remotes::install_github("solgenomics/breedtools")    # from GitHub
 # devtools::install("~/Documents/codeR/breedtools")  # from a local copy
 library(breedtools)
 

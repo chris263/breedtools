@@ -45,7 +45,7 @@ Design and analysis of augmented plant breeding trials.
 
 ```r
 # install.packages("remotes")
-remotes::install_github("chris263/breedtools")
+remotes::install_github("solgenomics/breedtools")
 ```
 
 ## Documentation

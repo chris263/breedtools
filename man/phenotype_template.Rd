@@ -14,11 +14,12 @@ phenotype_template(
 }
 \arguments{
 \item{design}{A design from \code{\link[=augmented_row_column_design]{augmented_row_column_design()}},
-\code{\link[=augmented_prep_design]{augmented_prep_design()}} or \code{\link[=resolvable_row_column_design]{resolvable_row_column_design()}}.}
+\code{\link[=augmented_prep_design]{augmented_prep_design()}}, \code{\link[=resolvable_row_column_design]{resolvable_row_column_design()}},
+\code{\link[=as_breedbase_design]{as_breedbase_design()}} or \code{\link[=prepare_breedbase_trial]{prepare_breedbase_trial()}}.}
 
 \item{trial_name}{The trial name used when saving the design. For p-rep
 designs saved as one trial per location, the location is added as in
-\code{\link[=save_breedbase]{save_breedbase()}}.}
+\code{\link[=save_breedbase]{save_breedbase()}}. Can be omitted for a prepared Breedbase trial.}
 
 \item{traits}{Trait names as in Breedbase, e.g. \code{"fresh root yield"} or
 \code{"fresh root yield|CO_334:0000013"}. Can be empty (no trait columns).}

@@ -302,8 +302,17 @@ bb_compare_one <- function(fit, loc) {
   ccol <- if ("col" %in% names(pr)) "col" else NA
   raw <- if (!is.null(response) && response %in% names(pr)) suppressWarnings(as.numeric(pr[[response]])) else
     pr$fitted + pr$residual
+  # A two-stage fit is grouped by its named stage-1 trials. Breedbase can
+  # omit location labels, or several trials can share a physical location.
+  location <- rep(loc, nrow(pr))
+  location_col <- fit$input$location_col %||% "location"
+  if (identical(loc, "trial") && location_col %in% names(pr)) {
+    labels <- as.character(pr[[location_col]])
+    present <- !is.na(labels) & nzchar(trimws(labels))
+    location[present] <- labels[present]
+  }
   tibble::tibble(
-    location = if ("location" %in% names(pr)) as.character(pr$location) else loc,
+    location = location,
     plots = as.integer(pr$plots), genotype = as.character(pr[[gcol]]),
     row = if (is.na(rcol)) NA_real_ else as.numeric(pr[[rcol]]),
     col = if (is.na(ccol)) NA_real_ else as.numeric(pr[[ccol]]),

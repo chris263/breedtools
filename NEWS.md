@@ -1,6 +1,8 @@
 # breedtools 0.1.0
 
 * First CRAN release.
+* Documentation website (pkgdown) with every function grouped by task, and
+  a grouped list of all functions with examples in the README.
 * Names saved in Breedbase contain only letters, digits, "_", "-" and ".":
   in trial, plot, new folder and analysis names, spaces and characters such
   as % $ ( ) { } [ ] \ / < > * become "_" (e.g. location "Alcobaca (BA)"

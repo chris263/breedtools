@@ -5,6 +5,9 @@
 # one section; the outline pane lists the parts). Every design part follows
 # the same steps, from the field plan to the results in Breedbase:
 #
+#   0. suggest trial dimensions with design_options() when field rows,
+#      columns or check counts are unknown: start with the entry count and
+#      selected design families (worked examples in section 0a)
 #   1. plan and generate the design (one randomization per location)
 #   2. look at it, and save the field books
 #   3. save the trials to Breedbase
@@ -16,16 +19,23 @@
 #   9. save phenotypes, first stage (plot values) and second stage
 #      (genotype means) to Breedbase
 #  10. checks: [OK] when a result is what we expect, [FAIL] when not
+#  11. analyze a second trait and add it to the existing analysis projects
+#      (worked example in A11)
+#  12. alternatively, fit all locations in one single-stage analysis
+#      (run A1-A6, then jump to A12; no first/second-stage fit is needed)
 #
 #   0. Setup
+#   0a. Suggest trial dimensions and layout options from entry counts
 #   A. Augmented row-column design (unreplicated entries + checks)
 #   B. Flexible augmented row-column layouts (Piepho and Williams, 2016)
 #   C. Augmented p-rep design (no checks, several locations)
 #   D. p-rep designs from alpha-arrays (Williams, Piepho and Whitaker, 2011)
 #   E. Resolvable row-column design (Williams, John and Whitaker, 2006)
 #   F. Multi-environment trials from Breedbase files
-#   H. From Breedbase trials to analyses (read, outliers, first, second and
-#      single stage, store as analyses)
+#   H. From Breedbase trials to analyses (choose single, two_stage or both;
+#      add subsequent traits to the same analysis projects)
+#   I. Agricolae: generate RCBD, prepare trial information and save;
+#      optional phenotype collection and analysis (also supports alpha)
 #   G. Summary of the checks
 #
 # The field data are simulated, so we know the true genotype values and can
@@ -75,6 +85,7 @@ my_program      <- "IITA"                             # breeding program
 my_folder       <- "AYT 2026"                   # folder in the program, or NULL
 my_locations    <- c("Ibadan", "Ikenne", "Ubiaja")   # Breedbase location names
 my_trait        <- "fresh root yield"                # Breedbase trait of the yields
+my_second_trait <- "dry matter content percentage"  # second analyzed trait (A11)
 my_year         <- 2026
 my_trial_prefix <- "AYT"                            # trials are <prefix>_<year>_<location>
 # Analyses need a unique name: a run tag (date and time) keeps them unique
@@ -89,7 +100,11 @@ my_site_user    <- NULL
 my_password      <- NULL    # Breedbase password; NULL = BREEDBASE_PASSWORD or pop-up
 my_site_password <- NULL    # web password of a test site; NULL = BREEDBASE_SITE_PASSWORD or pop-up
 
-use_breedbase <- save_designs || save_phenotypes || save_analyses
+# Part H can read and analyze existing trials independently of the save switches.
+read_breedbase_trials <- FALSE
+breedbase_analysis_route <- "single"  # "single", "two_stage" or "both" (Part H)
+
+use_breedbase <- save_designs || save_phenotypes || save_analyses || read_breedbase_trials
 if (use_breedbase) {
   con <- breedbase_login(breedbase_url, username = breedbase_user, password = my_password,
                          site_username = my_site_user, site_password = my_site_password)
@@ -120,6 +135,41 @@ simulate_yield <- function(d, values, mean = 50, row_trend = 0, col_trend = 0, s
 
 
 # =============================================================================
+# ---- 0a. Suggest trial dimensions from entry counts ---------------------------
+check_section("0a. Plan from entry counts")
+# Choose the design families and number of test entries (excluding checks).
+# design_options() suggests field rows and columns, checks and replication.
+# For augmented row-column, every block has at least n_checks rows and
+# n_checks columns: four checks require blocks of at least 4 x 4.
+# Leave rows, cols or n_checks unspecified to search, or supply one or
+# several candidate values for each known detail.
+planning_options <- design_options(100, n_locations = length(my_locations))
+print(planning_options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field",
+                           "n_reps", "plots_per_location", "error_df")])
+planning_fixed <- design_options(108, design = "augmented_row_column", n_checks = 4,
+                                 rows = 12, cols = 12, n_candidates = 200)
+print(planning_fixed[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
+                         "cols_per_block", "n_candidates", "check_plots", "error_df", "method")])
+# Select a row, add your accession names and generate it:
+#   selected <- planning_fixed[1, ]
+#   trial <- augmented_row_column_design(
+#     treatments = your_entries, controls = your_checks,
+#     rows_in_field = selected$rows_in_field, cols_in_field = selected$cols_in_field,
+#     rows_per_block = selected$rows_per_block, cols_per_block = selected$cols_per_block,
+#     checks_per_block = selected$checks_per_block[[1]], method = selected$method,
+#     n_candidates = selected$n_candidates, seed = 2026
+#   )
+#   check_design(trial)
+# For other families, selected$arguments[[1]] contains their layout arguments.
+# For p-rep replace its locations with your locations. For fully replicated
+# designs include both entries and checks in treatments. See ?design_options.
+check_result("planner keeps the requested entry count",
+             all(planning_fixed$plots_per_location - planning_fixed$check_plots == 108))
+check_result("planner respects the known field dimensions",
+             all(planning_fixed$rows_in_field == 12 & planning_fixed$cols_in_field == 12))
+
+
+# =============================================================================
 # ---- A. Augmented row-column design ------------------------------------------
 # =============================================================================
 check_section("A. Augmented row-column design")
@@ -131,6 +181,7 @@ check_section("A. Augmented row-column design")
 # ---- A1. Plan and generate --------------------------------------------------
 # Which layouts of a 12 x 12 field can be analysed? Most entry plots first;
 # more checks mean fewer entries but more error df (aim for ~10 or more).
+# Every suggested block has at least as many rows and columns as checks.
 print(augmented_row_column_layouts(rows_in_field = 12, cols_in_field = 12, n_controls = 2:5))
 print(augmented_row_column_capacity(12, 12, rows_per_block = 4, cols_per_block = 4, n_controls = 4))
 # 108 entries fit, with 36 check plots and 6 error df.
@@ -140,16 +191,29 @@ check_names <- c("CHECK_A", "CHECK_B", "CHECK_C", "CHECK_D")
 rc_sites    <- my_locations
 rc_trials   <- paste0(my_trial_prefix, "_", my_year, "_", rc_sites)   # one trial per location
 
+# Suggest the field AND block dimensions from your entry and check counts.
+# The fixed field below reproduces this example. Omit rows and/or cols to
+# let the planner suggest the dimensions you do not know.
+rc_options <- design_options(
+  n_entries = length(entries), n_checks = length(check_names),
+  design = "augmented_row_column", rows = 12, cols = 12, n_candidates = 200
+)
+print(rc_options[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
+                     "cols_per_block", "n_candidates", "check_plots", "error_df", "method")])
+rc_layout <- rc_options[1, ]       # choose a row after reviewing the options
+
 rc_designs <- lapply(seq_along(rc_sites), function(i) {
   augmented_row_column_design(
-    treatments     = entries,
-    controls       = check_names,
-    rows_in_field  = 12,
-    cols_in_field  = 12,
-    rows_per_block = 4,
-    cols_per_block = 4,
-    n_candidates   = 200,
-    seed           = 2026 + i            # a different randomization per location
+    treatments       = entries,
+    controls         = check_names,
+    rows_in_field    = rc_layout$rows_in_field,
+    cols_in_field    = rc_layout$cols_in_field,
+    rows_per_block   = rc_layout$rows_per_block,
+    cols_per_block   = rc_layout$cols_per_block,
+    checks_per_block = rc_layout$checks_per_block[[1]],
+    method           = rc_layout$method,
+    n_candidates     = rc_layout$n_candidates,
+    seed             = 2026 + i           # a different randomization per location
   )
 })
 names(rc_designs) <- rc_sites
@@ -271,6 +335,8 @@ rc_stage1 <- do.call(rbind, lapply(seq_along(rc_sites), function(i) {
                      breedbase_plots = saved_plots)
 }))
 rc_stage2 <- second_stage_values(rc_two, trait = my_trait)
+rc_stage1_name <- paste0(my_trial_prefix, "_", my_year, "_stage1_", my_run_tag)
+rc_stage2_name <- paste0(my_trial_prefix, "_", my_year, "_stage2_", my_run_tag)
 print(head(rc_stage1))
 print(head(rc_stage2))
 invisible(save_breedbase_first_stage(rc_stage1, dry_run = TRUE))
@@ -283,23 +349,21 @@ if (save_phenotypes) {
 if (save_analyses && trials_saved(rc_trials)) {
   # First stage: an analysis of the field plots (one value per plot).
   rc_saved1 <- save_breedbase_analysis(rc_stage1, con,
-                                       analysis_name = paste0(my_trial_prefix, "_", my_year, "_stage1_", my_run_tag),
+                                       analysis_name = rc_stage1_name,
                                        program = my_program, description = "First stage: SpATS at every location",
                                        protocol = "SpATS(yield ~ genotype + PSANOVA(col, row)) per location",
                                        level = "plot", confirm = FALSE, folder = my_folder, create_folder = TRUE,
                                        upload_file = file.path(out_dir, "rc_stage1_upload.csv"))
   # Second stage: an analysis of the accessions (one value per genotype).
   rc_saved2 <- save_breedbase_analysis(rc_stage2, con,
-                                       analysis_name = paste0(my_trial_prefix, "_", my_year, "_stage2_", my_run_tag),
+                                       analysis_name = rc_stage2_name,
                                        program = my_program, description = "Second stage: weighted means across locations",
                                        protocol = "two-stage: SpATS per location; weighted means, G x L random",
                                        confirm = FALSE, folder = my_folder, create_folder = TRUE,
                                        upload_file = file.path(out_dir, "rc_stage2_upload.csv"))
   print(rc_saved1)                                  # analysis id and page
   print(rc_saved2)
-  # Add more results to an analysis that is already saved, e.g. a second
-  # trait (dm1: first_stage_values() of the dry matter analysis):
-  #   add_breedbase_analysis_values(dm1, con, analysis_name = "<the analysis name>", level = "plot")
+  # A11 below analyzes dry matter and adds it to these same analysis projects.
   # Optional: the first-stage values also as their own trait on the field
   # plots ("trait|statistic", created if needed):
   # save_breedbase_first_stage(rc_stage1, con, confirm = FALSE)
@@ -315,6 +379,104 @@ check_result("the noisiest location has the largest residual variance",
              rc_two$locations$location[which.max(rc_two$locations$residual_variance)] == rc_sites[3])
 check_result("two-stage means track the true values better than raw means",
              prediction_accuracy(rc_two, rc_value) > cor(rc_raw_means, rc_value[names(rc_raw_means)]))
+
+
+# ---- A11. Add a second analyzed trait to the existing analyses -----------------
+# Run after A1-A10. With real data, read dry matter from the same field books.
+# Here it is simulated separately from yield, then analyzed in its own right.
+check_section("A11. A second trait in the same analyses")
+set.seed(84)
+rc_dm_value <- setNames(rnorm(length(rc_value), sd = 1.5), names(rc_value))
+rc_dm_met <- rc_met
+rc_dm_met$dry_matter <- 32 + rc_dm_value[rc_dm_met$all_entries] +
+  c(0, 2, -1)[match(rc_dm_met$location, rc_sites)] + 0.08 * rc_dm_met$row +
+  rnorm(nrow(rc_dm_met), sd = c(1, 1.5, 2)[match(rc_dm_met$location, rc_sites)])
+rc_dm_met$dry_matter[30] <- 95       # a typing error, reported by the IQR check
+plot_trait(rc_dm_met, "dry_matter")
+rc_dm_clean <- remove_outliers(rc_dm_met, "dry_matter")
+rc_dm_two <- analyze_two_stage(rc_dm_clean, "dry_matter", stage1 = stage1_model)
+rc_dm_stage1 <- do.call(rbind, lapply(seq_along(rc_sites), function(i) {
+  saved_plots <- if (use_breedbase) breedbase_trial_plots(con, rc_trials[i]) else NULL
+  first_stage_values(rc_dm_two$stage1_fits[[rc_sites[i]]], rc_designs[[i]], rc_trials[i],
+                     trait = my_second_trait, breedbase_plots = saved_plots)
+}))
+rc_dm_stage2 <- second_stage_values(rc_dm_two, trait = my_second_trait)
+print(head(rc_dm_stage1))
+print(head(rc_dm_stage2))
+
+# Store measured dry matter on the same field plots, using their saved names.
+rc_dm_sheets <- lapply(seq_along(rc_sites), function(i) {
+  sheet <- phenotype_template(rc_designs[[i]], rc_trials[i], traits = my_second_trait)
+  here <- rc_dm_met[rc_dm_met$location == rc_sites[i], ]
+  sheet[[my_second_trait]] <- here$dry_matter[match(sheet$plot_number, here$plots)]
+  sheet
+})
+if (save_phenotypes) {
+  for (sheet in rc_dm_sheets) save_breedbase_phenotypes(sheet, con, confirm = FALSE)
+}
+
+# A9 must have saved these analyses, or set these names to existing projects
+# with the same plots/accessions. Verify first, then add the dry matter values.
+# add_breedbase_analysis_values() requires a connection, even for its dry run.
+if (save_analyses && trials_saved(rc_trials)) {
+  add_breedbase_analysis_values(rc_dm_stage1, con, analysis_name = rc_stage1_name,
+                                level = "plot", dry_run = TRUE)
+  rc_dm_added1 <- add_breedbase_analysis_values(rc_dm_stage1, con,
+    analysis_name = rc_stage1_name, level = "plot", confirm = FALSE)
+  add_breedbase_analysis_values(rc_dm_stage2, con, analysis_name = rc_stage2_name,
+                                level = "accession", dry_run = TRUE)
+  rc_dm_added2 <- add_breedbase_analysis_values(rc_dm_stage2, con,
+    analysis_name = rc_stage2_name, level = "accession", confirm = FALSE)
+  print(rc_dm_added1)
+  print(rc_dm_added2)
+}
+check_result("second trait uses exactly the same field plot names",
+             setequal(rc_dm_stage1$plot_name, rc_stage1$plot_name))
+check_result("second trait uses the same accessions in the means analysis",
+             setequal(rc_dm_stage2$accession, rc_stage2$accession))
+check_result("the dry matter typing error was excluded",
+             is.na(rc_dm_clean$dry_matter[30]))
+
+
+# ---- A12. Alternative: single-stage analysis of all locations ------------------
+# Run A1-A6, then jump here to skip the first and second stages entirely.
+# This section needs rc_clean and rc_designs, not rc_two or its stage-1 fits.
+check_section("A12. Single-stage analysis")
+rc_single <- analyze_single_stage(
+  rc_clean, "yield", genotype_col = "all_entries", location_col = "location",
+  spatial = has_spats
+)
+print(rc_single)
+print(rc_single$variance_components)
+
+# Despite its name, second_stage_values() also formats a single-stage fit's
+# genotype means for upload. It does not perform another analysis.
+rc_single_values <- second_stage_values(rc_single, trait = my_trait)
+rc_single_name <- paste0(my_trial_prefix, "_", my_year, "_single_stage_", my_run_tag)
+rc_single_payload <- save_breedbase_analysis(
+  rc_single_values, analysis_name = rc_single_name, program = my_program,
+  description = "Single-stage analysis of all locations together", year = my_year,
+  estimate = if (has_spats) "spatial" else "blue", dry_run = TRUE
+)
+if (save_analyses && trials_saved(rc_trials)) {
+  rc_single_saved <- save_breedbase_analysis(
+    rc_single_values, con, analysis_name = rc_single_name, program = my_program,
+    description = "Single-stage analysis of all locations together", year = my_year,
+    protocol = "All plot observations in one model, with genotype x location random",
+    estimate = if (has_spats) "spatial" else "blue",
+    folder = my_folder, create_folder = TRUE, confirm = FALSE,
+    upload_file = file.path(out_dir, "rc_single_stage_upload.csv")
+  )
+  print(rc_single_saved)
+}
+check_result("single stage: one result per genotype",
+             nrow(rc_single_values) == length(unique(rc_clean$all_entries)))
+check_result("single stage: all locations in the same model",
+             rc_single$diagnostics$n_locations == length(rc_sites))
+check_result("single-stage standard errors are finite",
+             all(is.finite(rc_single$adjusted_means$std_error)))
+# This model shares one residual variance across locations. The weighted
+# two-stage route above allows each location to have its own precision.
 
 
 # =============================================================================
@@ -721,60 +883,276 @@ check_result("two environment groups: Geneva + Ithaca and Ibadan + Ubiaja",
 # ---- H. From Breedbase trials to analyses -------------------------------------
 # =============================================================================
 check_section("H. From Breedbase trials to analyses")
-# Read the phenotypes of trials already in Breedbase, remove outliers, run the
-# first stage (SpATS per trial), the second stage (weighted means across
-# trials) and a single-stage SpATS analysis of all trials together, and store
-# the results back in Breedbase as analyses. Needs a Breedbase login (setup).
+# Set read_breedbase_trials <- TRUE in Setup to run this part. Choose
+# breedbase_analysis_route = "single", "two_stage" or "both". The single
+# route calls analyze_single_stage() directly on the cleaned field data.
+# save_analyses controls writing independently of reading and analyzing.
 
-my_trials <- paste0("AYT_", my_year, "_", my_locations)   # trial names in Breedbase
-my_traits <- c("fresh root yield")                             # one or more traits
+my_trials <- paste0(my_trial_prefix, "_", my_year, "_", my_locations)
+my_traits <- c(my_trait, my_second_trait)       # read and analyze both traits
+h_route <- match.arg(breedbase_analysis_route, c("single", "two_stage", "both"))
+h_prefix <- paste0(my_trial_prefix, "_", my_year, "_readback_", my_run_tag)
+h_stage1_name <- paste0(h_prefix, "_stage1")
+h_stage2_name <- paste0(h_prefix, "_stage2")
+h_single_name <- paste0(h_prefix, "_single_stage")
 
-if (use_breedbase) {
+if (read_breedbase_trials) {
   # H1. Read the trials: one row per plot, one column per trait.
   pheno <- breedbase_phenotypes(con, trials = my_trials, traits = my_traits)
   print(head(pheno))
+  # Include all saved stocks when creating an analysis, even if the first
+  # trait is missing on some plots or accessions. Later traits can use them.
+  h_plots <- pheno[, c("plot_name", "accession")]
+  h_accessions <- data.frame(accession = unique(pheno$accession))
 
-  for (tr in my_traits) {
+  for (trait_index in seq_along(my_traits)) {
+    tr <- my_traits[trait_index]
     # H2. Look at the trait, and remove outliers within each trial (listed).
     plot_trait(pheno, tr, by = "trial_name")
     clean <- remove_outliers(pheno, tr, by = "trial_name")
 
-    # H3. First stage: SpATS in every trial (or blocks without row/column),
-    #     compared with the raw data.
-    two <- analyze_two_stage(clean, tr, stage1 = if (has_spats) "spatial" else "blocks",
-                             genotype_col = "accession", location_col = "trial_name")
-    compare_first_stage(two)
+    if (h_route %in% c("two_stage", "both")) {
+      # H3/H4. First stage per trial, then precision-weighted second stage.
+      two <- analyze_two_stage(clean, tr, stage1 = if (has_spats) "spatial" else "blocks",
+                               genotype_col = "accession", location_col = "trial_name")
+      compare_first_stage(two)
+      print(two)
+      first <- first_stage_values(two, trait = tr)
+      h_first <- h_plots
+      h_first[[tr]] <- first[[tr]][match(h_first$plot_name, first$plot_name)]
+      means <- second_stage_values(two, trait = tr)
+      h_second <- h_accessions
+      h_second[[tr]] <- means[[tr]][match(h_second$accession, means$accession)]
+      if (save_analyses) {
+        if (trait_index == 1L) {
+          save_breedbase_analysis(h_first, con, analysis_name = h_stage1_name,
+            program = my_program, description = "First-stage values per trial", year = my_year,
+            level = "plot", folder = my_folder, create_folder = TRUE, confirm = FALSE)
+          save_breedbase_analysis(h_second, con, analysis_name = h_stage2_name,
+            program = my_program, description = "Weighted two-stage means", year = my_year,
+            folder = my_folder, create_folder = TRUE, confirm = FALSE)
+        } else {
+          add_breedbase_analysis_values(h_first, con, analysis_name = h_stage1_name,
+                                        level = "plot", dry_run = TRUE)
+          add_breedbase_analysis_values(h_first, con, analysis_name = h_stage1_name,
+                                        level = "plot", confirm = FALSE)
+          add_breedbase_analysis_values(h_second, con, analysis_name = h_stage2_name,
+                                        level = "accession", dry_run = TRUE)
+          add_breedbase_analysis_values(h_second, con, analysis_name = h_stage2_name,
+                                        level = "accession", confirm = FALSE)
+        }
+      }
+    }
 
-    # H4. Second stage: weighted means across trials.
-    print(two)
-
-    # H5. Single stage: all trials in one model (SpATS when installed).
-    one <- analyze_single_stage(clean, tr, spatial = has_spats)
-    print(one)
-    both <- merge(two$adjusted_means, one$adjusted_means, by = "genotype")
-    cat("Two-stage vs single-stage means: r =", round(cor(both$adjusted_mean.x, both$adjusted_mean.y), 3), "\n")
-
-    # H6. Store in Breedbase as analyses (save_analyses <- TRUE):
-    #     first stage  -> an analysis of the field plots,
-    #     second stage -> an analysis of the accessions,
-    #     single stage -> added to that same analysis, under
-    #                     "trait|Adjusted Means from Spatial Correction using SpATS R".
-    if (save_analyses) {
-      prefix <- paste0(gsub("[^A-Za-z0-9]+", "_", tr), "_", my_run_tag)
-      save_breedbase_analysis(first_stage_values(two, trait = tr), con, analysis_name = paste0(prefix, "_stage1"),
-                              program = my_program, description = paste("First stage (SpATS per trial):", tr),
-                              level = "plot", confirm = FALSE)
-      means_name <- paste0(prefix, "_means")
-      save_breedbase_analysis(second_stage_values(two, trait = tr), con, analysis_name = means_name,
-                              program = my_program, description = paste("Two-stage means:", tr), confirm = FALSE)
-      add_breedbase_analysis_values(second_stage_values(one, trait = tr), con, analysis_name = means_name,
-                                    level = "accession",
-                                    statistic = "Adjusted Means from Spatial Correction using SpATS R",
-                                    confirm = FALSE)
+    if (h_route %in% c("single", "both")) {
+      # H5. One fit of all cleaned plots; independent of the two-stage route.
+      one <- analyze_single_stage(clean, tr, spatial = has_spats)
+      print(one)
+      means <- second_stage_values(one, trait = tr)    # format means, no stage-2 fit
+      h_single <- h_accessions
+      h_single[[tr]] <- means[[tr]][match(h_single$accession, means$accession)]
+      check_result(paste("single stage: one mean per accession for", tr),
+                   !anyDuplicated(h_single$accession))
+      if (save_analyses) {
+        if (trait_index == 1L) {
+          save_breedbase_analysis(h_single, con, analysis_name = h_single_name,
+            program = my_program, description = "Single-stage model of all trials", year = my_year,
+            estimate = if (has_spats) "spatial" else "blue",
+            folder = my_folder, create_folder = TRUE, confirm = FALSE)
+        } else {
+          # A second analyzed trait goes into the SAME single-stage analysis.
+          add_breedbase_analysis_values(h_single, con, analysis_name = h_single_name,
+                                        level = "accession", dry_run = TRUE)
+          add_breedbase_analysis_values(h_single, con, analysis_name = h_single_name,
+                                        level = "accession", confirm = FALSE)
+        }
+      }
+    }
+    if (h_route == "both") {
+      both <- merge(two$adjusted_means, one$adjusted_means, by = "genotype")
+      cat("Two-stage vs single-stage means: r =",
+          round(cor(both$adjusted_mean.x, both$adjusted_mean.y, use = "complete.obs"), 3), "\n")
     }
   }
 } else {
-  message("Part H skipped: it reads trials from Breedbase; set save_analyses (or another switch) to TRUE.")
+  message("Part H skipped: set read_breedbase_trials <- TRUE in Setup to read and analyze saved trials.")
+}
+
+
+# =============================================================================
+# ---- I. Agricolae designs: field books, Breedbase and analysis -----------------
+# =============================================================================
+check_section("I. Agricolae to Breedbase")
+# Three steps: (1) generate a design with agricolae, (2) prepare its field
+# book AND trial information with prepare_breedbase_trial(), (3) save the
+# prepared object with save_breedbase(). RCBD means randomized complete
+# block design. The remaining steps demonstrate phenotypes and analysis.
+# Install once: install.packages("agricolae").
+run_agricolae_analysis <- FALSE   # TRUE to run the optional I4-I10 examples
+
+if (requireNamespace("agricolae", quietly = TRUE)) {
+  # I1. Generate your design with agricolae (or use one you already have).
+  ag_kind <- "RCBD"              # "RCBD" or "Alpha"
+  ag_kind <- match.arg(ag_kind, c("RCBD", "Alpha"))
+  ag_accessions <- c(sprintf("LINE_%03d", 1:22), "CHECK_A", "CHECK_B")
+  ag_sites <- my_locations
+  ag_trials <- paste0("AGRICOLAE_", ag_kind, "_", my_year, "_", ag_sites)
+  ag_originals <- lapply(seq_along(ag_sites), function(i) {
+    original <- switch(ag_kind,
+      RCBD = agricolae::design.rcbd(ag_accessions, r = 3, seed = 2026 + i, kinds = RNGkind()[1L]),
+      Alpha = agricolae::design.alpha(ag_accessions, k = 4, r = 3, seed = 2026 + i, kinds = RNGkind()[1L])
+    )
+    # Plan a field with six columns in field-book row order. These are
+    # explicit physical positions, not inferred from agricolae's plot codes
+    # or its within-block `cols` column. Adjust them to your planting plan.
+    position <- seq_len(nrow(original$book)) - 1L
+    original$book$row <- position %/% 6L + 1L
+    original$book$col <- position %% 6L + 1L
+    original
+  })
+
+  # I2. Convert and record the information Breedbase needs for each trial.
+  # For one existing RCBD this is simply:
+  #   trial <- prepare_breedbase_trial(your_rcbd,
+  #     trial_name = "RCBD_2026_Ibadan", year = 2026, location = "Ibadan",
+  #     program = "IITA", description = "RCBD with three complete blocks",
+  #     checks = your_check_names, prompt = FALSE)
+  # In RStudio, prepare_breedbase_trial(your_rcbd) asks for missing trial
+  # name, year, location, breeding program and description.
+  ag_designs <- lapply(seq_along(ag_sites), function(i) {
+    prepare_breedbase_trial(
+      design      = ag_originals[[i]],
+      trial_name  = ag_trials[i],
+      year        = my_year,
+      location    = ag_sites[i],
+      program     = my_program,
+      folder      = my_folder,
+      description = paste(ag_kind, "design generated with agricolae, three replicates"),
+      checks      = c("CHECK_A", "CHECK_B"),
+      prompt      = FALSE
+    )
+  })
+  names(ag_designs) <- ag_sites
+  ag_trials <- unname(vapply(ag_designs, function(x) x$trial$trial_name, character(1)))
+
+  ag <- ag_designs[[1]]
+  print(ag$trial)                  # stored program, location, trial name, year, description
+  print(head(ag$book))             # agricolae format
+  print(head(ag$design))           # standardized for the Breedbase uploader
+  ag_from_book <- as_breedbase_design(ag$book, accession = "ag_accessions",
+    checks = c("CHECK_A", "CHECK_B"), design_type = ag$design_type)
+  plot(ag$design$col, ag$design$row, type = "n", asp = 1,
+       xlab = "Field column", ylab = "Field row", main = ag_trials[1])
+  text(ag$design$col, ag$design$row, labels = ag$design$all_entries, cex = 0.55)
+  for (s in ag_sites) {
+    # write.csv(ag_designs[[s]]$book, file.path(out_dir, paste0("agricolae_original_", s, ".csv")), row.names = FALSE)
+    # write.csv(ag_designs[[s]]$design, file.path(out_dir, paste0("agricolae_converted_", s, ".csv")), row.names = FALSE)
+  }
+
+  # I3. Save through the EXISTING function. Trial information is already
+  # recorded: there is no need to enter program/location/name/year again.
+  ag_payload <- save_breedbase(ag, dry_run = TRUE)   # preview offline
+  str(ag_payload$plots[[1]][[1]])
+  if (save_designs) {
+    for (i in seq_along(ag_sites)) {
+      save_breedbase(ag_designs[[i]], con, create_folder = TRUE, dry_run = TRUE)
+      save_breedbase(ag_designs[[i]], con, create_folder = TRUE, confirm = FALSE)
+    }
+  }
+
+  check_result("agricolae: original and bare books give the same converted design",
+               identical(ag$design, ag_from_book$design))
+  check_result("agricolae: plot numbers preserve the generated randomization",
+               identical(as.integer(ag$book$plots), ag$design$plots))
+  check_result("agricolae: one uploaded plot per field-book row",
+               length(ag_payload$plots[[1]]) == nrow(ag$book))
+  check_result("agricolae: trial information is recorded for every location",
+               identical(unname(vapply(ag_designs, function(x) x$trial$trial_name, character(1))), ag_trials))
+} else {
+  message("Part I skipped: install.packages(\"agricolae\") to generate and prepare its trials.")
+}
+
+
+# ---- I4. Optional phenotypes and analysis after preparing the trials ---------
+# I1-I3 above complete the conversion and save workflow. Set
+# run_agricolae_analysis <- TRUE above to run this separate post-planting
+# example using simulated field data. With real data, read your filled sheets.
+if (isTRUE(run_agricolae_analysis) && requireNamespace("agricolae", quietly = TRUE)) {
+  # I4. Phenotype sheets with exactly the plot names used by the uploader.
+  # With real data, fill the sheets in the field and read them back.
+  ag_sheets <- lapply(seq_along(ag_sites), function(i) {
+    phenotype_template(ag_designs[[i]], traits = my_trait)
+  })
+  set.seed(85)
+  ag_value <- setNames(rnorm(length(ag_accessions), sd = 3), ag_accessions)
+  ag_met <- do.call(rbind, lapply(seq_along(ag_sites), function(i) {
+    d <- ag_designs[[i]]$design
+    d$location <- ag_sites[i]
+    d$yield <- simulate_yield(d, ag_value, mean = 45 + 3 * i,
+                              row_trend = 0.3, col_trend = -0.1, sd = 2)
+    d
+  }))
+  ag_met$yield[15] <- 500       # a typing error
+  for (i in seq_along(ag_sites)) {
+    here <- ag_met[ag_met$location == ag_sites[i], ]
+    ag_sheets[[i]][[my_trait]] <- here$yield[match(ag_sheets[[i]]$plot_number, here$plots)]
+    # write.csv(ag_sheets[[i]], file.path(out_dir, paste0("agricolae_sheet_", ag_sites[i], ".csv")), row.names = FALSE)
+  }
+
+  # I5/I6. Look at the trait; list and remove IQR outliers per location.
+  plot_trait(ag_met, "yield")
+  ag_clean <- remove_outliers(ag_met, "yield")
+  ag_removed <- attr(ag_clean, "outliers")
+  print(ag_removed)
+
+  # I7/I8. SpATS per location, then precision-weighted means across locations.
+  # With no SpATS, use replicate/block models for these imported designs.
+  ag_analysis <- ag_clean
+  # In RCBD, blocks ARE replicates: include this factor once in the model.
+  if (ag_kind == "RCBD") ag_analysis$block <- NULL
+  ag_two <- analyze_two_stage(ag_analysis, "yield",
+    stage1 = if (has_spats) "spatial" else "blocks", replicate_col = "rep",
+    block_col = if (ag_kind == "RCBD") NULL else "block")
+  compare_first_stage(ag_two)
+  print(ag_two)
+  ag_stage1 <- do.call(rbind, lapply(seq_along(ag_sites), function(i) {
+    saved_plots <- if (use_breedbase) breedbase_trial_plots(con, ag_trials[i]) else NULL
+    first_stage_values(ag_two$stage1_fits[[ag_sites[i]]], ag_designs[[i]],
+                       trait = my_trait, breedbase_plots = saved_plots)
+  }))
+  ag_stage2 <- second_stage_values(ag_two, trait = my_trait)
+
+  # I9. Store phenotypes on field plots and results as analysis projects.
+  ag_stage1_name <- paste0("AGRICOLAE_", ag_kind, "_", my_year, "_stage1_", my_run_tag)
+  ag_stage2_name <- paste0("AGRICOLAE_", ag_kind, "_", my_year, "_stage2_", my_run_tag)
+  invisible(save_breedbase_analysis(ag_stage1, analysis_name = ag_stage1_name,
+    program = my_program, description = paste("Agricolae", ag_kind, "first-stage plot values"),
+    level = "plot", year = my_year, dry_run = TRUE))
+  invisible(save_breedbase_analysis(ag_stage2, analysis_name = ag_stage2_name,
+    program = my_program, description = paste("Agricolae", ag_kind, "weighted two-stage means"),
+    year = my_year, dry_run = TRUE))
+  if (save_phenotypes) {
+    for (sheet in ag_sheets) save_breedbase_phenotypes(sheet, con, confirm = FALSE)
+  }
+  if (save_analyses && trials_saved(ag_trials)) {
+    save_breedbase_analysis(ag_stage1, con, analysis_name = ag_stage1_name,
+      program = my_program, description = paste("Agricolae", ag_kind, "first-stage plot values"), year = my_year,
+      level = "plot", folder = my_folder, create_folder = TRUE, confirm = FALSE,
+      upload_file = file.path(out_dir, "agricolae_stage1_upload.csv"))
+    save_breedbase_analysis(ag_stage2, con, analysis_name = ag_stage2_name,
+      program = my_program, description = paste("Agricolae", ag_kind, "weighted two-stage means"), year = my_year,
+      folder = my_folder, create_folder = TRUE, confirm = FALSE,
+      upload_file = file.path(out_dir, "agricolae_stage2_upload.csv"))
+  }
+
+  # I10. Checks on outliers and result dimensions.
+  check_result("agricolae: the typing error was excluded", is.na(ag_clean$yield[15]))
+  check_result("agricolae: first-stage values match the phenotype sheet plot names",
+               setequal(ag_stage1$plot_name, unlist(lapply(ag_sheets, `[[`, "plot_name"))))
+  check_result("agricolae: one combined result per accession",
+               setequal(ag_stage2$accession, ag_accessions))
+} else if (!isTRUE(run_agricolae_analysis)) {
+  message("Optional agricolae phenotype/analysis examples skipped: set run_agricolae_analysis <- TRUE to run I4-I10.")
 }
 
 

@@ -1,0 +1,173 @@
+url: https://chris263.github.io/breedtools/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+articles:
+  - title: Tutorial
+    navbar: ~
+    contents:
+      - breedtools
+
+reference:
+  - title: Choose a design
+    desc: >
+      Start from the number of entries and the field space you have.
+    contents:
+      - design_options
+      - augmented_row_column_capacity
+      - augmented_row_column_layouts
+      - augmented_prep_parameters
+
+  - title: Augmented row-column designs
+    desc: >
+      Unreplicated entries plus replicated checks in rows, columns and
+      blocks (Federer, Nair and Raghavarao 1975; Piepho and Williams 2016).
+    contents:
+      - augmented_row_column_design
+      - plot_augmented_row_column_design
+      - analyze_augmented_row_column_design
+      - print.augmented_row_column_analysis
+
+  - title: Augmented p-rep designs
+    desc: >
+      Multi-location partially replicated designs
+      (Williams, Piepho and Whitaker 2011).
+    contents:
+      - augmented_prep_design
+      - augmented_prep_concurrence
+      - plot_augmented_prep_design
+      - analyze_augmented_prep_design
+      - analyze_augmented_prep_two_stage
+      - print.augmented_prep_analysis
+      - print.augmented_prep_two_stage
+
+  - title: Resolvable row-column designs
+    desc: >
+      Fully replicated spatial designs (Williams, John and Whitaker 2006).
+    contents:
+      - resolvable_row_column_design
+      - resolvable_row_column_efficiency
+      - plot_resolvable_row_column_design
+      - analyze_resolvable_row_column
+      - print.resolvable_row_column_analysis
+
+  - title: Analysis for any design
+    desc: >
+      Trait plots, outliers, two-stage and single-stage analysis of several
+      trials, and the values to store from them.
+    contents:
+      - plot_trait
+      - find_outliers
+      - remove_outliers
+      - analyze_two_stage
+      - analyze_single_stage
+      - compare_first_stage
+      - first_stage_values
+      - second_stage_values
+      - prediction_accuracy
+      - print.two_stage_analysis
+      - print.single_stage_analysis
+
+  - title: Design checks
+    desc: >
+      Verify a design and record a checklist of what was tested.
+    contents:
+      - check_setup
+      - check_design
+      - check_section
+      - check_result
+      - check_summary
+      - check_reset
+
+  - title: Breedbase connection and lookups
+    desc: >
+      Log in through BrAPI, list programs, folders and locations, and check
+      names before designing.
+    contents:
+      - breedbase_login
+      - breedbase_lists
+      - breedbase_check
+      - breedbase_statistics
+      - breedbase_adjusted_trait
+      - breedbase_refresh
+
+  - title: Save designs to Breedbase
+    desc: >
+      Convert agricolae designs, preview the payload, and save trials with
+      their plots.
+    contents:
+      - prepare_breedbase_trial
+      - as_breedbase_design
+      - save_breedbase
+      - breedbase_trial_plots
+      - phenotype_template
+
+  - title: Phenotypes and analysis results in Breedbase
+    desc: >
+      Read and save phenotypic data, first-stage plot values and
+      second-stage analyses.
+    contents:
+      - breedbase_phenotypes
+      - save_breedbase_phenotypes
+      - save_breedbase_first_stage
+      - save_breedbase_analysis
+      - add_breedbase_analysis_values
+
+  - title: Multi-environment trials from Breedbase files
+    desc: >
+      Read Breedbase phenotype files, test homogeneity of error variances
+      (Hartley's Fmax) and group environments by GxE (Lin 1982).
+    contents:
+      - read_breedbase_file
+      - read_breedbase_excel
+      - prepare_breedbase_pheno
+      - run_breedbase_variance_check
+      - run_environment_stratification
+      - run_breedbase_environment_stratification
+      - read_locations
+      - map_environment_groups
+
+  - title: Variance check building blocks
+    desc: Lower-level steps used by `run_breedbase_variance_check()`.
+    contents:
+      - analyze_environment_anova
+      - analyze_one_environment
+      - hartley_fmax_test
+      - hartley_critical_sim
+      - make_environment_groups
+      - get_compatible_groups
+      - get_maximal_groups
+      - harmonic_mean
+
+  - title: Environment stratification building blocks
+    desc: Lower-level steps used by `run_environment_stratification()`.
+    contents:
+      - prepare_environment_stratification_data
+      - detect_design
+      - prepare_design_factors
+      - calculate_environment_stratification_anova
+      - lin_group_environments
+      - lin_test_group
+      - lin_ss_ge
+      - lin_error_mse
+      - complete_environment_info
+      - add_environment_metadata
+      - add_pairwise_environment_metadata
+      - environment_summary_by_group
+
+  - title: Column and table helpers
+    contents:
+      - find_column
+      - guess_column
+      - normalize_column_name
+      - starts_with("empty_")
+
+  - title: Package
+    contents:
+      - breedtools-package

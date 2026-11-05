@@ -12,7 +12,7 @@
 #   Part B - Augmented p-rep design (no checks, several locations)
 #   Part C - Resolvable row-column design (every entry replicated)
 #   Part D - Multi-environment trials from Breedbase (variances, groups)
-#   Part E - Save a design to Breedbase
+#   Part E - Save a design to Breedbase, including agricolae field books (E5)
 #
 # The phenotypes in this script are SIMULATED so the example runs anywhere.
 # Replace those steps with your own field data.
@@ -51,7 +51,24 @@ check_setup(out_dir)
 
 # ---- A1. Plan the layout: will it be analyzable? ----------------------------
 
-# All analyzable layouts of a 12 x 12 field, most entry plots first. There is
+# If only your entry count is known, start here. Restrict `design` to the
+# families you want and add rows, cols, n_checks or n_reps as they become known.
+planning_options <- design_options(100)
+print(planning_options[, c("design", "n_checks", "rows_in_field", "cols_in_field", "n_reps",
+                           "plots_per_location", "error_df")])
+# For an augmented row-column design, pass every chosen setting explicitly:
+#   selected <- design_options(108, "augmented_row_column", n_checks = 4, rows = 12, cols = 12)[1, ]
+#   trial <- augmented_row_column_design(
+#     treatments = your_entries, controls = your_checks,
+#     rows_in_field = selected$rows_in_field, cols_in_field = selected$cols_in_field,
+#     rows_per_block = selected$rows_per_block, cols_per_block = selected$cols_per_block,
+#     checks_per_block = selected$checks_per_block[[1]], method = selected$method,
+#     n_candidates = selected$n_candidates, seed = 2026
+#   )
+#   check_design(trial)
+
+# Suggested analyzable layouts of a 12 x 12 field, most entry plots first.
+# Every block has at least as many rows and columns as checks. There is
 # a trade-off: more check plots mean fewer entries but more error df, i.e.
 # more reliable F-tests and spatial adjustment. Aim for at least ~10 error df.
 print(augmented_row_column_layouts(rows_in_field = 12, cols_in_field = 12, n_controls = 2:5))
@@ -623,6 +640,69 @@ if (save_analysis_to_breedbase) {
   message("Saving analysis results to Breedbase skipped: set ",
           "save_analysis_to_breedbase <- TRUE to run it.")
 }
+
+
+# ---- E5. Agricolae field books to a new Breedbase trial ------------------------
+check_section("E5. Agricolae to Breedbase")
+
+# Generate the design with agricolae, then prepare its field book and trial
+# information with prepare_breedbase_trial(). Save using save_breedbase().
+# Install once with install.packages("agricolae").
+# Replace these example names with accessions already in your Breedbase.
+# This section reuses the site/program/folder/location settings above.
+save_agricolae_to_breedbase <- FALSE
+ag_trial_name <- "AGRICOLAE_RCBD_2026_Ibadan"
+ag_description <- "RCBD of three entries and one check generated with agricolae"
+
+if (requireNamespace("agricolae", quietly = TRUE)) {
+  ag_accessions <- c("G1", "G2", "G3", "CHECK_A")
+  ag_randomized <- agricolae::design.rcbd(ag_accessions, r = 3, seed = 2026)
+  print(head(ag_randomized$book))   # agricolae columns: plots, block, ag_accessions
+
+  ag_design <- prepare_breedbase_trial(
+    ag_randomized, trial_name = ag_trial_name, year = 2026,
+    location = my_location, program = my_program, folder = my_folder,
+    description = ag_description, checks = "CHECK_A", prompt = FALSE
+  )
+  print(ag_design$trial)            # trial name, location, breeding program, year
+  print(head(ag_design$design))     # plots, all_entries, block, rep, is_control
+
+  # A bare field book (also zigzag() output) needs its Breedbase design type.
+  ag_from_book <- as_breedbase_design(
+    ag_randomized$book, accession = "ag_accessions",
+    checks = "CHECK_A", design_type = "RCBD"
+  )
+
+  # Preview the new trial and plots offline.
+  ag_payload <- save_breedbase(ag_design, dry_run = TRUE)
+  print(ag_payload$studies[[1]])
+  str(ag_payload$plots[[1]][[1]])
+  ag_sheet <- phenotype_template(
+    ag_design, traits = "fresh root yield"
+  )
+  print(head(ag_sheet))
+  check_result("agricolae: one Breedbase plot per field-book row",
+               length(ag_payload$plots[[1]]) == nrow(ag_randomized$book))
+  check_result("agricolae: original and bare field books give the same design",
+               identical(ag_design$design, ag_from_book$design))
+
+  # Set the flag above to TRUE after entering your settings and accession
+  # names. The connected dry run checks every name before creating the trial.
+  if (save_agricolae_to_breedbase) {
+    ag_con <- breedbase_login(breedbase_url, username = breedbase_user)
+    save_breedbase(ag_design, ag_con, create_folder = TRUE, dry_run = TRUE)
+    ag_saved <- save_breedbase(ag_design, ag_con, create_folder = TRUE, confirm = FALSE)
+    print(ag_saved)
+    print(ag_saved$trial_page)
+  }
+} else {
+  message("agricolae example skipped: install.packages(\"agricolae\") to run it.")
+}
+
+# For multiple treatment factors, select the genotype column explicitly:
+#   as_breedbase_design(your_design, accession = "genotype")
+# Other treatment factors and main-plot/subplot hierarchy remain in $book;
+# saving uploads individual plots. See ?as_breedbase_design for other types.
 
 
 # ---- Done ---------------------------------------------------------------------

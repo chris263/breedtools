@@ -313,6 +313,69 @@ fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), 
   list(mock = mock_with_timeouts, state = state)
 }
 
+test_that("converted field books save as a new trial and round-trip through Breedbase", {
+  skip_if_not_installed("httr2")
+  # Small field book in agricolae's RCBD format, with an arbitrary treatment column name.
+  book <- data.frame(plots = c(102, 101, 202, 201), block = c(1, 1, 2, 2),
+                     genotype = c("G2", "C1", "C1", "G2"))
+  converted <- as_breedbase_design(book, design_type = "RCBD", checks = "C1")
+  fake <- fake_breedbase()
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    invisible(capture.output(checked <- save_breedbase(converted, con, program = "IITA",
+      trial_name = "AG_2026", year = 2026, location = "Ibadan",
+      description = "Trial generated with agricolae", dry_run = TRUE)))
+    expect_length(fake$state$studies, 0)
+    expect_length(fake$state$plots, 0)
+    invisible(capture.output(saved <- save_breedbase(converted, con, program = "IITA",
+      trial_name = "AG_2026", year = 2026, location = "Ibadan",
+      description = "Trial generated with agricolae", confirm = FALSE)))
+    expect_length(fake$state$studies, 1)
+    expect_identical(fake$state$studies[[1]]$experimentalDesign$PUI, "RCBD")
+    expect_equal(saved$plots_sent, 4)
+    expect_equal(saved$plots_found, 4)
+    expect_identical(fake$state$studies[[1]]$trialDbId, "10")
+    readback <- breedbase_trial_plots(con, "AG_2026")
+    expected <- phenotype_template(converted, "AG_2026")
+    expected$trial_name <- NULL
+    expect_equal(readback[names(expected)], expected)
+    expect_error(capture.output(save_breedbase(converted, con, program = "IITA",
+      trial_name = "AG_2026", year = 2026, location = "Ibadan",
+      description = "Trial generated with agricolae", confirm = FALSE)), "already exists")
+  })
+})
+
+test_that("prepared agricolae trials save using recorded metadata and allow explicit overrides", {
+  skip_if_not_installed("httr2")
+  raw <- list(book = data.frame(plots = c(101, 102, 201, 202), block = c(1, 1, 2, 2),
+                                entries = c("G1", "C1", "C1", "G1")),
+              parameters = list(design = "rcbd"))
+  trial <- prepare_breedbase_trial(raw, trial_name = "PREPARED_2026", year = 2026,
+    location = "Ibadan", program = "IITA", folder = "Old folder",
+    description = "Prepared RCBD", checks = "C1", prompt = FALSE)
+  fake <- fake_breedbase()
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    invisible(capture.output(save_breedbase(trial, con, dry_run = TRUE)))
+    expect_length(fake$state$studies, 0)
+    invisible(capture.output(saved <- save_breedbase(trial, con, confirm = FALSE)))
+    expect_equal(saved$plots_found, 4)
+    expect_identical(fake$state$studies[[1]]$studyName, "PREPARED_2026")
+    expect_identical(fake$state$studies[[1]]$trialDbId, "500")
+    actual <- breedbase_trial_plots(con, "PREPARED_2026")
+    expected <- phenotype_template(trial)
+    expected$trial_name <- NULL
+    expect_equal(actual[names(expected)], expected)
+    invisible(capture.output(save_breedbase(trial, con, trial_name = "OVERRIDE_2027", year = 2027,
+      folder = NULL, location = "Ubiaja", description = "Another field", confirm = FALSE)))
+    expect_identical(fake$state$studies[[2]]$studyName, "OVERRIDE_2027")
+    expect_identical(fake$state$studies[[2]]$trialDbId, "10")
+    expect_identical(fake$state$studies[[2]]$locationDbId, "2")
+    expect_identical(fake$state$studies[[2]]$seasons, list("2027"))
+    expect_identical(fake$state$studies[[2]]$studyDescription, "Another field")
+  })
+})
+
 test_that("dry run without a connection returns the BrAPI records", {
   rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 1)
   payload <- save_breedbase(rc, trial_name = "AYT_2026", year = 2026, location = "Ibadan", dry_run = TRUE,

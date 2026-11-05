@@ -13,6 +13,8 @@ saves the designs into a 'Breedbase' database. The tutorial,
 }
 \section{Which design?}{
 
+Start with \code{\link[=design_options]{design_options()}} when the number of entries is known but
+the field dimensions, checks or replication are still to be decided.
 \itemize{
 \item One plot per entry, one location: augmented row-column design
 with replicated checks.
@@ -76,6 +78,9 @@ phenotypic data are saved to the same plots.
 \item Log in: \code{\link[=breedbase_login]{breedbase_login()}}
 \item Look up names: \code{\link[=breedbase_programs]{breedbase_programs()}}, \code{\link[=breedbase_folders]{breedbase_folders()}}, \code{\link[=breedbase_locations]{breedbase_locations()}}
 \item Check location and accessions before designing: \code{\link[=breedbase_check]{breedbase_check()}}
+\item Convert designs generated with agricolae: \code{\link[=as_breedbase_design]{as_breedbase_design()}}
+\item Prepare an agricolae trial with its name, location and program:
+\code{\link[=prepare_breedbase_trial]{prepare_breedbase_trial()}}
 \item Save (with a dry run first): \code{\link[=save_breedbase]{save_breedbase()}}
 \item Phenotypes: \code{\link[=phenotype_template]{phenotype_template()}} (sheet with the plot names),
 \code{\link[=save_breedbase_phenotypes]{save_breedbase_phenotypes()}} (values by plot and trait name)

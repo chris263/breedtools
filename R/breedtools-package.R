@@ -6,6 +6,8 @@
 #' `vignette("breedtools")`, walks through every design and analysis.
 #'
 #' @section Which design?:
+#' Start with [design_options()] when the number of entries is known but
+#' the field dimensions, checks or replication are still to be decided.
 #' \itemize{
 #'   \item One plot per entry, one location: augmented row-column design
 #'     with replicated checks.
@@ -61,6 +63,9 @@
 #'   \item Log in: [breedbase_login()]
 #'   \item Look up names: [breedbase_programs()], [breedbase_folders()], [breedbase_locations()]
 #'   \item Check location and accessions before designing: [breedbase_check()]
+#'   \item Convert designs generated with agricolae: [as_breedbase_design()]
+#'   \item Prepare an agricolae trial with its name, location and program:
+#'     [prepare_breedbase_trial()]
 #'   \item Save (with a dry run first): [save_breedbase()]
 #'   \item Phenotypes: [phenotype_template()] (sheet with the plot names),
 #'     [save_breedbase_phenotypes()] (values by plot and trait name)

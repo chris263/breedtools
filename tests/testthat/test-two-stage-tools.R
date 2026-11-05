@@ -127,3 +127,20 @@ test_that("compare_first_stage puts raw and adjusted values side by side", {
   out <- capture.output(cmp2 <- compare_first_stage(t1, plot = FALSE))
   expect_equal(cmp2$summary$location, c("North", "Central", "South"))
 })
+
+test_that("first-stage comparisons group Breedbase trials with missing or shared location labels", {
+  sim <- met_rc()
+  d <- sim$data
+  d$trial_name <- paste0("TRIAL_", d$location)
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  for (label in c(NA_character_, "Shared_station")) {
+    d$location <- label
+    fit <- analyze_two_stage(d, "yield", stage1 = "blocks", location_col = "trial_name")
+    invisible(capture.output(cmp <- compare_first_stage(fit)))
+    expect_equal(cmp$summary$location, unique(d$trial_name))
+    expect_equal(cmp$summary$plots, rep(144L, 3))
+    expect_false(anyNA(cmp$plots$location))
+    expect_true(all(is.finite(cmp$summary$cor_raw_adjusted)))
+  }
+})

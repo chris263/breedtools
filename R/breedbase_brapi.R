@@ -420,8 +420,9 @@ bb_print_check <- function(out) {
 #'
 #' Creates the trial and its plots in a Breedbase database through BrAPI, in
 #' a breeding program and, optionally, a folder of your choice. Works for designs from
-#' [augmented_row_column_design()], [augmented_prep_design()] and
-#' [resolvable_row_column_design()].
+#' [augmented_row_column_design()], [augmented_prep_design()],
+#' [resolvable_row_column_design()], and agricolae designs converted with
+#' [as_breedbase_design()] or prepared with [prepare_breedbase_trial()].
 #'
 #' Before anything is written, every name is checked: the breeding program,
 #' the folder if given (created when `create_folder = TRUE`), the location(s), that
@@ -441,7 +442,10 @@ bb_print_check <- function(out) {
 #' written. Without a connection, `dry_run = TRUE` returns the data that would
 #' be sent, without contacting any server.
 #'
-#' @param design A design object.
+#' @param design A design object, including the result of [as_breedbase_design()]
+#'   or [prepare_breedbase_trial()]. For a prepared trial, recorded trial
+#'   name, year, location, program, description, folder and trial type are
+#'   used when their arguments are omitted. Explicit arguments override them.
 #' @param con A connection from [breedbase_login()].
 #' @param program Breeding program name.
 #' @param folder Optional folder inside the program. Without a folder (the
@@ -468,7 +472,8 @@ bb_print_check <- function(out) {
 #' @param design_type Breedbase design type. Defaults to `"Augmented"` for
 #'   augmented row-column designs, `"p-rep"` for p-rep designs and `"Alpha"`
 #'   (rows as incomplete blocks within replicates) for resolvable row-column
-#'   designs.
+#'   designs. Converted agricolae designs use the type selected by
+#'   [as_breedbase_design()].
 #' @param plot_names Optional plot names given by you: either a character
 #'   vector with one name per plot, in the row order of `design$design`, or
 #'   the name of a column of `design$design` that holds them. Names must be
@@ -521,6 +526,16 @@ save_breedbase <- function(design, con = NULL, program = NULL, folder = NULL, tr
                            design_type = NULL, plot_names = NULL,
                            plot_name_pattern = "{trial}_{accession}_{block}_{rep}",
                            create_folder = FALSE, dry_run = FALSE, confirm = interactive()) {
+  if (inherits(design, "breedbase_trial")) {
+    metadata <- design$trial
+    if (missing(trial_name)) trial_name <- metadata$trial_name
+    if (missing(year)) year <- metadata$year
+    if (missing(location)) location <- metadata$location
+    if (missing(program)) program <- metadata$program
+    if (missing(description)) description <- metadata$description
+    if (missing(folder)) folder <- metadata$folder
+    if (missing(trial_type)) trial_type <- metadata$trial_type
+  }
   if (missing(description) || is.null(description) || length(description) != 1 ||
       is.na(description) || !nzchar(trimws(description))) {
     stop("Give a `description` of the trial, e.g. description = \"Advanced yield trial of ",
@@ -1089,14 +1104,17 @@ bb_design_to_studies <- function(design, trial_name, year, location, description
     "prep"
   } else if (inherits(design, "resolvable_row_column_design")) {
     "rrc"
+  } else if (inherits(design, "breedbase_design")) {
+    "imported"
   } else {
     stop("`design` must come from augmented_row_column_design(), augmented_prep_design() or ",
-         "resolvable_row_column_design().", call. = FALSE)
+         "resolvable_row_column_design(), or be converted with as_breedbase_design().", call. = FALSE)
   }
-  if (is.null(design_type)) design_type <- switch(kind, augmented = "Augmented", prep = "p-rep", rrc = "Alpha")
-  supported <- c("CRD", "Alpha", "MAD", "Lattice", "Augmented", "RCBD", "p-rep", "splitplot",
-                 "stripplot", "greenhouse", "Westcott")
-  if (!design_type %in% supported) {
+  if (is.null(design_type)) {
+    design_type <- switch(kind, augmented = "Augmented", prep = "p-rep", rrc = "Alpha", imported = design$design_type)
+  }
+  supported <- bb_design_types()
+  if (length(design_type) != 1L || is.na(design_type) || !design_type %in% supported) {
     stop("`design_type` must be one of the types Breedbase accepts: ", paste(supported, collapse = ", "), ".",
          call. = FALSE)
   }
@@ -1150,12 +1168,14 @@ bb_design_to_studies <- function(design, trial_name, year, location, description
     rep_no <- switch(kind,
       augmented = x$rep,
       prep = if ("replicate" %in% names(x)) x$replicate else rep(1L, nrow(x)),
-      rrc = x$replicate
+      rrc = x$replicate,
+      imported = x$rep
     )
     block_no <- switch(kind,
       augmented = x$block,
       prep = x$block,
-      rrc = (x$replicate - 1L) * max(x$row_in_rep) + x$row_in_rep
+      rrc = (x$replicate - 1L) * max(x$row_in_rep) + x$row_in_rep,
+      imported = x$block
     )
     is_check <- if ("is_control" %in% names(x)) x$is_control == 1 else rep(FALSE, nrow(x))
     has_coords <- all(c("row", "col") %in% names(x)) && !anyNA(x$row) && !anyNA(x$col)
@@ -1192,14 +1212,22 @@ bb_design_to_studies <- function(design, trial_name, year, location, description
         observationUnitPosition = position
       )
     })
+    generator <- if (kind == "imported") "agricolae" else "breedtools"
     study <- list(
       studyName = g$name,
       studyDescription = description,
       studyType = trial_type,
       seasons = list(as.character(year)),
-      experimentalDesign = list(PUI = design_type, description = paste(design_type, "design generated by breedtools")),
-      additionalInfo = list(design_generated_by = "breedtools")
+      experimentalDesign = list(PUI = design_type, description = paste(design_type, "design generated by", generator)),
+      additionalInfo = list(design_generated_by = generator)
     )
+    if (kind == "imported") {
+      study$experimentalDesign$description <- "Design imported from an agricolae field book"
+      study$additionalInfo$design_converted_by <- "breedtools"
+      if (!is.null(design$parameters$design)) {
+        study$additionalInfo$agricolae_design <- design$parameters$design
+      }
+    }
     list(study = study, plots = plots, breedbase_location = g$breedbase_location)
   })
 }

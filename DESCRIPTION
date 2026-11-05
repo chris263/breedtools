@@ -5,7 +5,11 @@ Authors@R:
     person("Christiano", "Simoes", email = "ccsimoes263@gmail.com", role = c("aut", "cre"))
 Description: Designs and analyses plant breeding field trials, from
     early generations with a single plot per entry to fully replicated
-    trials, and saves the designs to a 'Breedbase' database. Designs:
+    trials, and saves the designs to a 'Breedbase' database. Suggests layout
+    parameters from entry counts and known or unspecified field dimensions.
+    Converts 'agricolae' field books and prepares their trial information
+    for storage.
+    Designs:
     augmented row-column designs with replicated checks (Federer, Nair and
     Raghavarao (1975) <doi:10.2307/2529426>), including unequal row and
     column groups, incomplete blocks, extra check replication and
@@ -36,7 +40,7 @@ Description: Designs and analyses plant breeding field trials, from
     <doi:10.1093/biomet/37.3-4.308>), and groups environments by
     genotype-by-environment interaction (Lin (1982) <doi:10.1007/BF00276251>).
 License: GPL-3
-URL: https://github.com/chris263/breedtools
+URL: https://github.com/chris263/breedtools, https://chris263.github.io/breedtools/
 BugReports: https://github.com/chris263/breedtools/issues
 Encoding: UTF-8
 Language: en-US
@@ -65,8 +69,10 @@ Suggests:
     httr2 (>= 1.1.0),
     curl,
     askpass,
+    agricolae,
     Matrix,
     SpATS,
+    withr,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

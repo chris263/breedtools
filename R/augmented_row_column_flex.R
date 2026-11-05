@@ -647,7 +647,9 @@ arc_rc_spatial <- function(data, spatial_nseg, error_df) {
 #' Tries every combination of block size and number of checks for a field
 #' and returns the layouts that can be analysed, so a layout can be chosen
 #' without writing a loop over [augmented_row_column_capacity()]. Each block
-#' gets one plot of every check.
+#' gets one plot of every check. Suggested blocks have at least as many
+#' rows and at least as many columns as there are checks, leaving room for
+#' each check to occupy a distinct row and column.
 #'
 #' There is a trade-off: more check plots mean fewer entries but more error
 #' degrees of freedom, i.e. more reliable F-tests and spatial adjustment. Aim
@@ -672,7 +674,7 @@ arc_rc_spatial <- function(data, spatial_nseg, error_df) {
 #' @seealso [augmented_row_column_capacity()], [augmented_row_column_design()]
 #'
 #' @examples
-#' # All analyzable layouts of a 12 x 12 field with 2 to 5 checks:
+#' # Suggested analyzable layouts of a 12 x 12 field with 2 to 5 checks:
 #' augmented_row_column_layouts(12, 12, n_controls = 2:5)
 #'
 #' # Layouts that fit 100 entries with at least 10 error df:
@@ -695,6 +697,7 @@ augmented_row_column_layouts <- function(rows_in_field, cols_in_field,
                       cols_per_block = as.integer(cols_per_block),
                       n_controls = as.integer(n_controls))
   grid <- grid[rows_in_field %% grid$rows_per_block == 0 & cols_in_field %% grid$cols_per_block == 0 &
+                 grid$rows_per_block >= grid$n_controls & grid$cols_per_block >= grid$n_controls &
                  grid$n_controls >= 1 & grid$n_controls <= grid$rows_per_block * grid$cols_per_block,
                , drop = FALSE]
 

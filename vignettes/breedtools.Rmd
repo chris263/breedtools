@@ -39,6 +39,86 @@ entry means (`adjusted_means`) ranked best first, with standard errors, the
 mean standard error of a difference (`mean_sed`) and the 5% least
 significant difference (`lsd_5pct`).
 
+## Start with the information you know
+
+Use `design_options()` when you know how many entries you have but have
+not settled on the field dimensions, number of checks or replication.
+It proposes layouts for augmented row-column, p-rep and fully replicated
+resolvable row-column designs:
+
+```{r design-options}
+options <- design_options(n_entries = 100, n_locations = 3)
+options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field", "n_reps",
+             "plots_per_location", "error_df")]
+```
+
+`n_entries` counts test entries, excluding checks. To consider only certain
+designs, use `design = c("augmented_row_column", "resolvable")`, for example. Supply
+known constraints and leave the others unspecified:
+
+```{r constrained-design-options}
+fixed_options <- design_options(108, design = "augmented_row_column", n_checks = 4,
+  rows = 12, cols = 12, n_candidates = 200)
+fixed_options[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
+                   "cols_per_block", "n_candidates", "check_plots", "error_df", "method")]
+design_options(42, design = "resolvable", cols = 7, n_reps = 3)
+```
+
+Rows and columns describe the entire field at one location, including all
+replicates. A supplied dimension is an exact candidate size; a vector such
+as `rows = c(12, 15, 18)` considers each size. `max_plots` limits field area
+per location. `unused_plots` reports filler positions or a partial final
+row. `min_error_df = 10`, for example, can exclude layouts with little
+nominal error information. `attr(options, "diagnostics")` explains why a
+requested design family has no options within the search limits.
+
+Choose an augmented row-column option and pass every setting explicitly to
+`augmented_row_column_design()`. This design family is identified by
+`"augmented_row_column"`; the shorter name `"augmented"` is not used.
+The planner requires at least one block row and one block column per
+distinct check: with four checks, every suggested block is at least
+4 rows by 4 columns. This leaves room for one copy of each check in a
+distinct row and column of the block.
+
+```{r generate-planned-design}
+selected <- fixed_options[1, ]
+entries <- sprintf("LINE_%03d", 1:108)
+check_names <- c("CHECK_A", "CHECK_B", "CHECK_C", "CHECK_D")
+planned_trial <- augmented_row_column_design(
+  treatments       = entries,
+  controls         = check_names,
+  rows_in_field    = selected$rows_in_field,
+  cols_in_field    = selected$cols_in_field,
+  rows_per_block   = selected$rows_per_block,
+  cols_per_block   = selected$cols_per_block,
+  checks_per_block = selected$checks_per_block[[1]],
+  method           = selected$method,
+  n_candidates     = selected$n_candidates,
+  seed             = 2026
+)
+check_design(planned_trial)
+```
+
+`n_candidates = 200` is the search effort you choose. The planner suggests
+the dimensions and block arrangement; it records your chosen search effort
+alongside them. Include `checks_per_block` because options that need extra
+check replication carry that allocation in this column. It is `NULL` for
+complete blocks with one copy of every check.
+
+For other design families, `selected$arguments[[1]]` supplies their layout
+arguments for `do.call()`. For p-rep, replace the placeholder locations with your location
+names. For resolvable designs, include both entries and checks in
+the generator's `treatments`; both are fully replicated. The native resolvable
+generator needs checks marked in `is_control` in its two field-book tables
+if check status is needed for Breedbase.
+
+The planner checks counts, block conditions and nominal error degrees of
+freedom. It does not randomize a design or estimate its precision. Generate
+your selected option and inspect its summary and `check_design()` results
+to assess connectivity and efficiency. Extra positions in augmented
+layouts are assigned explicitly to extra check replication, keeping the
+number of test entries exact.
+
 A longer script that you can run section by section in RStudio ships with
 the package:
 
@@ -75,9 +155,10 @@ conditions of Piepho and Williams (2016) for the row-group and column-group
 sub-designs; negative values warn that those sub-designs cannot be
 estimated on their own.
 
-`augmented_row_column_layouts()` lists every analyzable layout of a field in
-one call, most entry plots first, so you can see the trade-off between entry
-plots and error df. Give `n_entries` to keep only the layouts that fit your
+`augmented_row_column_layouts()` lists analyzable layouts whose blocks have
+at least as many rows and columns as checks, most entry plots first, so you
+can see the trade-off between entry plots and error df. Give `n_entries`
+to keep only the layouts that fit your
 entries, and `min_error_df` to require a minimum precision:
 
 ```{r}
@@ -502,6 +583,36 @@ two
 cmp <- compare_first_stage(two)
 ```
 
+## Single-stage analysis as an alternative
+
+To fit all locations in one model, pass the cleaned plot observations
+directly to `analyze_single_stage()`. This route does not require
+`analyze_two_stage()` or any first-stage fit. Here `clean` is the
+multi-location field data prepared above:
+
+```{r single-stage-alternative}
+one <- analyze_single_stage(
+  clean, "yield", genotype_col = "all_entries", location_col = "location",
+  spatial = requireNamespace("SpATS", quietly = TRUE)
+)
+one
+one$variance_components
+single_values <- second_stage_values(one, trait = "fresh root yield")
+head(single_values)
+```
+
+`second_stage_values()` formats the genotype means of either kind of fit;
+it performs no additional analysis. The single-stage model shares one
+residual variance across locations, while the weighted two-stage route
+uses the precision estimated at each location. Save the single-stage
+means as their own analysis project:
+
+```{r single-stage-save, eval = FALSE}
+save_breedbase_analysis(single_values, con, analysis_name = "MET_2026_single_stage",
+  program = "IITA", description = "Single-stage analysis of all field plots",
+  estimate = if (isTRUE(one$input$spatial)) "spatial" else "blue")
+```
+
 # 3. Resolvable row-column designs
 
 When there is enough seed to replicate every entry, a resolvable row-column
@@ -681,6 +792,108 @@ head(rrc$breedbase_design)
 Write them with `utils::write.csv()`, or pass `output_file` to the design
 function for a tab-delimited copy of the full design.
 
+## Designs generated with agricolae
+
+The workflow has three steps: generate your design with `agricolae`,
+prepare it with `prepare_breedbase_trial()`, then save it with the existing
+`save_breedbase()` function. Here is an RCBD (randomized complete block
+design), with three complete blocks. The same preparation function also
+accepts CRD, alpha and other supported agricolae designs.
+
+Install `agricolae` with `install.packages("agricolae")` to run this example.
+The treatment column in the agricolae field book takes the name of the vector passed
+to the design function (`ag_accessions` here). The converter maps that
+column to `all_entries`, keeps plot and block numbers, and supplies the
+replicate and check indicators used by the Breedbase uploader.
+
+```{r agricolae-conversion, eval = requireNamespace("agricolae", quietly = TRUE)}
+ag_accessions <- c("G1", "G2", "G3", "CHECK_A")
+ag_randomized <- agricolae::design.rcbd(ag_accessions, r = 3, seed = 2026)
+head(ag_randomized$book)           # original agricolae data format
+
+ag_design <- prepare_breedbase_trial(
+  design      = ag_randomized,
+  trial_name  = "RCBD_2026_Ibadan",
+  year        = 2026,
+  location    = "Ibadan",
+  program     = "IITA",
+  description = "RCBD with three complete blocks generated with agricolae",
+  checks      = "CHECK_A",
+  prompt      = FALSE
+)
+ag_design$trial                  # recorded trial information
+head(ag_design$design)            # converted plot table for Breedbase
+
+# A bare $book or zigzag() data frame needs an explicit design type:
+ag_from_book <- as_breedbase_design(
+  ag_randomized$book, accession = "ag_accessions",
+  checks = "CHECK_A", design_type = "RCBD"
+)
+
+# Preview the trial and plots offline:
+ag_payload <- save_breedbase(ag_design, dry_run = TRUE)
+ag_payload$studies[[1]]
+ag_payload$plots[[1]][[1]]
+ag_sheet <- phenotype_template(ag_design, traits = "fresh root yield")
+head(ag_sheet)
+```
+
+The prepared object contains both the converted design and its trial name,
+year, location, breeding program and description. You provide those values
+once. In an interactive RStudio session, calling
+`prepare_breedbase_trial(ag_randomized, checks = "CHECK_A")` asks for any
+missing required trial information. Named arguments with `prompt = FALSE`
+make the same workflow reproducible in scripts.
+
+Replace the example accessions, program and location with names already in
+your database. Log in, check those names and save the new trial:
+
+```{r agricolae-save, eval = FALSE}
+con <- breedbase_login("https://your-breedbase.org", "your_username")
+save_breedbase(ag_design, con, dry_run = TRUE)  # check names in Breedbase
+ag_saved <- save_breedbase(ag_design, con)     # create trial and plots
+ag_saved$trial_page
+```
+
+Preparation does not require a connection and preserves the randomization
+already generated by agricolae. Add `folder = "Your folder"` when preparing
+the trial, and `create_folder = TRUE` when saving if it should be created.
+You can override recorded information explicitly when saving, for example
+`save_breedbase(ag_design, con, trial_name = "RCBD_2027_Ibadan", year = 2027)`.
+
+`as_breedbase_design()` remains available for conversion without trial
+information, as shown above for a bare field book. CRD, RCBD, alpha, lattice, augmented block, split-plot and strip-plot types
+are recognized automatically. A bare field book, including a result from
+`agricolae::zigzag()`, needs `design_type`. Designs without a corresponding
+Breedbase type also require an explicit compatible `design_type`; a Latin
+square is not silently relabeled as RCBD.
+
+For multiple treatment factors, select the column containing accession
+names with `accession = "genotype"`. The original factors and generation
+parameters remain in `ag_design$book` and `ag_design$parameters`. Saving
+uploads one plot per field-book row; it does not upload other treatment
+factors or recreate a main-plot/subplot hierarchy. Repeated main-plot
+numbers in split-plot books become unique sequential subplot numbers.
+Coordinates are uploaded only when supplied in the field book; they are
+not inferred from plot numbering or a sketch.
+
+The same workflow is included in the runnable script's section 8e
+(`scripts/breedtools_script.R`) and section E5 of the packaged example:
+
+```{r, eval = FALSE}
+file.edit(system.file("examples", "breedtools_workflow.R", package = "breedtools"))
+```
+
+Part I of `scripts/validate_designs.R` starts with RCBD and lets you select
+alpha with `ag_kind = "Alpha"`. It follows the full lifecycle: a
+randomization at each location, explicit field coordinates, trial
+preparation and upload, phenotype sheets, trait plots,
+outlier removal, SpATS per location, weighted combined means and saving the
+results. It uses the same save switches and Breedbase settings as the
+other trial designs in that tour. Steps I1-I3 are the design-to-trial
+workflow. Set `run_agricolae_analysis <- TRUE` to also run the separate
+I4-I10 example with simulated phenotypes and analysis results.
+
 ## Saving a design directly to Breedbase
 
 `save_breedbase()` creates the trial and its plots in a 'Breedbase' database
@@ -841,6 +1054,43 @@ save_breedbase_analysis(stage1, con, analysis_name = "AYT_2026_Ibadan_stage1", p
 the stage-1 fits per location of `analyze_augmented_prep_two_stage()` and
 `analyze_resolvable_row_column()`.
 
+## Add a second analyzed trait to an existing analysis
+
+Analyze the second trait on the same field plots. In this example the dry
+matter measurements are simulated; replace them with your field data:
+
+```{r second-analyzed-trait}
+set.seed(84)
+field$dry_matter <- 32 + rnorm(nrow(field), sd = 2)
+dm_fit <- analyze_augmented_row_column_design(field, "dry_matter")
+dm_stage1 <- first_stage_values(dm_fit, rc, trial_name = "AYT_2026_Ibadan",
+  trait = "dry matter content percentage")
+dm_stage2 <- second_stage_values(dm_fit, trait = "dry matter content percentage")
+head(dm_stage2)
+```
+
+After saving the yield analyses shown above, append dry matter to those
+same projects. Use `level = "plot"` for the first-stage plot analysis and
+`level = "accession"` for the genotype-means analysis:
+
+```{r append-analyzed-trait, eval = FALSE}
+add_breedbase_analysis_values(dm_stage1, con,
+  analysis_name = "AYT_2026_Ibadan_stage1", level = "plot", dry_run = TRUE)
+add_breedbase_analysis_values(dm_stage1, con,
+  analysis_name = "AYT_2026_Ibadan_stage1", level = "plot")
+
+add_breedbase_analysis_values(dm_stage2, con,
+  analysis_name = "AYT_2026_Ibadan_means", level = "accession", dry_run = TRUE)
+add_breedbase_analysis_values(dm_stage2, con,
+  analysis_name = "AYT_2026_Ibadan_means", level = "accession")
+```
+
+The analysis must already contain those plots or accessions, and the new
+trait must exist in Breedbase. Its connected dry run verifies the names and
+values. Existing values for the same stock and trait require an explicit
+`overwrite = TRUE` to replace them. Part A11 of `scripts/validate_designs.R`
+demonstrates this with a second trait analyzed across all locations.
+
 # Validation
 
 The package source includes two scripts in `scripts/`:
@@ -850,7 +1100,13 @@ The package source includes two scripts in `scripts/`:
   kind and prints `[OK]` checks, including comparisons with the published
   examples (Table 2 of Piepho and Williams, 2016; Examples 1 and 3 of
   Williams, Piepho and Whitaker, 2011; Table 1 of Williams, John and
-  Whitaker, 2006).
+  Whitaker, 2006). A11 adds a second analyzed trait to the existing analyses;
+  A12 is a standalone single-stage alternative (run A1-A6, then jump to
+  A12). Part I covers agricolae designs. To analyze trials already in
+  Breedbase, enable `read_breedbase_trials` and select
+  `breedbase_analysis_route` (`"single"`, `"two_stage"` or `"both"`) in
+  Setup, then run Part H. Subsequent traits are added to the same analysis
+  projects.
 * `run_all_checks.R` is the full automated test battery (thousands of
   checks against `lm()`, 'lme4', brute-force matrix algebra and the
   published tables, plus simulations of type I error, power and coverage).

@@ -23,7 +23,10 @@ save_breedbase(
 )
 }
 \arguments{
-\item{design}{A design object.}
+\item{design}{A design object, including the result of \code{\link[=as_breedbase_design]{as_breedbase_design()}}
+or \code{\link[=prepare_breedbase_trial]{prepare_breedbase_trial()}}. For a prepared trial, recorded trial
+name, year, location, program, description, folder and trial type are
+used when their arguments are omitted. Explicit arguments override them.}
 
 \item{con}{A connection from \code{\link[=breedbase_login]{breedbase_login()}}.}
 
@@ -60,7 +63,8 @@ Types the database does not know are saved as a miscellaneous trial.}
 \item{design_type}{Breedbase design type. Defaults to \code{"Augmented"} for
 augmented row-column designs, \code{"p-rep"} for p-rep designs and \code{"Alpha"}
 (rows as incomplete blocks within replicates) for resolvable row-column
-designs.}
+designs. Converted agricolae designs use the type selected by
+\code{\link[=as_breedbase_design]{as_breedbase_design()}}.}
 
 \item{plot_names}{Optional plot names given by you: either a character
 vector with one name per plot, in the row order of \code{design$design}, or
@@ -91,8 +95,9 @@ a list with the trial and plot data that would be sent.
 \description{
 Creates the trial and its plots in a Breedbase database through BrAPI, in
 a breeding program and, optionally, a folder of your choice. Works for designs from
-\code{\link[=augmented_row_column_design]{augmented_row_column_design()}}, \code{\link[=augmented_prep_design]{augmented_prep_design()}} and
-\code{\link[=resolvable_row_column_design]{resolvable_row_column_design()}}.
+\code{\link[=augmented_row_column_design]{augmented_row_column_design()}}, \code{\link[=augmented_prep_design]{augmented_prep_design()}},
+\code{\link[=resolvable_row_column_design]{resolvable_row_column_design()}}, and agricolae designs converted with
+\code{\link[=as_breedbase_design]{as_breedbase_design()}} or prepared with \code{\link[=prepare_breedbase_trial]{prepare_breedbase_trial()}}.
 }
 \details{
 Before anything is written, every name is checked: the breeding program,

@@ -705,6 +705,8 @@ test_that("augmented_row_column_layouts lists the analyzable layouts", {
   expect_s3_class(layouts, "tbl_df")
   expect_true(all(layouts$error_df >= 1))
   expect_true(all(diff(layouts$entry_plots) <= 0))
+  expect_true(all(layouts$rows_per_block >= layouts$n_controls))
+  expect_true(all(layouts$cols_per_block >= layouts$n_controls))
   # Every listed layout agrees with augmented_row_column_capacity().
   for (i in seq_len(nrow(layouts))) {
     cap <- augmented_row_column_capacity(12, 12, layouts$rows_per_block[i],
@@ -728,6 +730,11 @@ test_that("augmented_row_column_layouts lists the analyzable layouts", {
 
   expect_message(none <- augmented_row_column_layouts(6, 6, n_controls = 1, min_error_df = 50), "No analyzable layout")
   expect_equal(nrow(none), 0)
+  for (dims in list(c(3, 6), c(6, 3))) {
+    expect_message(narrow <- augmented_row_column_layouts(12, 12,
+      rows_per_block = dims[1], cols_per_block = dims[2], n_controls = 4), "No analyzable layout")
+    expect_equal(nrow(narrow), 0)
+  }
 })
 
 test_that("checks are never placed next to each other inside a block", {

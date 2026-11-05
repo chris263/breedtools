@@ -9,3 +9,7 @@
 ^doc$
 ^Meta$
 ^[^/]+[.]pdf$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$

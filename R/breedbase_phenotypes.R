@@ -14,10 +14,11 @@
 #' [save_breedbase_phenotypes()].
 #'
 #' @param design A design from [augmented_row_column_design()],
-#'   [augmented_prep_design()] or [resolvable_row_column_design()].
+#'   [augmented_prep_design()], [resolvable_row_column_design()],
+#'   [as_breedbase_design()] or [prepare_breedbase_trial()].
 #' @param trial_name The trial name used when saving the design. For p-rep
 #'   designs saved as one trial per location, the location is added as in
-#'   [save_breedbase()].
+#'   [save_breedbase()]. Can be omitted for a prepared Breedbase trial.
 #' @param traits Trait names as in Breedbase, e.g. `"fresh root yield"` or
 #'   `"fresh root yield|CO_334:0000013"`. Can be empty (no trait columns).
 #' @param plot_name_pattern,plot_names The same plot naming used in
@@ -36,6 +37,7 @@
 #' @export
 phenotype_template <- function(design, trial_name, traits = character(0),
                                plot_name_pattern = "{trial}_{accession}_{block}_{rep}", plot_names = NULL) {
+  if (missing(trial_name) && inherits(design, "breedbase_trial")) trial_name <- design$trial$trial_name
   out <- bb_design_plot_table(design, trial_name, plot_name_pattern, plot_names)
   out$.design_location <- NULL
   out$.design_plots <- NULL
@@ -47,6 +49,7 @@ phenotype_template <- function(design, trial_name, traits = character(0),
 # location for p-rep designs), to match analysis results.
 bb_design_plot_table <- function(design, trial_name, plot_name_pattern = "{trial}_{accession}_{block}_{rep}",
                                  plot_names = NULL) {
+  if (is.null(trial_name) && inherits(design, "breedbase_trial")) trial_name <- design$trial$trial_name
   studies <- bb_design_to_studies(design, trial_name, year = 2000, location = bb_template_location(design),
                                   description = "template", trial_type = "phenotyping_trial", design_type = NULL,
                                   plot_names = plot_names, plot_name_pattern = plot_name_pattern)

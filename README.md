@@ -50,8 +50,8 @@ remotes::install_github("solgenomics/breedtools")
 
 ## Documentation
 
-- **Website**: <https://chris263.github.io/breedtools/>. The
-  [function reference](https://chris263.github.io/breedtools/reference/)
+- **Website**: <https://solgenomics.github.io/breedtools/>. The
+  [function reference](https://solgenomics.github.io/breedtools/reference/)
   groups every function by task and shows its arguments with examples you
   can run.
 - **Tutorial**: `vignette("breedtools")` walks through every design and

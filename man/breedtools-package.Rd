@@ -123,8 +123,9 @@ single stage: \code{\link[=analyze_single_stage]{analyze_single_stage()}}
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/chris263/breedtools}
-  \item Report bugs at \url{https://github.com/chris263/breedtools/issues}
+  \item \url{https://github.com/solgenomics/breedtools}
+  \item \url{https://solgenomics.github.io/breedtools/}
+  \item Report bugs at \url{https://github.com/solgenomics/breedtools/issues}
 }
 
 }

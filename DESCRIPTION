@@ -40,8 +40,8 @@ Description: Designs and analyses plant breeding field trials, from
     <doi:10.1093/biomet/37.3-4.308>), and groups environments by
     genotype-by-environment interaction (Lin (1982) <doi:10.1007/BF00276251>).
 License: GPL-3
-URL: https://github.com/chris263/breedtools, https://chris263.github.io/breedtools/
-BugReports: https://github.com/chris263/breedtools/issues
+URL: https://github.com/solgenomics/breedtools, https://solgenomics.github.io/breedtools/
+BugReports: https://github.com/solgenomics/breedtools/issues
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)

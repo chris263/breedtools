@@ -14,7 +14,7 @@ get_maximal_groups(compatible_groups)
 - compatible_groups:
 
   Output from
-  [`get_compatible_groups()`](https://chris263.github.io/breedtools/reference/get_compatible_groups.md).
+  [`get_compatible_groups()`](https://solgenomics.github.io/breedtools/reference/get_compatible_groups.md).
 
 ## Value
 

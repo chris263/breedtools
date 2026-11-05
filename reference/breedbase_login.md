@@ -2,7 +2,7 @@
 
 Logs in through the BrAPI token call and returns a connection used by
 the other `breedbase_*()` functions and by
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md).
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md).
 Only the access token is kept; the password is not stored.
 
 ## Usage
@@ -56,10 +56,10 @@ a pop-up.
 
 ## See also
 
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md),
-[`breedbase_programs()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md),
-[`breedbase_folders()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md),
-[`breedbase_locations()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md),
+[`breedbase_programs()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md),
+[`breedbase_folders()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md),
+[`breedbase_locations()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md)
 
 ## Examples
 

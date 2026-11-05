@@ -3,7 +3,7 @@
 Runs the structural checks that every design of its kind should pass and
 prints one `[OK]` / `[FAIL]` line per check (`[NOTE]` for informational
 ones). The results are recorded for
-[`check_summary()`](https://chris263.github.io/breedtools/reference/check_summary.md).
+[`check_summary()`](https://solgenomics.github.io/breedtools/reference/check_summary.md).
 
 ## Usage
 
@@ -16,15 +16,15 @@ check_design(design, section = NULL)
 - design:
 
   A design object from
-  [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md),
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)
+  [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md),
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)
   or
-  [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md).
+  [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md).
 
 - section:
 
   Optional label for the recorded checks. Defaults to the label set with
-  [`check_section()`](https://chris263.github.io/breedtools/reference/check_section.md),
+  [`check_section()`](https://solgenomics.github.io/breedtools/reference/check_section.md),
   or else the kind of design.
 
 ## Value

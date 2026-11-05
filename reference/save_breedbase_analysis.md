@@ -8,13 +8,13 @@ Breedbase:
 
   "Analysis of: accessions": one value per genotype, e.g. second-stage
   adjusted means from
-  [`second_stage_values()`](https://chris263.github.io/breedtools/reference/second_stage_values.md).
+  [`second_stage_values()`](https://solgenomics.github.io/breedtools/reference/second_stage_values.md).
 
 - `level = "plot"`:
 
   "Analysis of: plots": one value per field plot, e.g. first-stage
   values from
-  [`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md).
+  [`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md).
   Breedbase finds the field trial(s) of the plots and gives the analysis
   one plot per field plot (named `"<analysis_name>_<field plot name>"`),
   with the same accession, rep, block, row and column.
@@ -61,7 +61,7 @@ save_breedbase_analysis(
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md);
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md);
   `NULL` with `dry_run = TRUE` returns the file that would be uploaded.
 
 - analysis_name:
@@ -100,14 +100,14 @@ save_breedbase_analysis(
   For the default statistic: `"blue"` or `"blup"` (adjusted means of
   that kind), or `"spatial"` (spatial correction, the default for
   `level = "plot"`). By default taken from the data
-  ([`second_stage_values()`](https://chris263.github.io/breedtools/reference/second_stage_values.md),
-  [`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)).
+  ([`second_stage_values()`](https://solgenomics.github.io/breedtools/reference/second_stage_values.md),
+  [`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)).
 
 - statistic:
 
   Optional statistic term: its name, `"name|SGNSTAT:id"` or the id, as
   listed by
-  [`breedbase_statistics()`](https://chris263.github.io/breedtools/reference/breedbase_statistics.md).
+  [`breedbase_statistics()`](https://solgenomics.github.io/breedtools/reference/breedbase_statistics.md).
   It must be a term of the Breedbase statistics ontology (checked
   against the ontology file, with suggestions for misspelled names, and
   then on the server). By default chosen by `estimate`.
@@ -170,7 +170,7 @@ results (`uploaded_generic_analysis_model`).
 Breedbase creates analyses through its web pages; BrAPI cannot create an
 analysis project. Test sites such as cassava-test.sgn.cornell.edu close
 their web pages with an extra web password. With it (see
-[`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md)),
+[`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md)),
 the analysis is uploaded directly. Without it, everything is checked
 through BrAPI and the file of the "Upload analysis" form is written,
 with the value of every form field printed: upload it in the browser and

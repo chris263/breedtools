@@ -34,7 +34,7 @@ analyze_augmented_prep_two_stage(
 - data:
 
   A design data frame (usually `design$design` from
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)),
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)),
   or a design object, with a response column.
 
 - response:
@@ -57,7 +57,7 @@ analyze_augmented_prep_two_stage(
 - genotype_col, location_col, block_col, replicate_col:
 
   Column names, as in
-  [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md).
+  [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md).
 
 - row_col, col_col:
 
@@ -118,7 +118,7 @@ An object of class `augmented_prep_two_stage`, a list with
 - `stage1 = "blocks"`:
 
   The incomplete-block model of
-  [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md)
+  [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md)
   at each location (replicates and blocks fixed, genotypes fixed).
 
 - `stage1 = "spatial"`:
@@ -128,7 +128,7 @@ An object of class `augmented_prep_two_stage`, a list with
   over the field rows and columns (`PSANOVA`), replicates fixed and
   incomplete blocks random. It needs the `row` and `col` field
   coordinates (use `field_cols` in
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)).
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)).
 
 The stage-1 genotype means are BLUEs with their full covariance matrix.
 Each location needs some error degrees of freedom, i.e. enough p-rep
@@ -178,7 +178,7 @@ experiments with P-splines. Spatial Statistics 23, 52-71.
 
 ## See also
 
-[`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md)
+[`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md)
 for the one-stage analysis.
 
 ## Examples

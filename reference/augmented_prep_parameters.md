@@ -1,7 +1,7 @@
 # Feasible parameters for augmented p-rep constructions
 
 Lists the parameter sets that
-[`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)
+[`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)
 can build for a given number of entries and locations, in the spirit of
 Table 3 of Williams, Piepho and Whitaker (2011). For each number `m` of
 p-rep entries per block, it gives the number of blocks per replicate

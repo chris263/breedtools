@@ -5,7 +5,7 @@ means across locations (stage 2), weighting them by their precision
 (Möhring and Piepho, 2009). Works for every design of the package grown
 at several locations: augmented row-column, augmented p-rep and
 resolvable row-column designs. For augmented p-rep designs,
-[`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
+[`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
 gives the same analysis with the p-rep block model of the paper.
 
 ## Usage
@@ -74,9 +74,9 @@ An object of class `two_stage_analysis`: a list with `adjusted_means`
 (combined, ranked), `variance_components`, `locations` (one row per
 location), `heterogeneity` (Hartley's Fmax), `stage1_means`,
 `stage1_fits` (per location, with `plot_results`, for
-[`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)
+[`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)
 and
-[`compare_first_stage()`](https://chris263.github.io/breedtools/reference/compare_first_stage.md))
+[`compare_first_stage()`](https://solgenomics.github.io/breedtools/reference/compare_first_stage.md))
 and `diagnostics`.
 
 ## Stage 1
@@ -98,12 +98,12 @@ and `diagnostics`.
 - `stage1 = "design"`:
 
   The design's own model at every location:
-  [`analyze_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_row_column_design.md)
+  [`analyze_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_row_column_design.md)
   for augmented row-column designs,
-  [`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md)
+  [`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md)
   (row-column model) for resolvable row-column designs, and the block
   model of
-  [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md)
+  [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md)
   for p-rep designs. The design is recognised from its columns.
 
 The stage-1 genotype means are BLUEs with their full covariance matrix.
@@ -111,7 +111,7 @@ The stage-1 genotype means are BLUEs with their full covariance matrix.
 ## Stage 2
 
 As in
-[`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md):
+[`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md):
 fixed locations and genotypes, random genotype-by-location effects
 (REML), and stage-1 errors with the stage-1 covariance
 (`weighting = "full"`), only the stage-1 variances (`"diagonal"`) or a

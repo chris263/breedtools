@@ -38,7 +38,7 @@ analyze_augmented_row_column_design(
 
   A complete augmented row-column design data frame, usually
   `design$design` from
-  [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md),
+  [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md),
   with a response column added.
 
 - response:

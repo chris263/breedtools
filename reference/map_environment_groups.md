@@ -24,14 +24,14 @@ map_environment_groups(
 - stratification_result:
 
   Result from
-  [`run_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_environment_stratification.md)
+  [`run_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_environment_stratification.md)
   or
-  [`run_breedbase_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_breedbase_environment_stratification.md).
+  [`run_breedbase_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_breedbase_environment_stratification.md).
 
 - locations:
 
   Location coordinates from
-  [`read_locations()`](https://chris263.github.io/breedtools/reference/read_locations.md),
+  [`read_locations()`](https://solgenomics.github.io/breedtools/reference/read_locations.md),
   a location file path, or a data frame with location, latitude, and
   longitude columns.
 

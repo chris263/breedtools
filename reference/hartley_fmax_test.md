@@ -26,7 +26,7 @@ hartley_fmax_test(env_anova, alpha = 0.05, n_sim = 1e+05, seed = 123)
 - seed:
 
   Random seed passed to
-  [`hartley_critical_sim()`](https://chris263.github.io/breedtools/reference/hartley_critical_sim.md).
+  [`hartley_critical_sim()`](https://solgenomics.github.io/breedtools/reference/hartley_critical_sim.md).
   The user's global random number generator state is not modified.
 
 ## Value

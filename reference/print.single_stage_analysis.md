@@ -14,7 +14,7 @@ print(x, n = 10, ...)
 - x:
 
   An object returned by
-  [`analyze_single_stage()`](https://chris263.github.io/breedtools/reference/analyze_single_stage.md).
+  [`analyze_single_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_single_stage.md).
 
 - n:
 

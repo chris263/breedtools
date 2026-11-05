@@ -14,7 +14,7 @@ print(x, n = 10, ...)
 - x:
 
   An object returned by
-  [`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md).
+  [`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md).
 
 - n:
 

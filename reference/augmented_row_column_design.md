@@ -6,7 +6,7 @@ Williams, 2016). Adjacent rows form row groups and adjacent columns form
 column groups; each intersection is a block that receives a given number
 of check plots. Row, column and block effects are all estimable from the
 checks, and the layout must leave positive error degrees of freedom (see
-[`augmented_row_column_capacity()`](https://chris263.github.io/breedtools/reference/augmented_row_column_capacity.md)).
+[`augmented_row_column_capacity()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_capacity.md)).
 
 ## Usage
 
@@ -77,12 +77,12 @@ augmented_row_column_design(
 - rows_per_rowgroup, cols_per_colgroup:
 
   Optional vectors of unequal group sizes, as in
-  [`augmented_row_column_capacity()`](https://chris263.github.io/breedtools/reference/augmented_row_column_capacity.md).
+  [`augmented_row_column_capacity()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_capacity.md).
 
 - checks_per_block:
 
   Optional number of check plots per block, as in
-  [`augmented_row_column_capacity()`](https://chris263.github.io/breedtools/reference/augmented_row_column_capacity.md).
+  [`augmented_row_column_capacity()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_capacity.md).
 
 - method:
 

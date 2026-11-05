@@ -3,7 +3,7 @@
 Tries every combination of block size and number of checks for a field
 and returns the layouts that can be analysed, so a layout can be chosen
 without writing a loop over
-[`augmented_row_column_capacity()`](https://chris263.github.io/breedtools/reference/augmented_row_column_capacity.md).
+[`augmented_row_column_capacity()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_capacity.md).
 Each block gets one plot of every check. Suggested blocks have at least
 as many rows and at least as many columns as there are checks, leaving
 room for each check to occupy a distinct row and column.
@@ -53,7 +53,7 @@ A tibble with one row per analyzable layout, sorted by entry plots (most
 first) and then error df: block sizes, number of checks, blocks, entry
 and check plots, `check_fraction`, `error_df`, `method` (the
 construction that
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md)
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md)
 uses for it: `"latin"` or `"optimal"`) and, when `n_entries` is given,
 `spare_plots`.
 
@@ -66,8 +66,8 @@ Stefanova, 2011, recommend about 50 for large trials).
 
 ## See also
 
-[`augmented_row_column_capacity()`](https://chris263.github.io/breedtools/reference/augmented_row_column_capacity.md),
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md)
+[`augmented_row_column_capacity()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_capacity.md),
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md)
 
 ## Examples
 

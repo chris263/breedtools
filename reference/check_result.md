@@ -2,7 +2,7 @@
 
 Prints `[OK]` or `[FAIL]` followed by a description, and records the
 result so that
-[`check_summary()`](https://chris263.github.io/breedtools/reference/check_summary.md)
+[`check_summary()`](https://solgenomics.github.io/breedtools/reference/check_summary.md)
 can report how many checks passed. Use it to write your own checks while
 exploring a design or an analysis.
 
@@ -27,7 +27,7 @@ check_result(what, ok, section = NULL, note = FALSE)
 
   Optional label for grouping checks, e.g. `"p-rep"`. Defaults to the
   label set with
-  [`check_section()`](https://chris263.github.io/breedtools/reference/check_section.md).
+  [`check_section()`](https://solgenomics.github.io/breedtools/reference/check_section.md).
 
 - note:
 
@@ -41,10 +41,10 @@ Invisibly, `TRUE` if the check passed.
 
 ## See also
 
-[`check_section()`](https://chris263.github.io/breedtools/reference/check_section.md),
-[`check_summary()`](https://chris263.github.io/breedtools/reference/check_summary.md),
-[`check_reset()`](https://chris263.github.io/breedtools/reference/check_reset.md),
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md)
+[`check_section()`](https://solgenomics.github.io/breedtools/reference/check_section.md),
+[`check_summary()`](https://solgenomics.github.io/breedtools/reference/check_summary.md),
+[`check_reset()`](https://solgenomics.github.io/breedtools/reference/check_reset.md),
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md)
 
 ## Examples
 

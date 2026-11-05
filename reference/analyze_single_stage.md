@@ -3,7 +3,7 @@
 Fits all trials (locations, environments) together in one mixed model
 and gives the genotype adjusted means across trials, to compare with (or
 use instead of) the two-stage analysis of
-[`analyze_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_two_stage.md):
+[`analyze_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_two_stage.md):
 \$\$y = \mu + \text{trial} + \text{genotype} + \text{rep(trial)} +
 \text{block(rep, trial)} + \text{genotype} \times \text{trial} + e,\$\$
 with trials and genotypes fixed, and replicates, blocks and the
@@ -34,7 +34,7 @@ analyze_single_stage(
 - data:
 
   A data frame with one row per plot, e.g. from
-  [`breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/breedbase_phenotypes.md).
+  [`breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/breedbase_phenotypes.md).
 
 - response:
 

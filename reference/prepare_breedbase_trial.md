@@ -34,7 +34,7 @@ prepare_breedbase_trial(
 
   An agricolae design, its field-book data frame, or a design already
   converted with
-  [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md).
+  [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md).
 
 - trial_name:
 
@@ -60,13 +60,13 @@ prepare_breedbase_trial(
 
   Optional Breedbase folder name. `NULL` saves directly in the breeding
   program. Use `create_folder = TRUE` in
-  [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+  [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
   if a new folder should be created.
 
 - checks, accession, design_type:
 
   As in
-  [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md).
+  [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md).
   Supply these when converting a raw agricolae design or field book.
 
 - trial_type:
@@ -82,7 +82,7 @@ prepare_breedbase_trial(
 - ...:
 
   Additional column mappings for
-  [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md),
+  [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md),
   such as `plot`, `block`, `rep`, `row` and `col`.
 
 ## Value
@@ -90,9 +90,9 @@ prepare_breedbase_trial(
 A `breedbase_trial` object extending `breedbase_design`, with converted
 `design`, original `book` and `parameters`, `design_type` and the
 recorded `trial` information. Pass the whole object to
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 or
-[`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md).
+[`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md).
 
 ## Details
 
@@ -118,9 +118,9 @@ are not inferred from agricolae plot codes.
 
 ## See also
 
-[`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md),
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md),
-[`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md)
+[`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md),
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md),
+[`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md)
 
 ## Examples
 

@@ -45,9 +45,9 @@ analyze_augmented_prep_design(
 
   A complete augmented p-rep design data frame, usually `design$design`
   from
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md),
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md),
   or an object returned by
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md),
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md),
   with a response column added.
 
 - response:
@@ -132,7 +132,7 @@ An object of class `augmented_prep_analysis`: a list with
 - adjusted_means_vcov:
 
   Covariance matrix of the estimable adjusted means, used by
-  [`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
+  [`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
   for weighting.
 
 - diagnostics:
@@ -173,7 +173,7 @@ an approximation.
 Williams, Piepho and Whitaker (2011) suggest analysing each location
 with an incomplete-block model. Pass the rows of one location, e.g.
 `analyze_augmented_prep_design(data[data$location == "A", ], "yield")`.
-[`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)
+[`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)
 keeps the blocks of every location connected, so this is estimable
 whenever the location has enough p-rep plots.
 

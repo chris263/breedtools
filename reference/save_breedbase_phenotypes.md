@@ -2,7 +2,7 @@
 
 Uploads trait values of plots that are already in Breedbase (for example
 saved with
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md))
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md))
 through BrAPI. Give the plot name and the trait name with each value;
 the plots and traits are looked up in Breedbase first, and every problem
 is listed before anything is written.
@@ -33,7 +33,7 @@ save_breedbase_phenotypes(
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md);
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md);
   `NULL` with `dry_run = TRUE` returns the observations without checking
   them.
 
@@ -45,7 +45,7 @@ save_breedbase_phenotypes(
 
   For wide data: the trait columns. By default every column except
   `plot`, `timestamp` and the design columns of
-  [`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md)
+  [`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md)
   (`trial_name`, `accession`, `plot_number`, `block`, `rep`, `row`,
   `col`, `is_check`).
 
@@ -71,7 +71,7 @@ save_breedbase_phenotypes(
 
   Logical. After saving, refresh the phenotype cache of Breedbase so the
   values show on the trial pages (see
-  [`breedbase_refresh()`](https://chris263.github.io/breedtools/reference/breedbase_refresh.md)).
+  [`breedbase_refresh()`](https://solgenomics.github.io/breedtools/reference/breedbase_refresh.md)).
 
 ## Value
 
@@ -83,7 +83,7 @@ back from Breedbase after saving).
 
 The data can be wide, one row per plot and one column per trait (as made
 by
-[`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md)):
+[`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md)):
 
 |                         |                  |                               |
 |-------------------------|------------------|-------------------------------|
@@ -107,9 +107,9 @@ the pedigree of each one. If the server times out (HTTP 504, 502, 503 or
 slower but still works. A line is printed after each batch with the
 names done and the time. Accessions found are remembered until R is
 restarted, so
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 after
-[`breedbase_check()`](https://chris263.github.io/breedtools/reference/breedbase_check.md)
+[`breedbase_check()`](https://solgenomics.github.io/breedtools/reference/breedbase_check.md)
 does not search them again.
 
 When creating the folder, the trial or its plots times out, the save
@@ -117,7 +117,7 @@ does not stop: the server may still finish the job, so it checks for the
 result every 20 seconds for 3 minutes, and tries once more if it is not
 there (Breedbase refuses names that already exist, so this cannot make
 duplicates). If a save is cut off anyway, run
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 again: an existing folder is used, and a trial left without plots gets
 its plots. Settings:
 `options(breedtools.write_wait = 30, breedtools.write_checks = 10)`.

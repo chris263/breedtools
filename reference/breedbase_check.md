@@ -6,7 +6,7 @@ when given, the breeding program, the folder and that the trial name is
 free). All problems are reported together, with close matches as
 suggestions (for example `"ibadan"` -\> `"Ibadan"`), so they can be
 fixed in one go.
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 repeats the same checks before writing.
 
 ## Usage
@@ -27,15 +27,15 @@ breedbase_check(
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - accessions:
 
   Entry and check names: a character vector, or a design from
-  [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md),
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)
+  [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md),
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)
   or
-  [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md).
+  [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md).
 
 - location:
 
@@ -66,7 +66,7 @@ the pedigree of each one. If the server times out (HTTP 504, 502, 503 or
 slower but still works. A line is printed after each batch with the
 names done and the time. Accessions found are remembered until R is
 restarted, so
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 after `breedbase_check()` does not search them again.
 
 When creating the folder, the trial or its plots times out, the save
@@ -74,7 +74,7 @@ does not stop: the server may still finish the job, so it checks for the
 result every 20 seconds for 3 minutes, and tries once more if it is not
 there (Breedbase refuses names that already exist, so this cannot make
 duplicates). If a save is cut off anyway, run
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 again: an existing folder is used, and a trial left without plots gets
 its plots. Settings:
 `options(breedtools.write_wait = 30, breedtools.write_checks = 10)`.

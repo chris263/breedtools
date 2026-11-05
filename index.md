@@ -15,7 +15,7 @@ Design and analysis of augmented plant breeding trials.
   with `method`: a flexible randomized `"search"`, the paper’s partial
   alpha-array construction (`"alpha"`), or its augmented alpha(2)-array
   construction (`"alpha2"`).
-  [`augmented_prep_parameters()`](https://chris263.github.io/breedtools/reference/augmented_prep_parameters.md)
+  [`augmented_prep_parameters()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_parameters.md)
   lists the feasible settings, and every design reports its efficiency
   factor.
 - **Resolvable row-column designs** (Williams, John and Whitaker, 2006):
@@ -28,31 +28,31 @@ Design and analysis of augmented plant breeding trials.
   standard errors, the mean SED and the 5% LSD. p-rep analyses fit
   replicates within locations and can add a fixed or random (REML)
   genotype-by-location interaction. A two-stage analysis
-  ([`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md))
+  ([`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md))
   handles heterogeneous error variances across locations and optional
   spatial adjustment with ‘SpATS’.
 - **Field maps and ‘Breedbase’**: a plot-level field book and upload
   files, or save the design directly into a Breedbase breeding program
   and folder through BrAPI with
-  [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md),
+  [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md),
   after checking the location and accessions with
-  [`breedbase_check()`](https://chris263.github.io/breedtools/reference/breedbase_check.md).
+  [`breedbase_check()`](https://solgenomics.github.io/breedtools/reference/breedbase_check.md).
   After harvest, save the phenotypic data by plot and trait name with
-  [`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md)
+  [`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md)
   (sheet from
-  [`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md)),
+  [`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md)),
   and the analysis results: first-stage plot values as a trait of the
   field plots
-  ([`save_breedbase_first_stage()`](https://chris263.github.io/breedtools/reference/save_breedbase_first_stage.md))
+  ([`save_breedbase_first_stage()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_first_stage.md))
   and second-stage genotype means as a Breedbase analysis
-  ([`save_breedbase_analysis()`](https://chris263.github.io/breedtools/reference/save_breedbase_analysis.md)).
+  ([`save_breedbase_analysis()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_analysis.md)).
 - **agricolae designs**: generate a design with the CRAN package
   `agricolae`, convert and record trial information with
-  [`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md),
+  [`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md),
   then use the same
-  [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+  [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
   and
-  [`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md)
+  [`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md)
   workflow.
 - **Multi-environment tools**: read ‘Breedbase’ phenotype files, run
   Hartley’s Fmax variance check, and group environments by GxE.
@@ -67,17 +67,18 @@ remotes::install_github("solgenomics/breedtools")
 
 ## Documentation
 
-- **Website**: <https://chris263.github.io/breedtools/>. The [function
-  reference](https://chris263.github.io/breedtools/reference/) groups
+- **Website**: <https://solgenomics.github.io/breedtools/>. The
+  [function
+  reference](https://solgenomics.github.io/breedtools/reference/) groups
   every function by task and shows its arguments with examples you can
   run.
 - **Tutorial**:
-  [`vignette("breedtools")`](https://chris263.github.io/breedtools/articles/breedtools.md)
+  [`vignette("breedtools")`](https://solgenomics.github.io/breedtools/articles/breedtools.md)
   walks through every design and analysis with simulated data.
 - **In R**:
-  [`help(package = "breedtools")`](https://rdrr.io/pkg/breedtools/man)
+  [`help(package = "breedtools")`](https://chris263.github.io/breedtools/reference)
   lists every help page.
-  [`?augmented_row_column_design`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md)
+  [`?augmented_row_column_design`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md)
   opens one page, and `example(augmented_row_column_design)` runs its
   examples.
 - **All functions** are listed by task [at the end of this
@@ -98,10 +99,10 @@ positions and nominal error degrees of freedom. Augmented row-column
 options expose `rows_in_field`, `cols_in_field`, `rows_per_block`,
 `cols_per_block`, `checks_per_block`, `method` and `n_candidates` for an
 explicit generator call. See
-[`?design_options`](https://chris263.github.io/breedtools/reference/design_options.md)
+[`?design_options`](https://solgenomics.github.io/breedtools/reference/design_options.md)
 for selecting and generating one. These are parameter options to check
 with the generator, its summary and
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md).
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md).
 
 ## Example
 
@@ -126,7 +127,7 @@ fit$adjusted_means       # all entries ranked by adjusted mean
 ```
 
 To see the full workflow, run
-[`vignette("breedtools")`](https://chris263.github.io/breedtools/articles/breedtools.md),
+[`vignette("breedtools")`](https://solgenomics.github.io/breedtools/articles/breedtools.md),
 or open the RStudio script:
 
 ``` r
@@ -156,7 +157,7 @@ save_breedbase(trial, con, dry_run = TRUE)
 save_breedbase(trial, con)
 ```
 
-[`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md)
+[`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md)
 records the required trial information once and converts the field book.
 In an interactive RStudio session, it can ask for missing name, year,
 location, program and description. Use `phenotype_template(trial)` to
@@ -171,7 +172,7 @@ output, supply `design_type`. For multiple treatment factors, select the
 accession column explicitly, e.g. `accession = "genotype"`. Other
 factors and the main-plot/subplot hierarchy remain in `trial$book`; the
 save function uploads individual plots. See
-[`?as_breedbase_design`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md)
+[`?as_breedbase_design`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md)
 for column mapping and other design types.
 
 The complete tour in `scripts/validate_designs.R` includes a second
@@ -192,10 +193,10 @@ examples in `\dontrun{}`. To run them, you need a server and an account.
 
 | Function | What it does |
 |----|----|
-| [`design_options()`](https://chris263.github.io/breedtools/reference/design_options.md) | Suggests layouts for any design from the number of entries and the field size, if you know it |
-| [`augmented_row_column_capacity()`](https://chris263.github.io/breedtools/reference/augmented_row_column_capacity.md) | Counts the entries and checks that fit in an augmented row-column field |
-| [`augmented_row_column_layouts()`](https://chris263.github.io/breedtools/reference/augmented_row_column_layouts.md) | Lists the analyzable block layouts of an augmented row-column field |
-| [`augmented_prep_parameters()`](https://chris263.github.io/breedtools/reference/augmented_prep_parameters.md) | Lists feasible settings for the alpha and alpha(2) p-rep constructions |
+| [`design_options()`](https://solgenomics.github.io/breedtools/reference/design_options.md) | Suggests layouts for any design from the number of entries and the field size, if you know it |
+| [`augmented_row_column_capacity()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_capacity.md) | Counts the entries and checks that fit in an augmented row-column field |
+| [`augmented_row_column_layouts()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_layouts.md) | Lists the analyzable block layouts of an augmented row-column field |
+| [`augmented_prep_parameters()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_parameters.md) | Lists feasible settings for the alpha and alpha(2) p-rep constructions |
 
 ``` r
 
@@ -208,9 +209,9 @@ augmented_prep_parameters(n_treatments = 20, n_locations = 2)
 
 | Function | What it does |
 |----|----|
-| [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md) | Generates the design with D-optimal or Latin check placement |
-| [`plot_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/plot_augmented_row_column_design.md) | Draws the field map |
-| [`analyze_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_row_column_design.md) | ANOVA and adjusted means using fixed or random blocks, random entries (BLUPs), or a SpATS model |
+| [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md) | Generates the design with D-optimal or Latin check placement |
+| [`plot_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/plot_augmented_row_column_design.md) | Draws the field map |
+| [`analyze_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_row_column_design.md) | ANOVA and adjusted means using fixed or random blocks, random entries (BLUPs), or a SpATS model |
 
 ``` r
 
@@ -227,11 +228,11 @@ fit$adjusted_means
 
 | Function | What it does |
 |----|----|
-| [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md) | Generates the design (`method = "search"`, `"alpha"` or `"alpha2"`) |
-| [`augmented_prep_concurrence()`](https://chris263.github.io/breedtools/reference/augmented_prep_concurrence.md) | Counts how often each pair of entries shares a block |
-| [`plot_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/plot_augmented_prep_design.md) | Draws the field map of each location |
-| [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md) | Single-stage analysis with optional genotype-by-location interaction |
-| [`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md) | Two-stage analysis with heterogeneous error variances and optional SpATS |
+| [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md) | Generates the design (`method = "search"`, `"alpha"` or `"alpha2"`) |
+| [`augmented_prep_concurrence()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_concurrence.md) | Counts how often each pair of entries shares a block |
+| [`plot_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/plot_augmented_prep_design.md) | Draws the field map of each location |
+| [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md) | Single-stage analysis with optional genotype-by-location interaction |
+| [`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md) | Two-stage analysis with heterogeneous error variances and optional SpATS |
 
 ``` r
 
@@ -247,10 +248,10 @@ analyze_augmented_prep_two_stage(d, "yield")
 
 | Function | What it does |
 |----|----|
-| [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md) | Generates a spatially optimized design, including latinized options |
-| [`resolvable_row_column_efficiency()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_efficiency.md) | Calculates row-column, linear variance and AR efficiencies of a design |
-| [`plot_resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/plot_resolvable_row_column_design.md) | Draws the field map |
-| [`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md) | Fits RC, LV + RC or AR + RC models by REML |
+| [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md) | Generates a spatially optimized design, including latinized options |
+| [`resolvable_row_column_efficiency()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_efficiency.md) | Calculates row-column, linear variance and AR efficiencies of a design |
+| [`plot_resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/plot_resolvable_row_column_design.md) | Draws the field map |
+| [`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md) | Fits RC, LV + RC or AR + RC models by REML |
 
 ``` r
 
@@ -266,14 +267,14 @@ analyze_resolvable_row_column(d, "yield", model = "rc")   # or "lv", "ar"
 
 | Function | What it does |
 |----|----|
-| [`plot_trait()`](https://chris263.github.io/breedtools/reference/plot_trait.md) | Plots a trait’s distribution and field map |
-| [`find_outliers()`](https://chris263.github.io/breedtools/reference/find_outliers.md) / [`remove_outliers()`](https://chris263.github.io/breedtools/reference/remove_outliers.md) | Flags or removes outlying plots with the IQR rule |
-| [`analyze_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_two_stage.md) | Two-stage analysis of several trials of any design |
-| [`analyze_single_stage()`](https://chris263.github.io/breedtools/reference/analyze_single_stage.md) | Single-stage analysis of several trials, as an alternative |
-| [`compare_first_stage()`](https://chris263.github.io/breedtools/reference/compare_first_stage.md) | Compares raw and first-stage adjusted plot values |
-| [`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md) | Returns the adjusted plot values to store as a trait |
-| [`second_stage_values()`](https://chris263.github.io/breedtools/reference/second_stage_values.md) | Returns the genotype values to store as a Breedbase analysis |
-| [`prediction_accuracy()`](https://chris263.github.io/breedtools/reference/prediction_accuracy.md) | Correlates adjusted means with known (simulated) genotype values |
+| [`plot_trait()`](https://solgenomics.github.io/breedtools/reference/plot_trait.md) | Plots a trait’s distribution and field map |
+| [`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md) / [`remove_outliers()`](https://solgenomics.github.io/breedtools/reference/remove_outliers.md) | Flags or removes outlying plots with the IQR rule |
+| [`analyze_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_two_stage.md) | Two-stage analysis of several trials of any design |
+| [`analyze_single_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_single_stage.md) | Single-stage analysis of several trials, as an alternative |
+| [`compare_first_stage()`](https://solgenomics.github.io/breedtools/reference/compare_first_stage.md) | Compares raw and first-stage adjusted plot values |
+| [`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md) | Returns the adjusted plot values to store as a trait |
+| [`second_stage_values()`](https://solgenomics.github.io/breedtools/reference/second_stage_values.md) | Returns the genotype values to store as a Breedbase analysis |
+| [`prediction_accuracy()`](https://solgenomics.github.io/breedtools/reference/prediction_accuracy.md) | Correlates adjusted means with known (simulated) genotype values |
 
 ``` r
 
@@ -287,10 +288,10 @@ second_stage_values(fit2, trait = "fresh root yield")
 
 | Function | What it does |
 |----|----|
-| [`check_setup()`](https://chris263.github.io/breedtools/reference/check_setup.md) | Checks that packages and the output folder are ready |
-| [`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md) | Runs the standard checks on any design, such as plot use, entry counts, check placement and estimable effects |
-| [`check_section()`](https://chris263.github.io/breedtools/reference/check_section.md) / [`check_result()`](https://chris263.github.io/breedtools/reference/check_result.md) | Labels a section and records your own checks |
-| [`check_summary()`](https://chris263.github.io/breedtools/reference/check_summary.md) / [`check_reset()`](https://chris263.github.io/breedtools/reference/check_reset.md) | Prints or clears the recorded checklist |
+| [`check_setup()`](https://solgenomics.github.io/breedtools/reference/check_setup.md) | Checks that packages and the output folder are ready |
+| [`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md) | Runs the standard checks on any design, such as plot use, entry counts, check placement and estimable effects |
+| [`check_section()`](https://solgenomics.github.io/breedtools/reference/check_section.md) / [`check_result()`](https://solgenomics.github.io/breedtools/reference/check_result.md) | Labels a section and records your own checks |
+| [`check_summary()`](https://solgenomics.github.io/breedtools/reference/check_summary.md) / [`check_reset()`](https://solgenomics.github.io/breedtools/reference/check_reset.md) | Prints or clears the recorded checklist |
 
 ``` r
 
@@ -301,14 +302,14 @@ check_reset(); check_design(rc); check_summary()
 
 | Function | What it does |
 |----|----|
-| [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md) | Logs in to a Breedbase server through BrAPI |
-| [`breedbase_programs()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md) / [`breedbase_folders()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md) / [`breedbase_locations()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md) | Lists breeding programs, trial folders and locations |
-| [`breedbase_check()`](https://chris263.github.io/breedtools/reference/breedbase_check.md) | Checks the program, folder, location, accessions and trial name before you save |
-| [`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md) | Converts an agricolae design and records the trial information |
-| [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md) | Converts an agricolae field book only (column mapping) |
-| [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md) | Saves a design as a new trial with its plots (`dry_run = TRUE` previews it) |
-| [`breedbase_trial_plots()`](https://chris263.github.io/breedtools/reference/breedbase_trial_plots.md) | Reads the plots of a saved trial |
-| [`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md) | Makes a phenotyping sheet with the Breedbase plot names |
+| [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md) | Logs in to a Breedbase server through BrAPI |
+| [`breedbase_programs()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md) / [`breedbase_folders()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md) / [`breedbase_locations()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md) | Lists breeding programs, trial folders and locations |
+| [`breedbase_check()`](https://solgenomics.github.io/breedtools/reference/breedbase_check.md) | Checks the program, folder, location, accessions and trial name before you save |
+| [`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md) | Converts an agricolae design and records the trial information |
+| [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md) | Converts an agricolae field book only (column mapping) |
+| [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md) | Saves a design as a new trial with its plots (`dry_run = TRUE` previews it) |
+| [`breedbase_trial_plots()`](https://solgenomics.github.io/breedtools/reference/breedbase_trial_plots.md) | Reads the plots of a saved trial |
+| [`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md) | Makes a phenotyping sheet with the Breedbase plot names |
 
 ``` r
 
@@ -325,25 +326,25 @@ phenotype_template(rc, trial_name = "AYT_2026_Ibadan", traits = "fresh root yiel
 
 | Function | What it does |
 |----|----|
-| [`breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/breedbase_phenotypes.md) | Reads phenotypes of trials by trial and trait name |
-| [`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md) | Saves phenotypes by plot and trait name |
-| [`save_breedbase_first_stage()`](https://chris263.github.io/breedtools/reference/save_breedbase_first_stage.md) | Saves first-stage plot values as a trait of the field plots |
-| [`save_breedbase_analysis()`](https://chris263.github.io/breedtools/reference/save_breedbase_analysis.md) | Saves second-stage genotype values as a Breedbase analysis |
-| [`add_breedbase_analysis_values()`](https://chris263.github.io/breedtools/reference/add_breedbase_analysis_values.md) | Adds another trait to an existing analysis |
-| [`breedbase_statistics()`](https://chris263.github.io/breedtools/reference/breedbase_statistics.md) | Lists the statistic terms of the SGNSTAT ontology |
-| [`breedbase_adjusted_trait()`](https://chris263.github.io/breedtools/reference/breedbase_adjusted_trait.md) | Finds or creates the trait used for adjusted values |
-| [`breedbase_refresh()`](https://chris263.github.io/breedtools/reference/breedbase_refresh.md) | Refreshes the server’s phenotype cache |
+| [`breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/breedbase_phenotypes.md) | Reads phenotypes of trials by trial and trait name |
+| [`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md) | Saves phenotypes by plot and trait name |
+| [`save_breedbase_first_stage()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_first_stage.md) | Saves first-stage plot values as a trait of the field plots |
+| [`save_breedbase_analysis()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_analysis.md) | Saves second-stage genotype values as a Breedbase analysis |
+| [`add_breedbase_analysis_values()`](https://solgenomics.github.io/breedtools/reference/add_breedbase_analysis_values.md) | Adds another trait to an existing analysis |
+| [`breedbase_statistics()`](https://solgenomics.github.io/breedtools/reference/breedbase_statistics.md) | Lists the statistic terms of the SGNSTAT ontology |
+| [`breedbase_adjusted_trait()`](https://solgenomics.github.io/breedtools/reference/breedbase_adjusted_trait.md) | Finds or creates the trait used for adjusted values |
+| [`breedbase_refresh()`](https://solgenomics.github.io/breedtools/reference/breedbase_refresh.md) | Refreshes the server’s phenotype cache |
 
 ### 9. Multi-environment trials from Breedbase files
 
 | Function | What it does |
 |----|----|
-| [`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md) / [`read_breedbase_excel()`](https://chris263.github.io/breedtools/reference/read_breedbase_excel.md) | Reads Breedbase phenotype or design files (Excel, CSV, TSV) |
-| [`prepare_breedbase_pheno()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_pheno.md) | Prepares phenotypes for multi-environment analysis |
-| [`run_breedbase_variance_check()`](https://chris263.github.io/breedtools/reference/run_breedbase_variance_check.md) | Analyzes each environment, runs Hartley’s Fmax test and finds compatible groups |
-| [`run_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_environment_stratification.md) | Groups environments by GxE using Lin (1982) |
-| [`run_breedbase_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_breedbase_environment_stratification.md) | Runs the same grouping directly from a Breedbase file |
-| [`read_locations()`](https://chris263.github.io/breedtools/reference/read_locations.md) / [`map_environment_groups()`](https://chris263.github.io/breedtools/reference/map_environment_groups.md) | Loads location coordinates and draws the groups on a map |
+| [`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md) / [`read_breedbase_excel()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_excel.md) | Reads Breedbase phenotype or design files (Excel, CSV, TSV) |
+| [`prepare_breedbase_pheno()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_pheno.md) | Prepares phenotypes for multi-environment analysis |
+| [`run_breedbase_variance_check()`](https://solgenomics.github.io/breedtools/reference/run_breedbase_variance_check.md) | Analyzes each environment, runs Hartley’s Fmax test and finds compatible groups |
+| [`run_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_environment_stratification.md) | Groups environments by GxE using Lin (1982) |
+| [`run_breedbase_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_breedbase_environment_stratification.md) | Runs the same grouping directly from a Breedbase file |
+| [`read_locations()`](https://solgenomics.github.io/breedtools/reference/read_locations.md) / [`map_environment_groups()`](https://solgenomics.github.io/breedtools/reference/map_environment_groups.md) | Loads location coordinates and draws the groups on a map |
 
 ``` r
 
@@ -362,6 +363,6 @@ call them yourself to run one step at a time.
 
 | Group | Functions |
 |----|----|
-| Variance check | [`analyze_environment_anova()`](https://chris263.github.io/breedtools/reference/analyze_environment_anova.md), [`analyze_one_environment()`](https://chris263.github.io/breedtools/reference/analyze_one_environment.md), [`hartley_fmax_test()`](https://chris263.github.io/breedtools/reference/hartley_fmax_test.md), [`hartley_critical_sim()`](https://chris263.github.io/breedtools/reference/hartley_critical_sim.md), [`make_environment_groups()`](https://chris263.github.io/breedtools/reference/make_environment_groups.md), [`get_compatible_groups()`](https://chris263.github.io/breedtools/reference/get_compatible_groups.md), [`get_maximal_groups()`](https://chris263.github.io/breedtools/reference/get_maximal_groups.md), [`harmonic_mean()`](https://chris263.github.io/breedtools/reference/harmonic_mean.md) |
-| Environment stratification | [`prepare_environment_stratification_data()`](https://chris263.github.io/breedtools/reference/prepare_environment_stratification_data.md), [`detect_design()`](https://chris263.github.io/breedtools/reference/detect_design.md), [`prepare_design_factors()`](https://chris263.github.io/breedtools/reference/prepare_design_factors.md), [`calculate_environment_stratification_anova()`](https://chris263.github.io/breedtools/reference/calculate_environment_stratification_anova.md), [`lin_group_environments()`](https://chris263.github.io/breedtools/reference/lin_group_environments.md), [`lin_test_group()`](https://chris263.github.io/breedtools/reference/lin_test_group.md), [`lin_ss_ge()`](https://chris263.github.io/breedtools/reference/lin_ss_ge.md), [`lin_error_mse()`](https://chris263.github.io/breedtools/reference/lin_error_mse.md), [`complete_environment_info()`](https://chris263.github.io/breedtools/reference/complete_environment_info.md), [`add_environment_metadata()`](https://chris263.github.io/breedtools/reference/add_environment_metadata.md), [`add_pairwise_environment_metadata()`](https://chris263.github.io/breedtools/reference/add_pairwise_environment_metadata.md), [`environment_summary_by_group()`](https://chris263.github.io/breedtools/reference/environment_summary_by_group.md) |
-| Columns and empty tables | [`find_column()`](https://chris263.github.io/breedtools/reference/find_column.md), [`guess_column()`](https://chris263.github.io/breedtools/reference/guess_column.md), [`normalize_column_name()`](https://chris263.github.io/breedtools/reference/normalize_column_name.md), [`empty_anova()`](https://chris263.github.io/breedtools/reference/empty_anova.md), [`empty_group_membership()`](https://chris263.github.io/breedtools/reference/empty_group_membership.md), [`empty_group_summary()`](https://chris263.github.io/breedtools/reference/empty_group_summary.md), [`empty_pairwise()`](https://chris263.github.io/breedtools/reference/empty_pairwise.md), [`empty_ungrouped()`](https://chris263.github.io/breedtools/reference/empty_ungrouped.md) |
+| Variance check | [`analyze_environment_anova()`](https://solgenomics.github.io/breedtools/reference/analyze_environment_anova.md), [`analyze_one_environment()`](https://solgenomics.github.io/breedtools/reference/analyze_one_environment.md), [`hartley_fmax_test()`](https://solgenomics.github.io/breedtools/reference/hartley_fmax_test.md), [`hartley_critical_sim()`](https://solgenomics.github.io/breedtools/reference/hartley_critical_sim.md), [`make_environment_groups()`](https://solgenomics.github.io/breedtools/reference/make_environment_groups.md), [`get_compatible_groups()`](https://solgenomics.github.io/breedtools/reference/get_compatible_groups.md), [`get_maximal_groups()`](https://solgenomics.github.io/breedtools/reference/get_maximal_groups.md), [`harmonic_mean()`](https://solgenomics.github.io/breedtools/reference/harmonic_mean.md) |
+| Environment stratification | [`prepare_environment_stratification_data()`](https://solgenomics.github.io/breedtools/reference/prepare_environment_stratification_data.md), [`detect_design()`](https://solgenomics.github.io/breedtools/reference/detect_design.md), [`prepare_design_factors()`](https://solgenomics.github.io/breedtools/reference/prepare_design_factors.md), [`calculate_environment_stratification_anova()`](https://solgenomics.github.io/breedtools/reference/calculate_environment_stratification_anova.md), [`lin_group_environments()`](https://solgenomics.github.io/breedtools/reference/lin_group_environments.md), [`lin_test_group()`](https://solgenomics.github.io/breedtools/reference/lin_test_group.md), [`lin_ss_ge()`](https://solgenomics.github.io/breedtools/reference/lin_ss_ge.md), [`lin_error_mse()`](https://solgenomics.github.io/breedtools/reference/lin_error_mse.md), [`complete_environment_info()`](https://solgenomics.github.io/breedtools/reference/complete_environment_info.md), [`add_environment_metadata()`](https://solgenomics.github.io/breedtools/reference/add_environment_metadata.md), [`add_pairwise_environment_metadata()`](https://solgenomics.github.io/breedtools/reference/add_pairwise_environment_metadata.md), [`environment_summary_by_group()`](https://solgenomics.github.io/breedtools/reference/environment_summary_by_group.md) |
+| Columns and empty tables | [`find_column()`](https://solgenomics.github.io/breedtools/reference/find_column.md), [`guess_column()`](https://solgenomics.github.io/breedtools/reference/guess_column.md), [`normalize_column_name()`](https://solgenomics.github.io/breedtools/reference/normalize_column_name.md), [`empty_anova()`](https://solgenomics.github.io/breedtools/reference/empty_anova.md), [`empty_group_membership()`](https://solgenomics.github.io/breedtools/reference/empty_group_membership.md), [`empty_group_summary()`](https://solgenomics.github.io/breedtools/reference/empty_group_summary.md), [`empty_pairwise()`](https://solgenomics.github.io/breedtools/reference/empty_pairwise.md), [`empty_ungrouped()`](https://solgenomics.github.io/breedtools/reference/empty_ungrouped.md) |

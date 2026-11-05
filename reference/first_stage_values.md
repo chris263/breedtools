@@ -1,7 +1,7 @@
 # First-stage plot values from an analysis
 
 Turns analyses of a trial into one value per field plot, ready for
-[`save_breedbase_first_stage()`](https://chris263.github.io/breedtools/reference/save_breedbase_first_stage.md):
+[`save_breedbase_first_stage()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_first_stage.md):
 the genotype's adjusted mean plus the plot's residual. This removes the
 design effects (blocks, rows, columns, replicates) and the spatial
 trend, and keeps the plot-to-plot variation, so the result has as many
@@ -28,17 +28,17 @@ first_stage_values(
 
   One analysis, or a named list of analyses, one per trait (the names
   are the Breedbase trait names). Analyses from
-  [`analyze_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_row_column_design.md),
-  [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md),
-  [`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
+  [`analyze_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_row_column_design.md),
+  [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md),
+  [`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
   (stage-1 fits per location) or
-  [`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md).
+  [`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md).
 
 - design:
 
   The design that was saved to Breedbase. Leave it `NULL` for data read
   from Breedbase
-  ([`breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/breedbase_phenotypes.md)):
+  ([`breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/breedbase_phenotypes.md)):
   the plot names are then taken from the data.
 
 - trial_name:
@@ -53,12 +53,12 @@ first_stage_values(
 - plot_name_pattern, plot_names:
 
   The plot naming used in
-  [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md).
+  [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md).
 
 - breedbase_plots:
 
   Optional plots of the saved trial, from
-  [`breedbase_trial_plots()`](https://chris263.github.io/breedtools/reference/breedbase_trial_plots.md).
+  [`breedbase_trial_plots()`](https://solgenomics.github.io/breedtools/reference/breedbase_trial_plots.md).
   The design is then checked against the saved trial (the same accession
   at every plot number), and the plot names are taken exactly as saved.
 

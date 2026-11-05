@@ -20,7 +20,7 @@ breedbase_adjusted_trait(con, traits, statistic = NULL, create = FALSE)
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - traits:
 
@@ -29,7 +29,7 @@ breedbase_adjusted_trait(con, traits, statistic = NULL, create = FALSE)
 - statistic:
 
   The statistic term, with or without its id, as listed by
-  [`breedbase_statistics()`](https://chris263.github.io/breedtools/reference/breedbase_statistics.md).
+  [`breedbase_statistics()`](https://solgenomics.github.io/breedtools/reference/breedbase_statistics.md).
   By default it is chosen from this Breedbase's own list of statistics:
   the spatial correction term (SpATS). It is always checked against the
   server.

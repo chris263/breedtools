@@ -19,7 +19,7 @@ plot_resolvable_row_column_design(
 - design:
 
   An object from
-  [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md)
+  [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md)
   or its `design` data frame.
 
 - label:
@@ -37,7 +37,7 @@ plot_resolvable_row_column_design(
 - ...:
 
   Passed to
-  [`plot_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/plot_augmented_row_column_design.md).
+  [`plot_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/plot_augmented_row_column_design.md).
 
 ## Value
 

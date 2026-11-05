@@ -118,7 +118,7 @@ dimensions, location and replication counts, active plots per location
 and in total, field area, unused positions, check plots, repeated
 entries, blocks, nominal `error_df`, method and notes. Field dimensions
 are named `rows_in_field` and `cols_in_field`, matching
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md).
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md).
 Block and replicate dimensions are included where applicable.
 `n_candidates` reports the chosen search effort. `checks_per_block` is a
 list-column with each augmented row-column option's check-allocation
@@ -142,7 +142,7 @@ p-rep candidates have enough repeated plots to connect their blocks and
 a pair-count budget compatible with (0,1) concurrence. These necessary
 conditions do not certify a randomized design's connectivity or
 efficiency: generate the chosen option, inspect its summary and run
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md).
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md).
 The search is bounded and not exhaustive.
 
 Augmented row-column options use equal row and column groups. Every
@@ -168,11 +168,11 @@ choose the biologically best design.
 
 ## See also
 
-[`augmented_row_column_layouts()`](https://chris263.github.io/breedtools/reference/augmented_row_column_layouts.md),
-[`augmented_prep_parameters()`](https://chris263.github.io/breedtools/reference/augmented_prep_parameters.md),
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md),
-[`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md),
-[`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md)
+[`augmented_row_column_layouts()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_layouts.md),
+[`augmented_prep_parameters()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_parameters.md),
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md),
+[`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md),
+[`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md)
 
 ## Examples
 

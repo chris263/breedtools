@@ -1,7 +1,7 @@
 # Read a Breedbase Excel phenotype file
 
 `read_breedbase_excel()` is deprecated. Use
-[`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md)
+[`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md)
 for `.xlsx`, `.xls`, and `.csv` files.
 
 ## Usage
@@ -19,7 +19,7 @@ read_breedbase_excel(file, ...)
 - ...:
 
   Additional arguments passed to
-  [`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md).
+  [`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md).
 
 ## Value
 

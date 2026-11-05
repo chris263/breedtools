@@ -14,7 +14,7 @@ print(x, ...)
 - x:
 
   An object returned by
-  [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md).
+  [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md).
 
 - ...:
 

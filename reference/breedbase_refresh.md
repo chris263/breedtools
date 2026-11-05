@@ -1,8 +1,8 @@
 # Refresh the Breedbase phenotype cache
 
 Values saved through BrAPI
-([`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md),
-[`save_breedbase_first_stage()`](https://chris263.github.io/breedtools/reference/save_breedbase_first_stage.md))
+([`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md),
+[`save_breedbase_first_stage()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_first_stage.md))
 are in the database at once (the BrAPI search finds them), but the trial
 pages and the search wizard of Breedbase read a cache ("materialized
 views") that the BrAPI upload does not refresh. This asks Breedbase to
@@ -22,7 +22,7 @@ breedbase_refresh(con, views = c("phenotypes", "fullview"), quiet = FALSE)
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - views:
 

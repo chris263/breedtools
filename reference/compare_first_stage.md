@@ -2,7 +2,7 @@
 
 Puts each plot's raw value next to its first-stage value (the genotype's
 adjusted mean plus the plot's residual, as in
-[`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)),
+[`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)),
 summarises how much the first stage changed (per location: correlation
 of raw and adjusted plot values, the spread before and after, and how
 much the ranking of the genotypes changed) and draws, per location, the
@@ -19,10 +19,10 @@ compare_first_stage(fit, plot = TRUE, locations = NULL)
 - fit:
 
   An analysis (e.g.
-  [`analyze_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_row_column_design.md)
+  [`analyze_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_row_column_design.md)
   with `spatial = TRUE`) or a two-stage analysis
-  ([`analyze_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_two_stage.md),
-  [`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)),
+  ([`analyze_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_two_stage.md),
+  [`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)),
   whose stage-1 fits are compared.
 
 - plot:

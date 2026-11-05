@@ -21,7 +21,7 @@ breedbase_statistics(con = NULL, pattern = "")
 - con:
 
   Optional connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
   Without it, the terms of the ontology file are listed.
 
 - pattern:

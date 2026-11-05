@@ -37,7 +37,7 @@ run_environment_stratification(
 - sep:
 
   Deprecated. File delimiters are detected from the extension by
-  [`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md).
+  [`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md).
 
 - normalize_names:
 

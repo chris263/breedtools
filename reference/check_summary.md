@@ -2,9 +2,9 @@
 
 Reports what was checked and what is correct: how many of the checks
 recorded with
-[`check_result()`](https://chris263.github.io/breedtools/reference/check_result.md)
+[`check_result()`](https://solgenomics.github.io/breedtools/reference/check_result.md)
 and
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md)
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md)
 passed, broken down by section, followed by the checks that failed and
 the notes.
 

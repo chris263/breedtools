@@ -29,7 +29,7 @@ resolvable_row_column_efficiency(
 - design:
 
   A design object from
-  [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md)
+  [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md)
   or a data frame with replicate, row, column and treatment columns.
   Each replicate must be complete (`k * s` plots, each treatment once;
   filler plots count as separate treatments).

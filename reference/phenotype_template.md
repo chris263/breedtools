@@ -1,11 +1,11 @@
 # Phenotyping template with the Breedbase plot names of a design
 
 Makes a table with one row per plot, the plot names that
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 gives (or gave) to the plots, the design columns (accession, block, rep,
 row, column) and one empty column per trait. Fill it in (in R or in a
 spreadsheet) and upload it with
-[`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md).
+[`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md).
 
 ## Usage
 
@@ -24,18 +24,18 @@ phenotype_template(
 - design:
 
   A design from
-  [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md),
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md),
-  [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md),
-  [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md)
+  [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md),
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md),
+  [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md),
+  [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md)
   or
-  [`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md).
+  [`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md).
 
 - trial_name:
 
   The trial name used when saving the design. For p-rep designs saved as
   one trial per location, the location is added as in
-  [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md).
+  [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md).
   Can be omitted for a prepared Breedbase trial.
 
 - traits:
@@ -46,7 +46,7 @@ phenotype_template(
 - plot_name_pattern, plot_names:
 
   The same plot naming used in
-  [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md).
+  [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md).
 
 ## Value
 

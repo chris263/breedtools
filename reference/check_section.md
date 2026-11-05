@@ -1,11 +1,11 @@
 # Set the section label for the next checks
 
 Checks recorded after this call with
-[`check_result()`](https://chris263.github.io/breedtools/reference/check_result.md)
+[`check_result()`](https://solgenomics.github.io/breedtools/reference/check_result.md)
 and
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md)
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md)
 are grouped under `name` in
-[`check_summary()`](https://chris263.github.io/breedtools/reference/check_summary.md).
+[`check_summary()`](https://solgenomics.github.io/breedtools/reference/check_summary.md).
 
 ## Usage
 

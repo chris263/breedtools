@@ -1,7 +1,7 @@
 # Remove outliers from trait data (IQR rule)
 
 Finds outliers with
-[`find_outliers()`](https://chris263.github.io/breedtools/reference/find_outliers.md)
+[`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)
 and sets those values to `NA`, so the plots stay in the design but the
 values are left out of the analysis. The plots and values removed are
 printed and returned with the data.
@@ -52,7 +52,7 @@ remove_outliers(
 
 `data` with the outlying values set to `NA`. The removed values are in
 `attr(result, "outliers")` (as from
-[`find_outliers()`](https://chris263.github.io/breedtools/reference/find_outliers.md)).
+[`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)).
 
 ## Examples
 

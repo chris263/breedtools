@@ -3,7 +3,7 @@
 Returns the plots of a Breedbase trial (through BrAPI): plot name,
 number, accession, rep, block, row and column. Use it to check that a
 design in R is the one saved in Breedbase (see `breedbase_plots` in
-[`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)),
+[`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)),
 or to work with a trial made elsewhere.
 
 ## Usage
@@ -17,7 +17,7 @@ breedbase_trial_plots(con, trial_name)
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - trial_name:
 

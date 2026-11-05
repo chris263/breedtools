@@ -15,11 +15,11 @@ library(breedtools)
 
 | Situation | Design | Generate | Analyse |
 |----|----|----|----|
-| Seed for one plot per entry, one location | Augmented row-column design with replicated checks | [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md) | [`analyze_augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_row_column_design.md) |
-| Seed for one plot per entry per location, several locations | Augmented p-rep design (part of the entries repeated at each location, no checks needed) | [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md) | [`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md), [`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md) |
-| Seed for every entry in every replicate | Resolvable (spatial) row-column design | [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md) | [`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md) |
-| Phenotypes from several trials in ‘Breedbase’ | Variance check and environment grouping | [`run_breedbase_variance_check()`](https://chris263.github.io/breedtools/reference/run_breedbase_variance_check.md), [`run_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_environment_stratification.md) |  |
-| A design ready to plant | Save it as a trial in a ‘Breedbase’ program and folder | [`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md) |  |
+| Seed for one plot per entry, one location | Augmented row-column design with replicated checks | [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md) | [`analyze_augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_row_column_design.md) |
+| Seed for one plot per entry per location, several locations | Augmented p-rep design (part of the entries repeated at each location, no checks needed) | [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md) | [`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md), [`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md) |
+| Seed for every entry in every replicate | Resolvable (spatial) row-column design | [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md) | [`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md) |
+| Phenotypes from several trials in ‘Breedbase’ | Variance check and environment grouping | [`run_breedbase_variance_check()`](https://solgenomics.github.io/breedtools/reference/run_breedbase_variance_check.md), [`run_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_environment_stratification.md) |  |
+| A design ready to plant | Save it as a trial in a ‘Breedbase’ program and folder | [`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md) |  |
 
 Every design function returns a list with `summary`, the plot-level
 `design` (the field book) and `breedbase_design` (the columns for a
@@ -32,7 +32,7 @@ least significant difference (`lsd_5pct`).
 ### Start with the information you know
 
 Use
-[`design_options()`](https://chris263.github.io/breedtools/reference/design_options.md)
+[`design_options()`](https://solgenomics.github.io/breedtools/reference/design_options.md)
 when you know how many entries you have but have not settled on the
 field dimensions, number of checks or replication. It proposes layouts
 for augmented row-column, p-rep and fully replicated resolvable
@@ -114,7 +114,7 @@ has no options within the search limits.
 
 Choose an augmented row-column option and pass every setting explicitly
 to
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md).
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md).
 This design family is identified by `"augmented_row_column"`; the
 shorter name `"augmented"` is not used. The planner requires at least
 one block row and one block column per distinct check: with four checks,
@@ -172,7 +172,7 @@ field-book tables if check status is needed for Breedbase.
 The planner checks counts, block conditions and nominal error degrees of
 freedom. It does not randomize a design or estimate its precision.
 Generate your selected option and inspect its summary and
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md)
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md)
 results to assess connectivity and efficiency. Extra positions in
 augmented layouts are assigned explicitly to extra check replication,
 keeping the number of test entries exact.
@@ -223,7 +223,7 @@ the field is large enough). `min_rowgroup_slack` and
 for the row-group and column-group sub-designs; negative values warn
 that those sub-designs cannot be estimated on their own.
 
-[`augmented_row_column_layouts()`](https://chris263.github.io/breedtools/reference/augmented_row_column_layouts.md)
+[`augmented_row_column_layouts()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_layouts.md)
 lists analyzable layouts whose blocks have at least as many rows and
 columns as checks, most entry plots first, so you can see the trade-off
 between entry plots and error df. Give `n_entries` to keep only the
@@ -256,7 +256,7 @@ augmented_row_column_layouts(12, 12, n_controls = 2:6, min_error_df = 6, n_entri
 ```
 
 `method` shows which construction
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md)
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md)
 will use for the layout (see below).
 
 ### Generate and inspect
@@ -313,13 +313,13 @@ plot_augmented_row_column_design(rc, label = "all_entries", fill = "type")
 
 ![](breedtools_files/figure-html/unnamed-chunk-7-1.png)
 
-[`check_design()`](https://chris263.github.io/breedtools/reference/check_design.md)
+[`check_design()`](https://solgenomics.github.io/breedtools/reference/check_design.md)
 runs the standard checks of any design and prints one `[OK]` or `[FAIL]`
 line per check; it works the same way for p-rep and resolvable
 row-column designs. Add checks of your own with
-[`check_result()`](https://chris263.github.io/breedtools/reference/check_result.md),
+[`check_result()`](https://solgenomics.github.io/breedtools/reference/check_result.md),
 and count them with
-[`check_summary()`](https://chris263.github.io/breedtools/reference/check_summary.md):
+[`check_summary()`](https://solgenomics.github.io/breedtools/reference/check_summary.md):
 
 ``` r
 
@@ -659,7 +659,7 @@ Williams, Piepho and Whitaker (2011) also give two algebraic
 constructions in which every entry is duplicated at exactly one location
 and each location is a resolvable two-replicate design with `m` p-rep
 entries in every block (final block size `(l + 1) m / 2`).
-[`augmented_prep_parameters()`](https://chris263.github.io/breedtools/reference/augmented_prep_parameters.md)
+[`augmented_prep_parameters()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_parameters.md)
 lists the feasible settings, as in Table 3 of the paper:
 
 ``` r
@@ -780,7 +780,7 @@ c(
 #> 0.9100724 0.9408252
 ```
 
-[`prediction_accuracy()`](https://chris263.github.io/breedtools/reference/prediction_accuracy.md)
+[`prediction_accuracy()`](https://solgenomics.github.io/breedtools/reference/prediction_accuracy.md)
 is the correlation between the adjusted means and the true values; use
 `method = "spearman"` to measure how well the ranking is recovered.
 
@@ -852,7 +852,7 @@ prep_gxl_fixed$anova_formatted
 
 Locations rarely have the same error variance, and fields often have
 smooth fertility trends.
-[`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
+[`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
 first analyses every location on its own (stage 1), then combines the
 location means weighted by their precision with a REML
 genotype-by-location variance (stage 2; Möhring and Piepho, 2009), so
@@ -932,9 +932,9 @@ two_spatial$locations[, c("location", "residual_variance", "spatial_effective_di
 ### Trait plots, outliers and two-stage analysis for any design
 
 Before the analysis, look at the trait and remove outliers.
-[`plot_trait()`](https://chris263.github.io/breedtools/reference/plot_trait.md)
+[`plot_trait()`](https://solgenomics.github.io/breedtools/reference/plot_trait.md)
 draws a histogram and a field map per location;
-[`remove_outliers()`](https://chris263.github.io/breedtools/reference/remove_outliers.md)
+[`remove_outliers()`](https://solgenomics.github.io/breedtools/reference/remove_outliers.md)
 applies the IQR rule (values beyond or , within each location), sets
 them to `NA` and lists every plot and value removed:
 
@@ -964,12 +964,12 @@ clean <- remove_outliers(met, "yield")
 #>     North    10        G102   1  10 yield   500 42.58 65.09 high
 ```
 
-[`analyze_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_two_stage.md)
+[`analyze_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_two_stage.md)
 analyses every location on its own (stage 1: a SpATS spatial model, or
 the design’s own model with `stage1 = "design"`) and combines the
 locations weighted by their precision (stage 2). It works for augmented
 row-column, p-rep and resolvable row-column designs.
-[`compare_first_stage()`](https://chris263.github.io/breedtools/reference/compare_first_stage.md)
+[`compare_first_stage()`](https://solgenomics.github.io/breedtools/reference/compare_first_stage.md)
 shows how the first stage changed the plot values:
 
 ``` r
@@ -1023,9 +1023,9 @@ cmp <- compare_first_stage(two)
 
 To fit all locations in one model, pass the cleaned plot observations
 directly to
-[`analyze_single_stage()`](https://chris263.github.io/breedtools/reference/analyze_single_stage.md).
+[`analyze_single_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_single_stage.md).
 This route does not require
-[`analyze_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_two_stage.md)
+[`analyze_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_two_stage.md)
 or any first-stage fit. Here `clean` is the multi-location field data
 prepared above:
 
@@ -1077,7 +1077,7 @@ head(single_values)
 #> 6 G43                     59.3
 ```
 
-[`second_stage_values()`](https://chris263.github.io/breedtools/reference/second_stage_values.md)
+[`second_stage_values()`](https://solgenomics.github.io/breedtools/reference/second_stage_values.md)
 formats the genotype means of either kind of fit; it performs no
 additional analysis. The single-stage model shares one residual variance
 across locations, while the weighted two-stage route uses the precision
@@ -1154,7 +1154,7 @@ provenances$summary[, c("n_treatments", "n_fillers", "efficiency_rc",
 
 ### Evaluate a design
 
-[`resolvable_row_column_efficiency()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_efficiency.md)
+[`resolvable_row_column_efficiency()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_efficiency.md)
 evaluates any resolvable row-column design, including one produced
 elsewhere: the efficiency factors, the spatial upper bound, treatment
 neighbours and edge positions, and, given assumed parameters, the
@@ -1205,7 +1205,7 @@ all.equal(kept$summary$efficiency_rc, rrc$summary$efficiency_rc)
 
 ### Analyse
 
-[`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md)
+[`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md)
 fits, by REML, the standard row-column mixed model (`model = "rc"`:
 replicates and treatments fixed, rows and columns within replicates
 random), the two-dimensional linear variance model (`"lv"`, LV + RC) and
@@ -1277,12 +1277,12 @@ table(raw$locationName)
 #>     24     24     24     24
 ```
 
-[`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md)
+[`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md)
 reads `.csv`, `.txt`, `.xls` and `.xlsx` files (all non-empty sheets of
 a workbook are combined). Column names are detected automatically;
-[`prepare_breedbase_pheno()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_pheno.md)
+[`prepare_breedbase_pheno()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_pheno.md)
 selects the trait and the design columns, and
-[`analyze_environment_anova()`](https://chris263.github.io/breedtools/reference/analyze_environment_anova.md)
+[`analyze_environment_anova()`](https://solgenomics.github.io/breedtools/reference/analyze_environment_anova.md)
 gives one ANOVA per environment:
 
 ``` r
@@ -1302,7 +1302,7 @@ env_anova[, c("environment", "n_genotypes", "ms_genotype", "ms_error", "mean", "
 
 ### Homogeneity of error variances
 
-[`run_breedbase_variance_check()`](https://chris263.github.io/breedtools/reference/run_breedbase_variance_check.md)
+[`run_breedbase_variance_check()`](https://solgenomics.github.io/breedtools/reference/run_breedbase_variance_check.md)
 applies Hartley’s Fmax test (with a simulated critical value that allows
 different error df) to all environments and finds the largest groups of
 environments whose error variances are compatible:
@@ -1327,7 +1327,7 @@ variance_check$maximal_compatible_groups
 
 ### Grouping environments by genotype-by-environment interaction
 
-[`run_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_environment_stratification.md)
+[`run_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_environment_stratification.md)
 groups environments with Lin’s (1982) test: environments are grouped
 when their genotype-by-environment interaction is not significant, so
 they rank genotypes similarly.
@@ -1375,7 +1375,7 @@ class(group_map)
 ```
 
 Print `group_map` to open the ‘leaflet’ map.
-[`run_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_environment_stratification.md)
+[`run_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_environment_stratification.md)
 can also export the results as JSON
 (`export_json = TRUE, output_dir = ...`).
 
@@ -1417,9 +1417,9 @@ the full design.
 
 The workflow has three steps: generate your design with `agricolae`,
 prepare it with
-[`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md),
+[`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md),
 then save it with the existing
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 function. Here is an RCBD (randomized complete block design), with three
 complete blocks. The same preparation function also accepts CRD, alpha
 and other supported agricolae designs.
@@ -1602,7 +1602,7 @@ randomization already generated by agricolae. Add
 override recorded information explicitly when saving, for example
 `save_breedbase(ag_design, con, trial_name = "RCBD_2027_Ibadan", year = 2027)`.
 
-[`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md)
+[`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md)
 remains available for conversion without trial information, as shown
 above for a bare field book. CRD, RCBD, alpha, lattice, augmented block,
 split-plot and strip-plot types are recognized automatically. A bare
@@ -1641,7 +1641,7 @@ with simulated phenotypes and analysis results.
 
 ### Saving a design directly to Breedbase
 
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 creates the trial and its plots in a ‘Breedbase’ database through BrAPI.
 In Breedbase words, a breeding program holds folders, a folder holds
 trials, and a trial holds plots. Each plot is saved with its plot
@@ -1728,9 +1728,9 @@ save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026_Ibadan",
 
 Every entry and check must already exist as an accession in the
 database, and the location must exist too. Run
-[`breedbase_check()`](https://chris263.github.io/breedtools/reference/breedbase_check.md)
+[`breedbase_check()`](https://solgenomics.github.io/breedtools/reference/breedbase_check.md)
 before building the design so that wrong names are fixed first;
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 repeats the same checks and lists every problem together before writing
 anything.
 
@@ -1771,7 +1771,7 @@ plot name and trait name. The trait name is the one shown in Breedbase,
 with or without its ontology id (`"fresh root yield"` or
 `"fresh root yield|CO_334:0000013"`, as in a Breedbase phenotype
 download).
-[`phenotype_template()`](https://chris263.github.io/breedtools/reference/phenotype_template.md)
+[`phenotype_template()`](https://solgenomics.github.io/breedtools/reference/phenotype_template.md)
 gives a sheet with the plot names of the trial and an empty column per
 trait:
 
@@ -1841,7 +1841,7 @@ the measured trait composed with a statistic, as Breedbase does, e.g.
 “fresh root yield\|Adjusted Means from Spatial Correction using SpATS
 R”. That trait is found in Breedbase, or created (after you confirm)
 when it does not exist yet;
-[`breedbase_adjusted_trait()`](https://chris263.github.io/breedtools/reference/breedbase_adjusted_trait.md)
+[`breedbase_adjusted_trait()`](https://solgenomics.github.io/breedtools/reference/breedbase_adjusted_trait.md)
 shows it first. Your own traits can be given with `as_trait`. A
 second-stage result, one value per genotype, is saved as a new Breedbase
 analysis, as the Breedbase mixed-models tool does.
@@ -1888,12 +1888,12 @@ save_breedbase_analysis(stage1, con, analysis_name = "AYT_2026_Ibadan_stage1", p
                         description = "Row-column model", level = "plot")
 ```
 
-[`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)
+[`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)
 works with every analysis of the package, including the stage-1 fits per
 location of
-[`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
+[`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md)
 and
-[`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md).
+[`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md).
 
 ### Add a second analyzed trait to an existing analysis
 

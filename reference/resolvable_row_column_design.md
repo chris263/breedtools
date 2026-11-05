@@ -123,7 +123,7 @@ An object of class `resolvable_row_column_design`: a list with `input`,
 `design` (one row per plot with `replicate`, `row_in_rep`, `col_in_rep`,
 field `row` and `col`, `long_row` / `long_col`, `all_entries`,
 `is_filler`), `breedbase_design`, and `efficiency` (see
-[`resolvable_row_column_efficiency()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_efficiency.md)).
+[`resolvable_row_column_efficiency()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_efficiency.md)).
 
 ## Details
 
@@ -142,9 +142,9 @@ and New Zealand Journal of Statistics 40, 111-118.
 
 ## See also
 
-[`resolvable_row_column_efficiency()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_efficiency.md),
-[`analyze_resolvable_row_column()`](https://chris263.github.io/breedtools/reference/analyze_resolvable_row_column.md),
-[`plot_resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/plot_resolvable_row_column_design.md)
+[`resolvable_row_column_efficiency()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_efficiency.md),
+[`analyze_resolvable_row_column()`](https://solgenomics.github.io/breedtools/reference/analyze_resolvable_row_column.md),
+[`plot_resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/plot_resolvable_row_column_design.md)
 
 ## Examples
 

@@ -4,11 +4,11 @@ Reads, through BrAPI, the plots of the given trials (plot name and
 number, accession, rep, block, row, column, check) and their values of
 the given traits, and returns one table with one row per plot and one
 column per trait, ready for
-[`plot_trait()`](https://chris263.github.io/breedtools/reference/plot_trait.md),
-[`remove_outliers()`](https://chris263.github.io/breedtools/reference/remove_outliers.md),
-[`analyze_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_two_stage.md)
+[`plot_trait()`](https://solgenomics.github.io/breedtools/reference/plot_trait.md),
+[`remove_outliers()`](https://solgenomics.github.io/breedtools/reference/remove_outliers.md),
+[`analyze_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_two_stage.md)
 and
-[`analyze_single_stage()`](https://chris263.github.io/breedtools/reference/analyze_single_stage.md).
+[`analyze_single_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_single_stage.md).
 Repeated measurements of a trait on a plot are averaged (by Breedbase).
 
 ## Usage
@@ -22,7 +22,7 @@ breedbase_phenotypes(con, trials, traits)
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - trials:
 

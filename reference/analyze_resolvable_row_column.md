@@ -54,7 +54,7 @@ analyze_resolvable_row_column(
 - data:
 
   A design data frame (for example `design$design` from
-  [`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md))
+  [`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md))
   or a design object, with a response.
 
 - response:

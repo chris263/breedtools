@@ -14,7 +14,7 @@ augmented_prep_concurrence(design, treatments = NULL)
 - design:
 
   A p-rep design data frame from
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md).
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md).
 
 - treatments:
 

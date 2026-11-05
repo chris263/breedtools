@@ -2,7 +2,7 @@
 
 Adds values (for example a second trait, or the same trait with another
 statistic) to the plots of an analysis saved before, e.g. with
-[`save_breedbase_analysis()`](https://chris263.github.io/breedtools/reference/save_breedbase_analysis.md).
+[`save_breedbase_analysis()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_analysis.md).
 Breedbase names the plots of an analysis
 `"<analysis_name>_<field plot name>"` ("Analysis of: plots") or
 `"<analysis_name>_<accession>"` ("Analysis of: accessions"); the values
@@ -34,16 +34,16 @@ add_breedbase_analysis_values(
   A data frame with the field plot names (`level = "plot"`) or the
   accession names (`level = "accession"`) and one numeric column per
   trait, e.g. from
-  [`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)
+  [`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)
   or
-  [`second_stage_values()`](https://chris263.github.io/breedtools/reference/second_stage_values.md).
+  [`second_stage_values()`](https://solgenomics.github.io/breedtools/reference/second_stage_values.md).
 
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md)
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md)
   (the site's web pages must be open; see
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md)).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md)).
 
 - analysis_name:
 
@@ -59,7 +59,7 @@ add_breedbase_analysis_values(
   names are Breedbase trait names, including composed traits such as
   `"dry matter content percentage|Adjusted Means from Spatial Correction using SpATS R"`
   (see
-  [`breedbase_adjusted_trait()`](https://chris263.github.io/breedtools/reference/breedbase_adjusted_trait.md)).
+  [`breedbase_adjusted_trait()`](https://solgenomics.github.io/breedtools/reference/breedbase_adjusted_trait.md)).
 
 - plot, accession:
 
@@ -68,7 +68,7 @@ add_breedbase_analysis_values(
 - statistic:
 
   Optional statistic (see
-  [`breedbase_statistics()`](https://chris263.github.io/breedtools/reference/breedbase_statistics.md)):
+  [`breedbase_statistics()`](https://solgenomics.github.io/breedtools/reference/breedbase_statistics.md)):
   the values are then stored under "trait\|statistic" (a composed trait,
   created if needed), e.g. the single-stage means next to the two-stage
   means in the same analysis.

@@ -44,7 +44,7 @@ read_locations(
 
   Optional raw phenotype data frame, prepared phenotype data frame, or
   result from
-  [`run_environment_stratification()`](https://chris263.github.io/breedtools/reference/run_environment_stratification.md).
+  [`run_environment_stratification()`](https://solgenomics.github.io/breedtools/reference/run_environment_stratification.md).
   If supplied, location names are extracted and checked against the
   location file.
 
@@ -69,12 +69,12 @@ read_locations(
 - sheet:
 
   Optional Excel sheet name or number passed to
-  [`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md).
+  [`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md).
 
 - ...:
 
   Additional arguments passed to
-  [`read_breedbase_file()`](https://chris263.github.io/breedtools/reference/read_breedbase_file.md).
+  [`read_breedbase_file()`](https://solgenomics.github.io/breedtools/reference/read_breedbase_file.md).
 
 ## Value
 

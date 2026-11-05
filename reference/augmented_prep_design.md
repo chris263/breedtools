@@ -190,7 +190,7 @@ blocks and of duplicated entries follow from the construction, and
 `replications_per_repeated_entry` must be 2. When the number of entries
 is not a multiple of the array size, the surplus array positions are
 dropped as dummy entries, so some blocks are one plot smaller.
-[`augmented_prep_parameters()`](https://chris263.github.io/breedtools/reference/augmented_prep_parameters.md)
+[`augmented_prep_parameters()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_parameters.md)
 lists the feasible parameter sets.
 
 The incomplete block structure is independent from the field geometry.
@@ -223,9 +223,9 @@ designs. Biometrical Journal 53, 19-27.
 
 ## See also
 
-[`augmented_prep_parameters()`](https://chris263.github.io/breedtools/reference/augmented_prep_parameters.md),
-[`analyze_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_design.md),
-[`plot_augmented_prep_design()`](https://chris263.github.io/breedtools/reference/plot_augmented_prep_design.md)
+[`augmented_prep_parameters()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_parameters.md),
+[`analyze_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_design.md),
+[`plot_augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/plot_augmented_prep_design.md)
 
 ## Examples
 

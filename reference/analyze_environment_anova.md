@@ -13,7 +13,7 @@ analyze_environment_anova(pheno)
 - pheno:
 
   Standardized phenotype data from
-  [`prepare_breedbase_pheno()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_pheno.md).
+  [`prepare_breedbase_pheno()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_pheno.md).
 
 ## Value
 

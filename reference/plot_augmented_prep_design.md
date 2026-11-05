@@ -29,7 +29,7 @@ plot_augmented_prep_design(
 - design:
 
   An object returned by
-  [`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md)
+  [`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md)
   or its `design` data frame.
 
 - locations:

@@ -13,7 +13,7 @@ get_compatible_groups(group_tests)
 - group_tests:
 
   Output from
-  [`make_environment_groups()`](https://chris263.github.io/breedtools/reference/make_environment_groups.md).
+  [`make_environment_groups()`](https://solgenomics.github.io/breedtools/reference/make_environment_groups.md).
 
 ## Value
 

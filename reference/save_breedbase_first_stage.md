@@ -1,16 +1,16 @@
 # Save first-stage results to Breedbase as a trait of the field plots
 
 Saves plot-level first-stage results (from
-[`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md))
+[`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md))
 on the plots of the field trial, as values of a trait made for adjusted
 values, so raw and adjusted values stay apart. By default that trait is
 the measured trait composed with a statistic, e.g. "fresh root
 yield\|Adjusted Means from Spatial Correction using SpATS R": it is
 found, or created (after you confirm) when it does not exist yet; see
-[`breedbase_adjusted_trait()`](https://chris263.github.io/breedtools/reference/breedbase_adjusted_trait.md).
+[`breedbase_adjusted_trait()`](https://solgenomics.github.io/breedtools/reference/breedbase_adjusted_trait.md).
 Or name your own traits with `as_trait`. The values are saved through
 BrAPI, like
-[`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md).
+[`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md).
 
 ## Usage
 
@@ -31,14 +31,14 @@ save_breedbase_first_stage(
 - values:
 
   A table from
-  [`first_stage_values()`](https://chris263.github.io/breedtools/reference/first_stage_values.md)
+  [`first_stage_values()`](https://solgenomics.github.io/breedtools/reference/first_stage_values.md)
   (or any table with a `plot_name` column and one numeric column per
   trait).
 
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md);
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md);
   `NULL` with `dry_run = TRUE` returns what would be sent.
 
 - as_trait:
@@ -52,7 +52,7 @@ save_breedbase_first_stage(
   The statistic composed with each trait when `as_trait` is not given.
   By default chosen from this Breedbase's own statistics (the spatial
   correction term); see
-  [`breedbase_statistics()`](https://chris263.github.io/breedtools/reference/breedbase_statistics.md).
+  [`breedbase_statistics()`](https://solgenomics.github.io/breedtools/reference/breedbase_statistics.md).
 
 - create_trait:
 
@@ -62,12 +62,12 @@ save_breedbase_first_stage(
 - dry_run, confirm:
 
   As in
-  [`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md).
+  [`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md).
 
 ## Value
 
 As
-[`save_breedbase_phenotypes()`](https://chris263.github.io/breedtools/reference/save_breedbase_phenotypes.md):
+[`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md):
 one row per trait with the values sent and found.
 
 ## Slow servers
@@ -78,9 +78,9 @@ the pedigree of each one. If the server times out (HTTP 504, 502, 503 or
 slower but still works. A line is printed after each batch with the
 names done and the time. Accessions found are remembered until R is
 restarted, so
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 after
-[`breedbase_check()`](https://chris263.github.io/breedtools/reference/breedbase_check.md)
+[`breedbase_check()`](https://solgenomics.github.io/breedtools/reference/breedbase_check.md)
 does not search them again.
 
 When creating the folder, the trial or its plots times out, the save
@@ -88,7 +88,7 @@ does not stop: the server may still finish the job, so it checks for the
 result every 20 seconds for 3 minutes, and tries once more if it is not
 there (Breedbase refuses names that already exist, so this cannot make
 duplicates). If a save is cut off anyway, run
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md)
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md)
 again: an existing folder is used, and a trial left without plots gets
 its plots. Settings:
 `options(breedtools.write_wait = 30, breedtools.write_checks = 10)`.

@@ -2,7 +2,7 @@
 
 Collects the adjusted means of analyses (one per trait) into one table
 with one row per accession, ready for
-[`save_breedbase_analysis()`](https://chris263.github.io/breedtools/reference/save_breedbase_analysis.md).
+[`save_breedbase_analysis()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_analysis.md).
 
 ## Usage
 
@@ -17,7 +17,7 @@ second_stage_values(fits, trait = NULL)
   One analysis, or a named list of analyses, one per trait (the names
   are the Breedbase trait names). Any breedtools analysis with
   `adjusted_means`, e.g.
-  [`analyze_augmented_prep_two_stage()`](https://chris263.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md).
+  [`analyze_augmented_prep_two_stage()`](https://solgenomics.github.io/breedtools/reference/analyze_augmented_prep_two_stage.md).
 
 - trait:
 

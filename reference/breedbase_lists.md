@@ -1,7 +1,7 @@
 # List breeding programs, folders and locations in Breedbase
 
 Use these to find the exact names to give to
-[`save_breedbase()`](https://chris263.github.io/breedtools/reference/save_breedbase.md).
+[`save_breedbase()`](https://solgenomics.github.io/breedtools/reference/save_breedbase.md).
 
 ## Usage
 
@@ -18,7 +18,7 @@ breedbase_locations(con)
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - program:
 

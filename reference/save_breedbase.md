@@ -3,13 +3,13 @@
 Creates the trial and its plots in a Breedbase database through BrAPI,
 in a breeding program and, optionally, a folder of your choice. Works
 for designs from
-[`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md),
-[`augmented_prep_design()`](https://chris263.github.io/breedtools/reference/augmented_prep_design.md),
-[`resolvable_row_column_design()`](https://chris263.github.io/breedtools/reference/resolvable_row_column_design.md),
+[`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md),
+[`augmented_prep_design()`](https://solgenomics.github.io/breedtools/reference/augmented_prep_design.md),
+[`resolvable_row_column_design()`](https://solgenomics.github.io/breedtools/reference/resolvable_row_column_design.md),
 and agricolae designs converted with
-[`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md)
+[`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md)
 or prepared with
-[`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md).
+[`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md).
 
 ## Usage
 
@@ -38,9 +38,9 @@ save_breedbase(
 - design:
 
   A design object, including the result of
-  [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md)
+  [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md)
   or
-  [`prepare_breedbase_trial()`](https://chris263.github.io/breedtools/reference/prepare_breedbase_trial.md).
+  [`prepare_breedbase_trial()`](https://solgenomics.github.io/breedtools/reference/prepare_breedbase_trial.md).
   For a prepared trial, recorded trial name, year, location, program,
   description, folder and trial type are used when their arguments are
   omitted. Explicit arguments override them.
@@ -48,7 +48,7 @@ save_breedbase(
 - con:
 
   A connection from
-  [`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md).
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md).
 
 - program:
 
@@ -102,7 +102,7 @@ save_breedbase(
   row-column designs, `"p-rep"` for p-rep designs and `"Alpha"` (rows as
   incomplete blocks within replicates) for resolvable row-column
   designs. Converted agricolae designs use the type selected by
-  [`as_breedbase_design()`](https://chris263.github.io/breedtools/reference/as_breedbase_design.md).
+  [`as_breedbase_design()`](https://solgenomics.github.io/breedtools/reference/as_breedbase_design.md).
 
 - plot_names:
 
@@ -169,7 +169,7 @@ the pedigree of each one. If the server times out (HTTP 504, 502, 503 or
 slower but still works. A line is printed after each batch with the
 names done and the time. Accessions found are remembered until R is
 restarted, so `save_breedbase()` after
-[`breedbase_check()`](https://chris263.github.io/breedtools/reference/breedbase_check.md)
+[`breedbase_check()`](https://solgenomics.github.io/breedtools/reference/breedbase_check.md)
 does not search them again.
 
 When creating the folder, the trial or its plots times out, the save
@@ -186,8 +186,8 @@ batches, `options(breedtools.breedbase_timeout = 600)` to wait longer
 
 ## See also
 
-[`breedbase_login()`](https://chris263.github.io/breedtools/reference/breedbase_login.md),
-[`breedbase_programs()`](https://chris263.github.io/breedtools/reference/breedbase_lists.md)
+[`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md),
+[`breedbase_programs()`](https://solgenomics.github.io/breedtools/reference/breedbase_lists.md)
 
 ## Examples
 

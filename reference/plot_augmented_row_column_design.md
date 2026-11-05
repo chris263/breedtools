@@ -28,7 +28,7 @@ plot_augmented_row_column_design(
 - design:
 
   An object returned by
-  [`augmented_row_column_design()`](https://chris263.github.io/breedtools/reference/augmented_row_column_design.md)
+  [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md)
   or a design data frame with row, column, and block columns.
 
 - label:

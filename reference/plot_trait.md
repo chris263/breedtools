@@ -3,7 +3,7 @@
 Draws, for each location (or other group), a histogram of the trait and
 a map of the field with the value of every plot, so gradients, odd plots
 and outliers are easy to see. Outliers from
-[`find_outliers()`](https://chris263.github.io/breedtools/reference/find_outliers.md)
+[`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)
 can be circled on the map.
 
 ## Usage
@@ -47,7 +47,7 @@ plot_trait(
 - outliers:
 
   Optional table from
-  [`find_outliers()`](https://chris263.github.io/breedtools/reference/find_outliers.md)
+  [`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)
   to circle on the map.
 
 - breaks:

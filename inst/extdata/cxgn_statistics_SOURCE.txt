@@ -1,0 +1,6 @@
+cxgn_statistics.obo: the SGNSTAT statistics ontology of Breedbase, copied unchanged
+from the sgn repository (https://github.com/solgenomics/sgn, file ontology/cxgn_statistics.obo).
+Breedbase loads its statistic terms from this file. It is used by breedtools to check
+and choose the statistic of analysis results.
+
+Copyright (c) 2017 Boyce Thompson Institute, Inc. Released under the MIT License.

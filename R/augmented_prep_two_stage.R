@@ -329,16 +329,17 @@ prep_stage1_blocks <- function(sub, response, genotype_col, location_col, block_
 
 prep_stage1_spatial <- function(sub, response, genotype_col, block_col, replicate_col,
                                 row_col, col_col, spatial_nseg, random_blocks, loc) {
+  has_rep <- !is.null(replicate_col) && replicate_col %in% names(sub)
+  has_blk <- !is.null(block_col) && block_col %in% names(sub)
   x <- data.frame(
     y = sub[[response]],
     geno = factor(as.character(sub[[genotype_col]])),
     row = suppressWarnings(as.numeric(sub[[row_col]])),
     col = suppressWarnings(as.numeric(sub[[col_col]])),
-    rep = factor(if (!is.null(replicate_col) && replicate_col %in% names(sub)) sub[[replicate_col]] else 1L),
-    blk = factor(paste(
-      if (!is.null(replicate_col) && replicate_col %in% names(sub)) sub[[replicate_col]] else 1L,
-      sub[[block_col]]
-    ))
+    rep = factor(if (has_rep) sub[[replicate_col]] else 1L),
+    blk = factor(paste(if (has_rep) sub[[replicate_col]] else 1L, if (has_blk) sub[[block_col]] else 1L)),
+    # The design's plot number, to match plot results back to the plots.
+    plots = if ("plots" %in% names(sub)) sub$plots else seq_len(nrow(sub))
   )
   if (anyNA(x$row) || anyNA(x$col)) {
     stop(

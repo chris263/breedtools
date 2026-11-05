@@ -98,6 +98,17 @@ plots, trait made by \code{\link[=breedbase_adjusted_trait]{breedbase_adjusted_t
 }
 }
 
+\section{Trait data and two-stage analysis}{
+
+\itemize{
+\item Look: \code{\link[=plot_trait]{plot_trait()}}; outliers: \code{\link[=find_outliers]{find_outliers()}}, \code{\link[=remove_outliers]{remove_outliers()}}
+\item Two-stage analysis for any design: \code{\link[=analyze_two_stage]{analyze_two_stage()}};
+single stage: \code{\link[=analyze_single_stage]{analyze_single_stage()}}
+\item Phenotypes of trials from Breedbase: \code{\link[=breedbase_phenotypes]{breedbase_phenotypes()}}
+\item Raw versus first-stage values: \code{\link[=compare_first_stage]{compare_first_stage()}}
+}
+}
+
 \section{Checks}{
 
 \code{\link[=check_setup]{check_setup()}}, \code{\link[=check_design]{check_design()}}, \code{\link[=check_result]{check_result()}}, \code{\link[=check_summary]{check_summary()}},

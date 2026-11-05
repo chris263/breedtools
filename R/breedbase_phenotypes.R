@@ -127,6 +127,9 @@ bb_template_location <- function(design) {
 #' @param dry_run Logical. Check everything but write nothing.
 #' @param confirm Logical. Ask before writing (default in interactive
 #'   sessions).
+#' @param refresh Logical. After saving, refresh the phenotype cache of
+#'   Breedbase so the values show on the trial pages (see
+#'   [breedbase_refresh()]).
 #'
 #' @inheritSection breedbase_check Slow servers
 #'
@@ -158,14 +161,15 @@ bb_template_location <- function(design) {
 #' @export
 save_breedbase_phenotypes <- function(data, con = NULL, plot = "plot_name", traits = NULL,
                                       trait = NULL, value = NULL, timestamp = NULL,
-                                      dry_run = FALSE, confirm = interactive()) {
-  bb_save_phenotypes(data, con, plot, traits, trait, value, timestamp, dry_run, confirm)
+                                      dry_run = FALSE, confirm = interactive(), refresh = TRUE) {
+  bb_save_phenotypes(data, con, plot, traits, trait, value, timestamp, dry_run, confirm, refresh = refresh)
 }
 
 # `trait_ids`: trait ids already known, named by trait (e.g. composed traits,
 # which the BrAPI variable search may not list).
 bb_save_phenotypes <- function(data, con, plot = "plot_name", traits = NULL, trait = NULL, value = NULL,
-                               timestamp = NULL, dry_run = FALSE, confirm = interactive(), trait_ids = NULL) {
+                               timestamp = NULL, dry_run = FALSE, confirm = interactive(), trait_ids = NULL,
+                               refresh = TRUE) {
   obs <- bb_phenotypes_long(data, plot, traits, trait, value, timestamp)
 
   if (is.null(con)) {
@@ -261,7 +265,56 @@ bb_save_phenotypes <- function(data, con, plot = "plot_name", traits = NULL, tra
     cat(sprintf("  %s trait '%s': %d of %d values saved\n", status, out$trait[i], out$values_found[i],
                 out$values_sent[i]))
   }
+  # Breedbase's BrAPI upload does not refresh the phenotype cache that the
+  # trial pages and the search wizard read; refresh it so the values show.
+  if (isTRUE(refresh)) breedbase_refresh(con, quiet = FALSE)
   invisible(out)
+}
+
+#' Refresh the Breedbase phenotype cache
+#'
+#' Values saved through BrAPI ([save_breedbase_phenotypes()],
+#' [save_breedbase_first_stage()]) are in the database at once (the BrAPI
+#' search finds them), but the trial pages and the search wizard of
+#' Breedbase read a cache ("materialized views") that the BrAPI upload does
+#' not refresh. This asks Breedbase to refresh it, like the "Update" button
+#' of the search wizard. The save functions call it after saving. If it
+#' cannot be reached, the values are still saved: they appear after the next
+#' refresh of the site (usually overnight), or when you click "Update" on the
+#' Search Wizard page.
+#'
+#' @param con A connection from [breedbase_login()].
+#' @param views Which cache to refresh: `"phenotypes"` (default) or
+#'   `"fullview"`.
+#' @param quiet Logical. If `FALSE`, print what happened.
+#'
+#' @return Invisibly, `TRUE` if Breedbase accepted the refresh, else `FALSE`.
+#'
+#' @examples
+#' \dontrun{
+#' con <- breedbase_login("https://cassavabase.org", "jdoe")
+#' breedbase_refresh(con)
+#' }
+#'
+#' @export
+breedbase_refresh <- function(con, views = c("phenotypes", "fullview"), quiet = FALSE) {
+  views <- match.arg(views)
+  if (!inherits(con, "breedbase_connection")) stop("`con` must come from breedbase_login().", call. = FALSE)
+  res <- tryCatch(bb_ajax_get(con, "ajax/breeder/refresh", what = "refresh the phenotype cache",
+                              query = list(matviews = views)),
+                  breedbase_error = function(e) e)
+  ok <- !inherits(res, "breedbase_error")
+  if (!isTRUE(quiet)) {
+    if (ok) {
+      cat("  [OK]   Breedbase is refreshing its phenotype cache: the values appear on the trial pages",
+          "and in the search wizard in a few minutes\n")
+    } else {
+      cat("  [NOTE] The values are saved, but the phenotype cache could not be refreshed (",
+          conditionMessage(res), ").\n         They appear on the trial pages after the next refresh of the site, ",
+          "or click \"Update\" on the Search Wizard page.\n", sep = "")
+    }
+  }
+  invisible(ok)
 }
 
 # Data (wide or long) to one row per value: plot_name, trait, value, timestamp.

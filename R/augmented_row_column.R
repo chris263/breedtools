@@ -843,6 +843,7 @@ analyze_augmented_row_column_design <- function(
   # always comes from the fixed-effects model.
   model_type <- "fixed"
   adjusted_source <- fit_parts$adjusted_means
+  adjusted_vcov <- fit_parts$vcov
   precision <- fit_parts$precision
   variance_components <- NULL
   mixed_model <- NULL
@@ -861,7 +862,24 @@ analyze_augmented_row_column_design <- function(
       arc_rc_mixed(analysis_data, isTRUE(random_blocks), entries == "random", fit_parts$error_df)
     }
     adjusted_source <- alt$adjusted_means
+    adjusted_vcov <- alt$vcov
     precision <- alt$precision
+    # Plot fitted values and residuals of the model that gives the adjusted
+    # means (the ANOVA stays the fixed-effects one).
+    if (length(alt$fitted) == nrow(analysis_data)) {
+      plot_results$fitted[analysis_data$.row_id] <- alt$fitted
+      plot_results$residual[analysis_data$.row_id] <- analysis_data$response - alt$fitted
+      by_genotype <- split(seq_len(nrow(plot_results)), as.character(plot_results[[genotype_col]]))
+      gs_rows <- match(genotype_summary$genotype, names(by_genotype))
+      genotype_summary$fitted_mean <- vapply(gs_rows, function(i) {
+        v <- plot_results$fitted[by_genotype[[i]]]
+        if (all(is.na(v))) NA_real_ else mean(v, na.rm = TRUE)
+      }, numeric(1))
+      genotype_summary$residual_mean <- vapply(gs_rows, function(i) {
+        v <- plot_results$residual[by_genotype[[i]]]
+        if (all(is.na(v))) NA_real_ else mean(v, na.rm = TRUE)
+      }, numeric(1))
+    }
     variance_components <- alt$variance_components
     mixed_model <- alt$model
     if (!is.null(alt$spatial_effective_dim)) spatial_effective_dim <- alt$spatial_effective_dim
@@ -933,6 +951,7 @@ analyze_augmented_row_column_design <- function(
     plot_results = plot_results |> dplyr::select(-dplyr::all_of(".analysis_response")),
     genotype_summary = genotype_summary,
     adjusted_means = adjusted_parts$adjusted_means,
+    adjusted_means_vcov = adjusted_vcov,
     diagnostics = diagnostics,
     variance_components = variance_components,
     mixed_model = mixed_model,
@@ -1389,6 +1408,7 @@ arc_fit_augmented_row_column <- function(data) {
     estimable = logical(0)
   )
   precision <- list(mean_sed = NA_real_, lsd_5pct = NA_real_)
+  vcov <- NULL
 
   if (!is.null(model)) {
     sigma2 <- if (error_df > 0) rss / error_df else NA_real_
@@ -1426,6 +1446,12 @@ arc_fit_augmented_row_column <- function(data) {
       sigma2,
       error_df
     )
+    # Covariance of the adjusted means (for two-stage weighting):
+    # sigma^2 (W'W + diag(extra)), estimable genotypes only.
+    ok <- which(est$estimable)
+    W <- est$W[, ok, drop = FALSE]
+    vcov <- sigma2 * (crossprod(W) + diag(extra_var[ok], length(ok)))
+    dimnames(vcov) <- list(adjusted$genotype[ok], adjusted$genotype[ok])
   }
   genotype_df <- rank_full - rank_design
   genotype_ss <- max(rss_design - rss, 0)
@@ -1462,6 +1488,7 @@ arc_fit_augmented_row_column <- function(data) {
     expected_rank = expected_rank,
     error_df = error_df,
     adjusted_means = adjusted,
+    vcov = vcov,
     precision = precision,
     # Model columns (intercept, design contrasts, one dummy per genotype) that
     # are aliased and therefore dropped from the fit.

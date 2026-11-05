@@ -8,7 +8,7 @@ save_breedbase_first_stage(
   values,
   con = NULL,
   as_trait = NULL,
-  statistic = "Adjusted Means from Spatial Correction using SpATS R",
+  statistic = NULL,
   create_trait = TRUE,
   dry_run = FALSE,
   confirm = interactive()
@@ -26,7 +26,8 @@ an existing Breedbase trait to save it under, e.g.
 \code{c("fresh root yield" = "fresh root yield adjusted|COMP:0000123")}.}
 
 \item{statistic}{The statistic composed with each trait when \code{as_trait}
-is not given (see \code{\link[=breedbase_adjusted_trait]{breedbase_adjusted_trait()}}).}
+is not given. By default chosen from this Breedbase's own statistics
+(the spatial correction term); see \code{\link[=breedbase_statistics]{breedbase_statistics()}}.}
 
 \item{create_trait}{Logical. Create the composed traits that do not exist
 yet (you are asked first when \code{confirm = TRUE}).}

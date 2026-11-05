@@ -22,6 +22,15 @@
 #'   `"https://cassavabase.org"`.
 #' @param username Your Breedbase username.
 #' @param password Optional password; see Details.
+#' @param site_username,site_password Only for sites with an extra web
+#'   password in front of the website (test servers such as
+#'   cassava-test.sgn.cornell.edu ask for it in a browser pop-up, "Restricted
+#'   Test Site"): that user name and password. They are used for the non-BrAPI
+#'   calls (trait composer, analyses); BrAPI does not need them. Usually not
+#'   needed: when a site asks for a web password, the login first tries your
+#'   Breedbase user name and password there, and uses them if they work.
+#'   Leave `site_password` empty to read it from `BREEDBASE_SITE_PASSWORD` or
+#'   to be asked in a pop-up.
 #'
 #' @return A `breedbase_connection` object.
 #'
@@ -35,7 +44,7 @@
 #' }
 #'
 #' @export
-breedbase_login <- function(url, username, password = NULL) {
+breedbase_login <- function(url, username, password = NULL, site_username = NULL, site_password = NULL) {
   bb_require_httr2()
   url <- sub("/+$", "", as.character(url))
   if (!grepl("^https?://", url)) url <- paste0("https://", url)
@@ -51,6 +60,19 @@ breedbase_login <- function(url, username, password = NULL) {
     }
   }
   if (is.null(password) || !nzchar(password)) stop("No password given.", call. = FALSE)
+  site_auth <- NULL
+  if (!is.null(site_username) && nzchar(site_username)) {
+    if (is.null(site_password) || !nzchar(site_password)) site_password <- Sys.getenv("BREEDBASE_SITE_PASSWORD")
+    if (!nzchar(site_password)) {
+      if (!interactive()) stop("No site password: set BREEDBASE_SITE_PASSWORD or pass `site_password`.", call. = FALSE)
+      site_password <- if (requireNamespace("askpass", quietly = TRUE)) {
+        askpass::askpass(sprintf("Web (site) password for %s at %s: ", site_username, url))
+      } else {
+        readline(sprintf("Web (site) password for %s: ", site_username))
+      }
+    }
+    site_auth <- list(username = site_username, password = site_password)
+  }
 
   resp <- bb_perform(
     httr2::req_body_json(
@@ -67,11 +89,75 @@ breedbase_login <- function(url, username, password = NULL) {
   con <- structure(
     list(url = url, username = username, token = token,
          user_display_name = resp$userDisplayName %||% username,
-         logged_in_at = Sys.time()),
+         logged_in_at = Sys.time(), site_auth = site_auth),
     class = "breedbase_connection"
   )
   message("Logged in to ", url, " as ", con$user_display_name, ".")
+  # Some sites (test servers) protect their web pages with a web password;
+  # BrAPI does not need it, but the trait composer, analyses and cache
+  # refresh do. Often it is the Breedbase login itself: try that.
+  if (is.null(site_auth)) {
+    web <- bb_web_access(con)
+    if (identical(web, "password")) {
+      with_login <- con
+      with_login$site_auth <- list(username = username, password = password)
+      if (identical(bb_web_access(with_login), "ok")) {
+        con <- with_login
+        message("This site's web pages ask for a password: your Breedbase login works there and will be used.")
+      } else if (interactive()) {
+        # Ask now, so the analyses can be uploaded directly later.
+        message("This site's web pages ask for their own web password (the browser pop-up \"",
+                bb_web_realm(con), "\"), not your Breedbase login.")
+        site_username <- readline("Web user name of the site (leave empty to skip): ")
+        if (nzchar(trimws(site_username))) {
+          pw <- Sys.getenv("BREEDBASE_SITE_PASSWORD")
+          if (!nzchar(pw)) {
+            pw <- if (requireNamespace("askpass", quietly = TRUE)) {
+              askpass::askpass(sprintf("Web password for %s at %s: ", site_username, url))
+            } else {
+              readline("Web password: ")
+            }
+          }
+          with_site <- con
+          with_site$site_auth <- list(username = trimws(site_username), password = pw)
+          if (identical(bb_web_access(with_site), "ok")) {
+            con <- with_site
+            message("Web password accepted: analyses will be uploaded directly.")
+          } else {
+            message("That web password was not accepted. Trials and phenotypes still work; analyses will be ",
+                    "written as files for the \"Upload analysis\" form of the website.")
+          }
+        } else {
+          message("Skipped. Trials and phenotypes work; analyses will be written as files for the ",
+                  "\"Upload analysis\" form of the website.")
+        }
+      } else {
+        message("Note: this site's web pages ask for their own web password (not your Breedbase login). ",
+                "Trials and phenotypes work without it; analyses will be written as files for the ",
+                "\"Upload analysis\" form of the website, or log in with site_username = \"...\".")
+      }
+    }
+  }
   con
+}
+
+# The name the site's web password pop-up shows.
+bb_web_realm <- function(con) {
+  req <- httr2::req_error(httr2::request(paste0(con$url, "/ajax/breeder/check_status")), is_error = function(resp) FALSE)
+  resp <- tryCatch(httr2::req_perform(req), error = function(e) NULL)
+  basic <- if (is.null(resp)) "" else httr2::resp_header(resp, "WWW-Authenticate") %||% ""
+  if (grepl("realm", basic)) sub('^.*realm="?([^"]*)"?.*$', "\\1", basic) else "web password"
+}
+
+# Can the web (non-BrAPI) pages be reached? "ok", "password" (a web password
+# is asked) or "unknown" (no answer).
+bb_web_access <- function(con) {
+  req <- httr2::req_error(bb_ajax_request(con, "ajax/breeder/check_status"), is_error = function(resp) FALSE)
+  req <- httr2::req_timeout(httr2::req_user_agent(req, "breedtools (R package)"), 60)
+  resp <- tryCatch(httr2::req_perform(req), error = function(e) NULL)
+  if (is.null(resp)) return("unknown")
+  basic <- httr2::resp_header(resp, "WWW-Authenticate") %||% ""
+  if (httr2::resp_status(resp) == 401 && grepl("^Basic", basic)) "password" else "ok"
 }
 
 #' @export
@@ -80,6 +166,7 @@ print.breedbase_connection <- function(x, ...) {
   cat("  site: ", x$url, "\n", sep = "")
   cat("  user: ", x$user_display_name, " (", x$username, ")\n", sep = "")
   cat("  logged in at: ", format(x$logged_in_at), "\n", sep = "")
+  if (!is.null(x$site_auth)) cat("  site (web) password: set for ", x$site_auth$username, "\n", sep = "")
   invisible(x)
 }
 
@@ -197,6 +284,7 @@ breedbase_check <- function(con, accessions = NULL, location = NULL, program = N
     rows[[length(rows) + 1]] <<- tibble::tibble(what = what, name = name, status = status, suggestion = suggestion)
   }
   cat("Checking names in ", con$url, "\n", sep = "")
+  if (!is.null(trial_name)) trial_name <- bb_clean_name(trial_name, "trial name")
 
   if (!is.null(program)) {
     progs <- breedbase_programs(con)
@@ -204,6 +292,7 @@ breedbase_check <- function(con, accessions = NULL, location = NULL, program = N
       add("program", program, "OK")
       if (!is.null(folder)) {
         folders <- breedbase_folders(con, program)$folder
+        if (!folder %in% folders) folder <- bb_clean_name(folder, "folder name")
         if (folder %in% folders) add("folder", folder, "OK")
         else add("folder", folder, "NEW", bb_suggest(folder, folders, "it will be created if you save with create_folder = TRUE"))
       }
@@ -359,7 +448,13 @@ bb_print_check <- function(out) {
 #'   default, `NULL`) the trial is saved directly in the breeding program. An
 #'   existing folder is used as it is; a new one is created when
 #'   `create_folder = TRUE`.
-#' @param trial_name Name of the new trial (must not exist yet).
+#' @param trial_name Name of the new trial (must not exist yet). In the
+#'   names saved in Breedbase (trial, plot and new folder names, and the
+#'   location part of p-rep trial names) spaces and special characters such
+#'   as `% $ ( ) { } [ ] \\ / < > *` are replaced with `"_"` (only letters,
+#'   digits, `_`, `-` and `.` are kept), e.g. `"Alcobaca (BA)"` gives
+#'   `"Alcobaca_BA"`. Accession and location names are kept as they are, to
+#'   match Breedbase.
 #' @param year Year of the trial.
 #' @param location Breedbase location name. For p-rep designs, a named vector
 #'   mapping the design's locations to Breedbase locations, e.g.
@@ -459,6 +554,9 @@ save_breedbase <- function(design, con = NULL, program = NULL, folder = NULL, tr
     cat("  [OK]   no folder given: the trial will be saved directly in program '", prog$program, "'\n", sep = "")
   } else {
     folders <- breedbase_folders(con, prog$program)
+    # An existing folder is used as it is, even with spaces in its name; a
+    # new folder is created with spaces replaced by "_".
+    if (!folder %in% folders$folder) folder <- bb_clean_name(folder, "folder name")
     folder_row <- folders[folders$folder == folder, , drop = FALSE]
     folder_id <- if (nrow(folder_row) == 1) folder_row$folder_db_id else NA_character_
   }
@@ -563,31 +661,7 @@ save_breedbase <- function(design, con = NULL, program = NULL, folder = NULL, tr
     }
   }
 
-  if (is.na(folder_id)) {
-    folder_id <- bb_write_checked(
-      what = paste0("create folder '", folder, "'"),
-      write = function() {
-        res <- bb_post(con, "trials", list(list(trialName = folder, programDbId = prog$program_db_id,
-                                                trialDescription = paste("Created by breedtools"))),
-                       what = paste0("create folder '", folder, "'"))
-        as.character(res$result$data[[1]]$trialDbId %||% NA)
-      },
-      find = function() {
-        f <- breedbase_folders(con, prog$program)
-        id <- f$folder_db_id[f$folder == folder]
-        if (length(id) == 1) id else NA_character_
-      },
-      exists_ok = TRUE,
-      exists_hint = paste0("a trial or a folder of another program already uses the name '", folder,
-                           "'. Choose another `folder`.")
-    )
-    if (isTRUE(attr(folder_id, "existed"))) {
-      cat("  [OK]   folder '", folder, "' already exists: the trial is saved inside it\n", sep = "")
-    } else {
-      cat("  [OK]   folder '", folder, "' created\n", sep = "")
-    }
-    folder_id <- as.character(folder_id)
-  }
+  if (is.na(folder_id)) folder_id <- bb_create_folder(con, prog, folder, saved = "the trial")
 
   out <- vector("list", length(studies))
   for (i in seq_along(studies)) {
@@ -665,6 +739,14 @@ bb_perform <- function(req, what) {
   if (code >= 400) {
     detail <- if (is.null(body)) httr2::resp_status_desc(resp) else bb_status_message(body)
     hint <- if (code %in% c(401, 403)) " (check your username, password and permissions; you may need to log in again)" else ""
+    basic <- httr2::resp_header(resp, "WWW-Authenticate") %||% ""
+    if (code == 401 && grepl("^Basic", basic)) {
+      realm <- sub('^.*realm="?([^"]*)"?.*$', "\\1", basic)
+      detail <- paste0("the website asks for its own web password (\"", realm, "\")")
+      hint <- paste0(". This site has an extra password in front of the website (BrAPI does not need it). ",
+                     "Log in again with breedbase_login(url, username, site_username = \"...\") ",
+                     "and the web user name and password of the site")
+    }
     bb_stop(paste0("Could not ", what, " (HTTP ", code, "): ", detail, hint), code = code,
             busy = code %in% c(429L, 502L, 503L, 504L))
   }
@@ -886,10 +968,15 @@ bb_write_checked <- function(what, write, find, attempts = 2, exists_ok = FALSE,
        "again later; what was already saved is found and the save continues.", call. = FALSE)
 }
 
+# A trial is found by its name as given or, for names with spaces, by the
+# name breedtools saves (spaces replaced with "_").
 bb_find_study <- function(con, name) {
-  data <- bb_search(con, "studies", list(studyNames = list(name), pageSize = 10))
-  hit <- Filter(function(x) identical(x$studyName, name), data)
-  if (length(hit)) as.character(hit[[1]]$studyDbId %||% NA) else NA_character_
+  for (nm in unique(c(name, bb_clean_name(name, quiet = TRUE)))) {
+    data <- bb_search(con, "studies", list(studyNames = list(nm), pageSize = 10))
+    hit <- Filter(function(x) identical(x$studyName, nm), data)
+    if (length(hit)) return(as.character(hit[[1]]$studyDbId %||% NA))
+  }
+  NA_character_
 }
 
 bb_count_plots <- function(con, study_id) {
@@ -909,6 +996,59 @@ bb_search <- function(con, entity, body) {
     return(bb_get_all(con, paste0("search/", entity, "/", res$result$searchResultsDbId)))
   }
   res$result$data %||% list()
+}
+
+# Create a folder (a BrAPI trial) in the program and return its id. A folder
+# that already exists (e.g. made by an earlier save that timed out) is used.
+bb_create_folder <- function(con, prog, folder, saved = "the trial") {
+  folder_id <- bb_write_checked(
+    what = paste0("create folder '", folder, "'"),
+    write = function() {
+      res <- bb_post(con, "trials", list(list(trialName = folder, programDbId = prog$program_db_id,
+                                              trialDescription = paste("Created by breedtools"))),
+                     what = paste0("create folder '", folder, "'"))
+      as.character(res$result$data[[1]]$trialDbId %||% NA)
+    },
+    find = function() bb_folder_id(con, prog$program, folder),
+    exists_ok = TRUE,
+    exists_hint = paste0("a trial or a folder of another program already uses the name '", folder,
+                         "'. Choose another `folder`.")
+  )
+  if (isTRUE(attr(folder_id, "existed"))) {
+    cat("  [OK]   folder '", folder, "' already exists: ", saved, " is saved inside it\n", sep = "")
+  } else {
+    cat("  [OK]   folder '", folder, "' created\n", sep = "")
+  }
+  as.character(folder_id)
+}
+
+# Id of a folder of the program, or NA.
+bb_folder_id <- function(con, program, folder) {
+  f <- breedbase_folders(con, program)
+  id <- f$folder_db_id[f$folder == folder]
+  if (length(id) == 1) id else NA_character_
+}
+
+# Names saved in Breedbase (trials, plots, folders, analyses) contain only
+# letters (accented letters too), digits, "_", "-" and ".": spaces and other
+# characters (% $ ( ) { } [ ] \\ / < > * ...) become "_", repeated "_" are
+# merged and "_" at the start or end are dropped, e.g. "Alcobaca (BA)" ->
+# "Alcobaca_BA". Accession and location names are not changed, since they
+# must match the names already in Breedbase.
+bb_clean_name <- function(x, what = "name", quiet = FALSE) {
+  out <- gsub("[^\\p{L}\\p{N}_.-]+", "_", trimws(as.character(x)), perl = TRUE)
+  out <- gsub("_{2,}", "_", out)
+  out <- gsub("^_+|_+$", "", out)
+  if (any(!is.na(out) & !nzchar(out))) {
+    stop("The ", what, " '", x[!is.na(out) & !nzchar(out)][1], "' has no letters or digits.", call. = FALSE)
+  }
+  changed <- !is.na(x) & out != x
+  if (!quiet && any(changed)) {
+    message("Spaces and special characters replaced with '_' in the ", what,
+            if (sum(changed) > 1) paste0(" (", sum(changed), ")"),
+            ": '", x[changed][1], "' -> '", out[changed][1], "'")
+  }
+  out
 }
 
 # Convert a design into BrAPI study and observation unit records (without
@@ -942,6 +1082,7 @@ bb_design_to_studies <- function(design, trial_name, year, location, description
                                  plot_names = NULL, plot_name_pattern = "{trial}_{accession}_{block}_{rep}") {
   if (missing(trial_name) || !nzchar(trial_name)) stop("Give a `trial_name`.", call. = FALSE)
   if (missing(year)) stop("Give the `year` of the trial.", call. = FALSE)
+  trial_name <- bb_clean_name(trial_name, "trial name")
   kind <- if (inherits(design, "augmented_row_column_design")) {
     "augmented"
   } else if (inherits(design, "augmented_prep_design")) {
@@ -994,7 +1135,7 @@ bb_design_to_studies <- function(design, trial_name, year, location, description
       design_location = l,
       breedbase_location = unname(location[[l]]),
       data = d[d$location == l, , drop = FALSE],
-      name = if (length(design_locations) > 1) paste(trial_name, l, sep = "_") else trial_name
+      name = if (length(design_locations) > 1) paste(trial_name, bb_clean_name(l), sep = "_") else trial_name
     ))
   } else {
     if (is.null(location) || length(location) != 1) stop("Give the Breedbase `location` of the trial.", call. = FALSE)
@@ -1024,6 +1165,11 @@ bb_design_to_studies <- function(design, trial_name, year, location, description
       bb_plot_names(plot_name_pattern, trial = g$name, accession = as.character(x$all_entries),
                     block = block_no, rep = rep_no, plot = plot_number,
                     row = if (has_coords) x$row else NA, col = if (has_coords) x$col else NA)
+    }
+    unit_names <- bb_clean_name(unit_names, "plot names")
+    if (anyDuplicated(unit_names)) {
+      stop("Plot names are repeated after replacing spaces with '_': ",
+           paste(utils::head(unique(unit_names[duplicated(unit_names)]), 5), collapse = ", "), ".", call. = FALSE)
     }
     plots <- lapply(seq_len(nrow(x)), function(i) {
       position <- list(

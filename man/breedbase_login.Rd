@@ -4,7 +4,13 @@
 \alias{breedbase_login}
 \title{Log in to a Breedbase server}
 \usage{
-breedbase_login(url, username, password = NULL)
+breedbase_login(
+  url,
+  username,
+  password = NULL,
+  site_username = NULL,
+  site_password = NULL
+)
 }
 \arguments{
 \item{url}{Address of the Breedbase site, e.g.
@@ -13,6 +19,16 @@ breedbase_login(url, username, password = NULL)
 \item{username}{Your Breedbase username.}
 
 \item{password}{Optional password; see Details.}
+
+\item{site_username, site_password}{Only for sites with an extra web
+password in front of the website (test servers such as
+cassava-test.sgn.cornell.edu ask for it in a browser pop-up, "Restricted
+Test Site"): that user name and password. They are used for the non-BrAPI
+calls (trait composer, analyses); BrAPI does not need them. Usually not
+needed: when a site asks for a web password, the login first tries your
+Breedbase user name and password there, and uses them if they work.
+Leave \code{site_password} empty to read it from \code{BREEDBASE_SITE_PASSWORD} or
+to be asked in a pop-up.}
 }
 \value{
 A \code{breedbase_connection} object.

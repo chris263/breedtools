@@ -1,6 +1,15 @@
 # breedtools 0.1.0
 
 * First CRAN release.
+* Names saved in Breedbase contain only letters, digits, "_", "-" and ".":
+  in trial, plot, new folder and analysis names, spaces and characters such
+  as % $ ( ) { } [ ] \ / < > * become "_" (e.g. location "Alcobaca (BA)"
+  gives trial "EMBRAPA_2026_Alcobaca_BA"). Accession and location names are
+  kept, existing folders are used as they are, and trials can still be
+  looked up by the original name.
+* `save_breedbase_analysis()` has `folder` and `create_folder`: the analysis
+  is put in a folder of the program (as the website's "Move to folder"),
+  instead of directly in the breeding program.
 * New `breedbase_check()` checks the location(s) and every entry and check
   (as accessions) in Breedbase before a design is built, plus the program,
   folder and trial name when given. All problems are listed together with
@@ -39,7 +48,77 @@
   `save_breedbase_analysis()` saves them as a Breedbase analysis, like the
   Breedbase mixed-models tool.
 * `analyze_resolvable_row_column()` now returns `plot_results` with the
-  fitted values and plot residuals. See `options(breedtools.germplasm_batch)` and
+  fitted values and plot residuals.
+* New `analyze_two_stage()`: two-stage analysis of a multi-location trial for
+  every design (augmented row-column, augmented p-rep, resolvable
+  row-column), with a SpATS spatial stage 1 (default) or the design's own
+  model, and the weighted stage 2 of `analyze_augmented_prep_two_stage()`.
+* New `compare_first_stage()`: raw against first-stage adjusted plot values
+  per location (correlation, spread, change in genotype ranking), with raw
+  and adjusted field maps.
+* New `find_outliers()` and `remove_outliers()`: IQR rule (multiplier 1.5 by
+  default) within each location; removed values are set to `NA` and listed
+  by plot.
+* New `plot_trait()`: histogram and field map of a trait per location, with
+  outliers circled.
+* `analyze_augmented_row_column_design()` returns `adjusted_means_vcov`; with
+  `spatial = TRUE` or random effects, `plot_results` residuals now come from
+  that model (they came from the fixed model before).
+* `breedbase_login()` has `site_username` / `site_password` for test sites
+  with an extra web password in front of the website (BrAPI works without
+  it, the trait composer and analyses need it); a clear message says so.
+  Usually not needed: at login, when a site's web pages ask for a password,
+  the Breedbase login is tried there and used if it works.
+* `breedbase_adjusted_trait()` finds an existing adjusted trait through BrAPI
+  first, so the first stage needs no web page when the trait exists.
+* Breedbase's BrAPI upload does not refresh the phenotype cache that its
+  trial pages and search wizard read, so saved values did not show there.
+  `save_breedbase_phenotypes()` and `save_breedbase_first_stage()` now ask
+  Breedbase to refresh it; new `breedbase_refresh()` does it on demand.
+* No fixed Breedbase terms: the statistic of first- and second-stage results
+  is chosen from the server's own statistic terms (new
+  `breedbase_statistics()` lists them), a given statistic is checked
+  against the server, and composed traits are matched by their components.
+  A model type unknown to the server gives a clear message.
+* `save_breedbase_analysis()` uses the same upload as Breedbase's "Upload
+  analysis" form (name, description, protocol, breeding program, statistic,
+  optional time terms) with Breedbase's model type for uploaded results, and
+  has `level = "plot"` ("Analysis of: plots"): first-stage values become an
+  analysis with one plot per field plot, linked by Breedbase to the field
+  trial.
+* Statistics are checked against the Breedbase statistics ontology
+  (`cxgn_statistics.obo` from the Breedbase source, included in the
+  package): a statistic must be a real SGNSTAT term, a given id must belong
+  to the given name, and misspelled names get suggestions;
+  `breedbase_statistics()` lists the terms without a server.
+* Sites whose web pages need their own web password (e.g. cassava-test):
+  the login asks for it; without it, `save_breedbase_analysis()` checks
+  everything through BrAPI and writes the file of the website's "Upload
+  analysis" form, printing every form field to fill in.
+* New `breedbase_phenotypes()` reads the phenotypes of a list of trials and
+  traits from Breedbase (plots with accession, rep, block, row, column).
+* New `analyze_single_stage()`: all trials in one model (lme4, or SpATS with
+  `spatial = TRUE`: trials side by side, each with its own spatial trend),
+  to compare with the two-stage analysis.
+* `analyze_two_stage(stage1 = "blocks")`: a first stage without a design
+  object, for data read from Breedbase; `first_stage_values()` works
+  without a design for such data.
+* `add_breedbase_analysis_values(statistic = )` stores values under
+  "trait|statistic", so several analyses (e.g. two-stage and single-stage
+  means) can sit in the same analysis project.
+* New `add_breedbase_analysis_values()` adds results (e.g. a second trait) to
+  an analysis already in Breedbase, through the phenotype upload of the
+  website: Breedbase verifies the file first, and values already stored are
+  not replaced unless `overwrite = TRUE`.
+* The script has three Breedbase switches (`save_designs`,
+  `save_phenotypes`, `save_analyses`), a trial-name prefix and a run tag for
+  unique analysis names, and saves analyses only for trials in Breedbase.
+* New `breedbase_trial_plots()` reads the plots of a saved trial;
+  `first_stage_values(breedbase_plots = )` checks that the design in R is the
+  one saved (same accession at every plot number) and uses the saved plot
+  names.
+* `scripts/validate_designs.R` is organized in one part per design, each from
+  the field plan to the results in Breedbase. See `options(breedtools.germplasm_batch)` and
   `options(breedtools.breedbase_timeout)`.
 * New `save_breedbase()` saves any design (augmented row-column, p-rep,
   resolvable row-column) as a trial with its plots in a 'Breedbase' database

@@ -63,6 +63,7 @@ Suggests:
     rmarkdown,
     lme4,
     httr2 (>= 1.1.0),
+    curl,
     askpass,
     Matrix,
     SpATS,

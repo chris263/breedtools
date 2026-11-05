@@ -466,6 +466,42 @@ two_spatial <- analyze_augmented_prep_two_stage(trial_het, response = "yield",
 two_spatial$locations[, c("location", "residual_variance", "spatial_effective_dim")]
 ```
 
+## Trait plots, outliers and two-stage analysis for any design
+
+Before the analysis, look at the trait and remove outliers. `plot_trait()`
+draws a histogram and a field map per location; `remove_outliers()` applies
+the IQR rule (values beyond \eqn{Q_1 - 1.5\,IQR} or \eqn{Q_3 + 1.5\,IQR},
+within each location), sets them to `NA` and lists every plot and value
+removed:
+
+```{r}
+sites <- c("North", "South")
+met <- do.call(rbind, lapply(1:2, function(i) {
+  d <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4,
+                                   n_candidates = 5, seed = i)$design
+  d$location <- sites[i]
+  d
+}))
+set.seed(4)
+g <- setNames(rnorm(112, sd = 3), c(paste0("G", 1:108), paste0("C", 1:4)))
+met$yield <- 50 + g[met$all_entries] + 0.6 * met$row + rnorm(nrow(met))
+met$yield[10] <- 500                      # a typing error
+plot_trait(met, "yield")
+clean <- remove_outliers(met, "yield")
+```
+
+`analyze_two_stage()` analyses every location on its own (stage 1: a SpATS
+spatial model, or the design's own model with `stage1 = "design"`) and
+combines the locations weighted by their precision (stage 2). It works for
+augmented row-column, p-rep and resolvable row-column designs.
+`compare_first_stage()` shows how the first stage changed the plot values:
+
+```{r}
+two <- analyze_two_stage(clean, "yield", stage1 = "design")
+two
+cmp <- compare_first_stage(two)
+```
+
 # 3. Resolvable row-column designs
 
 When there is enough seed to replicate every entry, a resolvable row-column
@@ -796,6 +832,9 @@ breedbase_adjusted_trait(con, "fresh root yield")   # the trait for adjusted val
 save_breedbase_first_stage(stage1, con)              # creates it if needed, then saves
 save_breedbase_analysis(stage2, con, analysis_name = "AYT_2026_Ibadan_means", program = "IITA",
                         description = "Adjusted means, row-column model")
+# Or the first stage as an analysis of the field plots ("Analysis of: plots"):
+save_breedbase_analysis(stage1, con, analysis_name = "AYT_2026_Ibadan_stage1", program = "IITA",
+                        description = "Row-column model", level = "plot")
 ```
 
 `first_stage_values()` works with every analysis of the package, including

@@ -4,22 +4,17 @@
 \alias{breedbase_adjusted_trait}
 \title{Find or create the Breedbase trait for adjusted values}
 \usage{
-breedbase_adjusted_trait(
-  con,
-  traits,
-  statistic = "Adjusted Means from Spatial Correction using SpATS R",
-  create = FALSE
-)
+breedbase_adjusted_trait(con, traits, statistic = NULL, create = FALSE)
 }
 \arguments{
 \item{con}{A connection from \code{\link[=breedbase_login]{breedbase_login()}}.}
 
 \item{traits}{Measured trait names, as in Breedbase.}
 
-\item{statistic}{The statistic term (from the SGNSTAT ontology of
-Breedbase), with or without its id. The default is the term of the
-Breedbase spatial correction tool; for non-spatial models
-\code{"Adjusted means from BLUEs using LMER R"} is another choice.}
+\item{statistic}{The statistic term, with or without its id, as listed by
+\code{\link[=breedbase_statistics]{breedbase_statistics()}}. By default it is chosen from this Breedbase's
+own list of statistics: the spatial correction term (SpATS). It is
+always checked against the server.}
 
 \item{create}{Logical. Create the traits that do not exist yet.}
 }

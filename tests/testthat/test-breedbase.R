@@ -5,9 +5,11 @@ reset_found_cache <- function() rm(list = ls(breedtools:::bb_found_cache), envir
 
 fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), LETTERS[1:4]),
                            existing_studies = character(0), password = "secret", max_search = Inf,
-                           slow_writes = character(0), lost_writes = character(0)) {
+                           slow_writes = character(0), lost_writes = character(0), site_auth = NULL,
+                           statistics = NULL) {
   reset_found_cache()
   state <- new.env()
+  state$moved <- list()
   state$folders <- list(list(trialDbId = "500", trialName = "Old folder", programDbId = "10"))
   state$studies <- lapply(existing_studies, function(n) list(studyDbId = "900", studyName = n))
   state$plots <- list()
@@ -21,7 +23,12 @@ fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), 
                                 cvterm_name = "Adjusted Means from Spatial Correction using SpATS R",
                                 accession = "SGNSTAT:0000054"),
                            list(cvterm_id = 80036, cv_name = "SGNStatistics_ontology",
-                                cvterm_name = "Adjusted means from BLUEs using LMER R", accession = "SGNSTAT:0000036"))
+                                cvterm_name = "Adjusted means from BLUEs using LMER R", accession = "SGNSTAT:0000036"),
+                           list(cvterm_id = 80034, cv_name = "SGNStatistics_ontology",
+                                cvterm_name = "Adjusted means from BLUPs using LMER R", accession = "SGNSTAT:0000034"),
+                           list(cvterm_id = 80037, cv_name = "SGNStatistics_ontology",
+                                cvterm_name = "Phenotypic BLUEs using LMER R", accession = "SGNSTAT:0000037"))
+  if (!is.null(statistics)) state$statistics <- statistics
   state$composed <- list()
   state$requests <- list()
   state$next_id <- 1000
@@ -55,9 +62,33 @@ fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), 
     # {"error": ...} with HTTP 200, like CXGN's controllers.
     if (grepl("^/?ajax/", path)) {
       path <- sub("^/", "", path)
-      form <- if (!is.null(req$body)) lapply(req$body$data, function(x) utils::URLdecode(as.character(x))) else list()
-      session <- form$sgn_session_id %||% url$query$sgn_session_id
+      # A test site with a web password (nginx basic auth) in front of the website.
+      if (!is.null(site_auth)) {
+        want <- paste("Basic", jsonlite::base64_enc(paste0(site_auth[1], ":", site_auth[2])))
+        got <- httr2::req_get_headers(req, redacted = "reveal")$Authorization %||% ""
+        if (!identical(got, want)) {
+          return(httr2::response(401, headers = list(`WWW-Authenticate` = 'Basic realm="Restricted Test Site"',
+                                                     `Content-Type` = "text/html"),
+                                 body = charToRaw("<html>401 Authorization Required</html>")))
+        }
+      }
+      form <- if (is.null(req$body)) {
+        list()
+      } else if (identical(req$body$type, "multipart")) {
+        lapply(req$body$data, function(x) if (inherits(x, "form_file")) x else as.character(x))
+      } else {
+        lapply(req$body$data, function(x) utils::URLdecode(as.character(x)))
+      }
+      cookie <- httr2::req_get_headers(req, redacted = "reveal")$Cookie %||% ""
+      session <- form$sgn_session_id %||% url$query$sgn_session_id %||% sub("^.*sgn_session_id=([^;]*).*$", "\\1", cookie)
       if (!identical(session, "TOKEN123")) return(httr2::response_json(200, body = list(error = "You must be logged in to do this!")))
+      if (path == "ajax/breeder/check_status") {
+        return(httr2::response_json(200, body = list(timestamp = "2026-11-04")))
+      }
+      if (path == "ajax/breeder/refresh") {
+        state$refreshed <- c(state$refreshed, url$query$matviews)
+        return(httr2::response_json(200, body = list(message = "refreshing")))
+      }
       if (path == "ajax/onto/match") {
         q <- url$query
         hits <- Filter(function(s) grepl(tolower(q$term_name), tolower(s$cvterm_name), fixed = TRUE) &&
@@ -80,6 +111,54 @@ fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), 
           state$composed[[length(state$composed) + 1]] <- list(id = id, name = nm, components = comps)
         }
         return(httr2::response_json(200, body = list(success = "Saved new trait", names = as.list(names(new)))))
+      }
+      if (path %in% c("ajax/phenotype/upload_verify/spreadsheet", "ajax/phenotype/upload_store/spreadsheet")) {
+        # Like Breedbase: units may be analysis plots ("<analysis>_<stock>"), traits must exist,
+        # existing values are warned about unless overwritten.
+        f <- utils::read.csv(form$upload_spreadsheet_phenotype_file_input$path, check.names = FALSE, colClasses = "character")
+        units <- unlist(lapply(state$analyses, function(a) paste0(a$name, "_", names(a$values))))
+        bad <- setdiff(f$observationunit_name, units)
+        if (length(bad)) return(httr2::response_json(200, body = list(error = list(paste("Plots not in database:", paste(bad, collapse = ","))), success = list())))
+        known <- c(vapply(state$variables, `[[`, "", "observationVariableName"),
+                   vapply(state$composed, function(cp) cp$name, ""),
+                   vapply(state$composed, function(cp) paste0(cp$name, "|COMP:000", cp$id), ""))
+        badt <- setdiff(names(f)[-1], known)
+        if (length(badt)) return(httr2::response_json(200, body = list(error = list(paste("Traits not in database:", paste(badt, collapse = ","))), success = list())))
+        key <- unlist(lapply(names(f)[-1], function(tr) paste(f$observationunit_name[nzchar(f[[tr]])], tr)))
+        existing <- intersect(key, names(state$analysis_values))
+        warn <- if (length(existing) && is.null(form$phenotype_upload_overwrite_values)) as.list(paste(existing, "already has a <strong>different value</strong>")) else list()
+        if (grepl("store", path)) {
+          if (length(warn)) return(httr2::response_json(200, body = list(error = list("values exist"), success = list())))
+          for (tr in names(f)[-1]) for (i in which(nzchar(f[[tr]]))) state$analysis_values[[paste(f$observationunit_name[i], tr)]] <- f[[tr]][i]
+        }
+        return(httr2::response_json(200, body = list(success = list("File data verified."), warning = warn, error = list())))
+      }
+      if (grepl("^ajax/folder/[0-9]+/associate/parent/[0-9]+$", path)) {
+        ids <- regmatches(path, gregexpr("[0-9]+", path))[[1]]
+        state$moved[[ids[1]]] <- ids[2]
+        return(httr2::response_json(200, body = list(success = 1)))
+      }
+      if (path == "ajax/analysis/store/spreadsheet") {
+        # Like Breedbase: name unique; "stock_names" then traits; stocks are
+        # plots or accessions depending on "Analysis of"; traits must exist.
+        nm <- form$upload_new_analysis_name
+        if (nm %in% c(vapply(state$analyses, `[[`, "", "name"), vapply(state$studies, `[[`, "", "studyName"))) {
+          return(httr2::response_json(200, body = list(error = paste("An analysis with name", nm, "already exists"))))
+        }
+        f <- utils::read.csv(form$upload_new_analysis_file$path, check.names = FALSE, colClasses = "character")
+        if (names(f)[1] != "stock_names") return(httr2::response_json(200, body = list(error_messages = list("Header row must contain stock_names"))))
+        known <- c(vapply(state$variables, `[[`, "", "observationVariableName"),
+                   vapply(state$composed, function(cp) paste0(cp$name, "|COMP:000", cp$id), ""))
+        bad_traits <- setdiff(names(f)[-1], known)
+        if (length(bad_traits)) return(httr2::response_json(200, body = list(error_messages = list(paste("The following traits are not in the database:", paste(bad_traits, collapse = ","))))))
+        plots_level <- form$upload_new_analysis_result_values_type == "analysis_result_values_match_precomputed_design"
+        valid <- if (plots_level) vapply(state$plots, `[[`, "", "observationUnitName") else accessions
+        bad_stocks <- setdiff(f$stock_names, valid)
+        if (length(bad_stocks)) return(httr2::response_json(200, body = list(error_messages = list(paste("The following stocks are not in the database:", paste(bad_stocks, collapse = ","))))))
+        id <- as.character(state$next_id <- state$next_id + 1)
+        state$analyses[[length(state$analyses) + 1]] <- list(id = id, name = nm, form = form, file = f,
+                                                             values = stats::setNames(as.list(f$stock_names), f$stock_names))
+        return(httr2::response_json(200, body = list(success = 1, analysis_id = as.integer(id), model_id = 5)))
       }
       if (path == "ajax/analysis/store/json") {
         if (form$analysis_name %in% c(vapply(state$analyses, `[[`, "", "name"), vapply(state$studies, `[[`, "", "studyName"))) {
@@ -141,11 +220,21 @@ fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), 
     if (path == "search/variables") {
       wanted <- unlist(body$observationVariableNames)
       hits <- Filter(function(v) sub("\\|.*$", "", v$observationVariableName) %in% wanted, state$variables)
+      composed <- Filter(function(cp) cp$name %in% wanted, state$composed)
+      hits <- c(hits, lapply(composed, function(cp) list(observationVariableDbId = cp$id,
+                                                          observationVariableName = paste0(cp$name, "|COMP:000", cp$id))))
       return(ok(hits))
     }
     if (path == "search/observations") {
-      hits <- Filter(function(o) o$observationUnitDbId %in% unlist(body$observationUnitDbIds) &&
-                       o$observationVariableDbId %in% unlist(body$observationVariableDbIds), state$observations)
+      unit_study <- vapply(state$plots, function(u) as.character(u$studyDbId), "")
+      unit_name <- vapply(state$plots, `[[`, "", "observationUnitName")
+      names(unit_study) <- names(unit_name) <- vapply(state$plots, `[[`, "", "observationUnitDbId")
+      hits <- Filter(function(o) {
+        (is.null(body$observationUnitDbIds) || o$observationUnitDbId %in% unlist(body$observationUnitDbIds)) &&
+          (is.null(body$studyDbIds) || unit_study[[o$observationUnitDbId]] %in% unlist(body$studyDbIds)) &&
+          o$observationVariableDbId %in% unlist(body$observationVariableDbIds)
+      }, state$observations)
+      hits <- lapply(hits, function(o) c(o, list(observationUnitName = unit_name[[o$observationUnitDbId]])))
       return(ok(hits))
     }
     if (path == "observations" && method == "POST") {
@@ -305,11 +394,11 @@ test_that("login, checks and saving work against a fake Breedbase", {
     expect_equal(res$plots_sent, 144)
     expect_equal(res$plots_found, 144)
     expect_match(res$trial_page, "^https://bb.example.org/breeders/trial/")
-    expect_true("AYT 2026" %in% vapply(fake$state$folders, `[[`, "", "trialName"))
+    expect_true("AYT_2026" %in% vapply(fake$state$folders, `[[`, "", "trialName"))
     study <- fake$state$studies[[1]]
     expect_equal(study$locationDbId, "1")
     expect_equal(study$trialDbId, fake$state$folders[[2]]$trialDbId)
-    expect_true(all(vapply(Filter(function(r) r$path != "token", fake$state$requests),
+    expect_true(all(vapply(Filter(function(r) r$path != "token" && !grepl("ajax/", r$path), fake$state$requests),
                            function(r) identical(r$auth, "Bearer TOKEN123"), logical(1))))
 
     # Saving again with the same name is refused before writing.
@@ -506,10 +595,10 @@ test_that("timeouts while writing: the result is checked, retried, and a re-run 
     out <- capture.output(res <- save(con))
   })
   expect_equal(res$plots_found, 144)
-  expect_equal(sum(vapply(fake$state$folders, `[[`, "", "trialName") == "AYT 2026"), 1)
+  expect_equal(sum(vapply(fake$state$folders, `[[`, "", "trialName") == "AYT_2026"), 1)
   expect_equal(n_studies(fake), 1)
   expect_length(fake$state$plots, 144)
-  expect_true(any(grepl("slow to create folder 'AYT 2026'", out)))
+  expect_true(any(grepl("slow to create folder 'AYT_2026'", out)))
   expect_true(any(grepl("confirmed: done", out)))
 
   # Writes that are lost are sent once more.
@@ -566,7 +655,7 @@ test_that("an existing trial is reported; an existing folder is used", {
 
     # A folder made by an earlier save that timed out (not listed yet when
     # checked): Breedbase answers 409 and the existing folder is used.
-    fake$state$folders[[length(fake$state$folders) + 1]] <- list(trialDbId = "777", trialName = "AYT 2026",
+    fake$state$folders[[length(fake$state$folders) + 1]] <- list(trialDbId = "777", trialName = "AYT_2026",
                                                                  programDbId = "10")
     hide_once <- TRUE
     listing_hides_new <- function(req) {
@@ -578,13 +667,13 @@ test_that("an existing trial is reported; an existing folder is used", {
       fake$mock(req)
     }
     httr2::with_mocked_responses(listing_hides_new, {
-      out <- capture.output(res <- save_breedbase(rc, con, program = "IITA", folder = "AYT 2026",
+      out <- capture.output(res <- save_breedbase(rc, con, program = "IITA", folder = "AYT_2026",
                                                   trial_name = "T2_2026", year = 2026, location = "Ibadan",
                                                   create_folder = TRUE, confirm = FALSE, description = "Test"))
     })
-    expect_true(any(grepl("folder 'AYT 2026' already exists: the trial is saved inside it", out)))
+    expect_true(any(grepl("folder 'AYT_2026' already exists: the trial is saved inside it", out)))
     expect_equal(fake$state$studies[[2]]$trialDbId, "777")
-    expect_equal(sum(vapply(fake$state$folders, `[[`, "", "trialName") == "AYT 2026"), 1)
+    expect_equal(sum(vapply(fake$state$folders, `[[`, "", "trialName") == "AYT_2026"), 1)
 
     # A trial left without plots is a note, not a problem.
     fake$state$studies[[3]] <- list(studyDbId = "950", studyName = "EMPTY_2026")
@@ -765,9 +854,11 @@ test_that("first stage saved as a trait of the field plots; second stage as an a
   expect_equal(nrow(means), 112)
   sent <- suppressMessages(save_breedbase_analysis(means, analysis_name = "AYT_2026_means", program = "IITA",
                                                    description = "Row-column model", dry_run = TRUE))
-  expect_equal(sent$analysis_result_values_type, "analysis_result_values_match_accession_names")
-  expect_equal(sent$analysis_statistical_ontology_term, "Adjusted means from BLUEs using LMER R|SGNSTAT:0000036")
-  expect_length(sent$analysis_result_values, 112)
+  expect_equal(sent$form$upload_new_analysis_result_values_type, "analysis_result_values_match_accession_names")
+  expect_equal(sent$form$upload_new_analysis_statistical_ontology_term,
+               "Adjusted means from BLUEs using LMER R|SGNSTAT:0000036")
+  expect_equal(names(sent$file), c("stock_names", "fresh root yield"))
+  expect_equal(nrow(sent$file), 112)
   expect_error(save_breedbase_analysis(means, analysis_name = "A", program = "IITA", dry_run = TRUE),
                "Give a `description`")
 
@@ -783,15 +874,45 @@ test_that("first stage saved as a trait of the field plots; second stage as an a
     out <- capture.output(res <- save_breedbase_analysis(means, con, analysis_name = "AYT_2026_means",
                                                          program = "IITA", description = "Row-column model",
                                                          confirm = FALSE))
-    expect_equal(res$accessions_found, 112)
+    expect_equal(res$rows_found, 112)
     expect_match(res$analysis_page, "/analyses/[0-9]+$")
     a <- fake$state$analyses[[1]]
-    expect_equal(a$form$analysis_trait_names, '["fresh root yield|CO_334:0000013"]')   # a JSON array
-    expect_equal(a$form$analysis_breeding_program_id, "10")
+    expect_equal(names(a$file), c("stock_names", "fresh root yield|CO_334:0000013"))   # full trait names
+    expect_equal(a$form$upload_new_analysis_breeding_program_id, "10")
     expect_equal(a$form$sgn_session_id, "TOKEN123")
-    v1 <- a$values[["G1"]][["fresh root yield|CO_334:0000013"]]
-    expect_equal(as.numeric(v1[[1]]), means$`fresh root yield`[means$accession == "G1"], tolerance = 1e-8)
-    expect_equal(v1[[3]], "jdoe")
+    expect_equal(a$form$upload_new_analysis_statistical_ontology_term,
+                 "Adjusted means from BLUEs using LMER R|SGNSTAT:0000036")
+    expect_equal(as.numeric(a$file[a$file$stock_names == "G1", 2]), means$`fresh root yield`[means$accession == "G1"],
+                 tolerance = 1e-8)
+
+    # In a folder: a missing folder stops before writing, unless created;
+    # the analysis is then moved into it.
+    expect_error(capture.output(save_breedbase_analysis(means, con, analysis_name = "AYT_2026_means_f",
+                                                        program = "IITA", description = "x", confirm = FALSE,
+                                                        folder = "Analyses 2026")),
+                 "Folder 'Analyses_2026' was not found")
+    expect_length(fake$state$analyses, 1)
+    out <- capture.output(res_f <- save_breedbase_analysis(means, con, analysis_name = "AYT_2026_means_f",
+                                                           program = "IITA", description = "x", confirm = FALSE,
+                                                           folder = "Analyses 2026", create_folder = TRUE))
+    fid <- vapply(fake$state$folders, `[[`, "", "trialDbId")[vapply(fake$state$folders, `[[`, "", "trialName") == "Analyses_2026"]
+    expect_length(fid, 1)
+    expect_equal(fake$state$moved[[res_f$analysis_db_id]], fid)
+    expect_true(any(grepl("analysis put in folder 'Analyses_2026'", out)))
+
+    # First stage as an analysis of the field plots ("Analysis of: plots").
+    out <- capture.output(res1 <- save_breedbase_analysis(v, con, analysis_name = "AYT_2026_stage1", program = "IITA",
+                                                          description = "Row-column model", level = "plot",
+                                                          estimate = "blue", confirm = FALSE))
+    a1 <- Filter(function(a) a$name == "AYT_2026_stage1", fake$state$analyses)[[1]]
+    expect_equal(a1$form$upload_new_analysis_result_values_type, "analysis_result_values_match_precomputed_design")
+    expect_setequal(a1$file$stock_names, v$plot_name)
+    expect_equal(res1$rows_found, 144)
+    bad_plots <- v
+    bad_plots$plot_name[1] <- "NOT_A_PLOT"
+    expect_error(capture.output(save_breedbase_analysis(bad_plots, con, analysis_name = "X1", program = "IITA",
+                                                        description = "x", level = "plot", confirm = FALSE)),
+                 "1 of 144 plots are not in Breedbase: NOT_A_PLOT")
 
     # The same name again is refused before writing; unknown traits are listed.
     expect_error(capture.output(save_breedbase_analysis(means, con, analysis_name = "AYT_2026_means",
@@ -844,6 +965,342 @@ test_that("first stage: the adjusted trait is found or created (trait + statisti
     a3 <- breedbase_adjusted_trait(con, "fresh root yield", statistic = "Adjusted means from BLUEs using LMER R",
                                    create = TRUE)
     expect_equal(a3$status, "created")
-    expect_error(breedbase_adjusted_trait(con, "fresh root yield", statistic = "Magic means"), "was not found")
+    expect_error(breedbase_adjusted_trait(con, "fresh root yield", statistic = "Magic means"), "not a term of the Breedbase statistics ontology")
   })
+})
+
+test_that("sites with a web password: clear message, and site_username/site_password work", {
+  skip_if_not_installed("httr2")
+  fake <- fake_breedbase(site_auth = c("tester", "webpw"))
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    expect_equal(breedbase_programs(con)$program, c("IITA", "NRCRI"))       # BrAPI needs no web password
+    expect_error(breedbase_adjusted_trait(con, "fresh root yield"),
+                 "own web password \\(\"Restricted Test Site\"\\).*site_username")
+    con2 <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret",
+                                             site_username = "tester", site_password = "webpw"))
+    expect_true(any(grepl("site \\(web\\) password: set for tester", capture.output(print(con2)))))
+    expect_false(any(grepl("webpw", capture.output(print(con2)))))
+    a <- breedbase_adjusted_trait(con2, "fresh root yield", create = TRUE)
+    expect_equal(a$status, "created")
+    # BrAPI calls still send the login token, not the web password.
+    brapi <- Filter(function(r) !grepl("^/?ajax|token", r$path), fake$state$requests)
+    expect_true(all(vapply(brapi, function(r) identical(r$auth, "Bearer TOKEN123"), logical(1))))
+  })
+})
+
+test_that("an existing adjusted trait is found through BrAPI, without the website", {
+  skip_if_not_installed("httr2")
+  fake <- fake_breedbase(site_auth = c("tester", "webpw"))
+  fake$state$composed[[1]] <- list(id = "99001", name = "fresh root yield|Adjusted Means from Spatial Correction using SpATS R",
+                                   components = c("70001", "80054"))
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    a <- breedbase_adjusted_trait(con, "fresh root yield")      # no web password given, still works
+    expect_equal(a$status, "exists")
+    expect_equal(a$adjusted_trait_db_id, "99001")
+    paths <- vapply(fake$state$requests, `[[`, "", "path")
+    expect_false(any(grepl("ajax", paths) & !grepl("check_status", paths)))   # only the login's web check
+  })
+})
+
+test_that("after saving phenotypes the Breedbase phenotype cache is refreshed", {
+  skip_if_not_installed("httr2")
+  rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 1)
+  sheet <- phenotype_template(rc, "AYT_2026", traits = "fresh root yield")
+  sheet$`fresh root yield` <- seq_len(nrow(sheet))
+  fake <- fake_breedbase()
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    capture.output(save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026", year = 2026,
+                                  location = "Ibadan", confirm = FALSE, description = "x"))
+    out <- capture.output(save_breedbase_phenotypes(sheet, con, confirm = FALSE))
+    expect_equal(fake$state$refreshed, "phenotypes")
+    expect_true(any(grepl("refreshing its phenotype cache", out)))
+  })
+  # Behind a web password the refresh cannot run: a note, not an error.
+  fake2 <- fake_breedbase(site_auth = c("tester", "webpw"))
+  httr2::with_mocked_responses(fake2$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    capture.output(save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026", year = 2026,
+                                  location = "Ibadan", confirm = FALSE, description = "x"))
+    out <- capture.output(res <- save_breedbase_phenotypes(sheet, con, confirm = FALSE))
+    expect_equal(res$values_found, 144)
+    expect_true(any(grepl("\\[NOTE\\] The values are saved", out)))
+    expect_true(any(grepl("Search Wizard", out)))
+  })
+})
+
+test_that("statistics come from the server: other names and ids work, nothing is fixed", {
+  skip_if_not_installed("httr2")
+  # Another Breedbase: different ids, slightly different names, no LMER terms.
+  other <- list(
+    list(cvterm_id = 5, cv_name = "SGNStatistics_ontology", cvterm_name = "Spatially corrected values using SpATS",
+         accession = "SGNSTAT:0000901"),
+    list(cvterm_id = 6, cv_name = "SGNStatistics_ontology", cvterm_name = "Adjusted means from BLUEs",
+         accession = "SGNSTAT:0000902"))
+  rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 1)
+  d <- rc$design
+  set.seed(1)
+  d$yield <- 25 + 0.4 * d$row + rnorm(nrow(d))
+  fit <- analyze_augmented_row_column_design(d, "yield")
+  means <- second_stage_values(fit, trait = "fresh root yield")
+  fake <- fake_breedbase(statistics = other)
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    s <- breedbase_statistics(con)
+    expect_equal(s$accession, c("SGNSTAT:0000902", "SGNSTAT:0000901"))
+    a <- breedbase_adjusted_trait(con, "fresh root yield", create = TRUE)
+    expect_equal(a$adjusted_trait, "fresh root yield|Spatially corrected values using SpATS")
+    expect_setequal(fake$state$composed[[1]]$components, c("70001", "5"))
+    out <- capture.output(save_breedbase_analysis(means, con, analysis_name = "A1", program = "IITA",
+                                                  description = "x", confirm = FALSE))
+    expect_equal(fake$state$analyses[[1]]$form$upload_new_analysis_statistical_ontology_term,
+                 "Adjusted means from BLUEs|SGNSTAT:0000902")
+    # BLUPs asked, but this Breedbase has none: stop and list its statistics.
+    expect_error(capture.output(save_breedbase_analysis(means, con, analysis_name = "A2", program = "IITA",
+                                                        description = "x", estimate = "blup", confirm = FALSE)),
+                 "No BLUP statistic.*Adjusted means from BLUEs; Spatially corrected values using SpATS")
+    # A statistic given by name is checked against the server.
+    expect_error(capture.output(save_breedbase_analysis(means, con, analysis_name = "A3", program = "IITA",
+                                                        description = "x", statistic = "Magic means",
+                                                        confirm = FALSE)), "not a term of the Breedbase statistics ontology")
+  })
+  # On the default fake server, the BLUP term is chosen for random genotypes.
+  fake2 <- fake_breedbase()
+  httr2::with_mocked_responses(fake2$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    capture.output(save_breedbase_analysis(means, con, analysis_name = "A4", program = "IITA", description = "x",
+                                           estimate = "blup", confirm = FALSE))
+    expect_equal(fake2$state$analyses[[1]]$form$upload_new_analysis_statistical_ontology_term,
+                 "Adjusted means from BLUPs using LMER R|SGNSTAT:0000034")
+  })
+})
+
+test_that("a web password equal to the Breedbase login is found and used at login", {
+  skip_if_not_installed("httr2")
+  same <- fake_breedbase(site_auth = c("jdoe", "secret"))
+  httr2::with_mocked_responses(same$mock, {
+    expect_message(con <- breedbase_login("https://bb.example.org", "jdoe", password = "secret"),
+                   "your Breedbase login works there")
+    expect_equal(con$site_auth$username, "jdoe")
+    expect_equal(breedbase_adjusted_trait(con, "fresh root yield", create = TRUE)$status, "created")
+  })
+  other <- fake_breedbase(site_auth = c("tester", "webpw"))
+  httr2::with_mocked_responses(other$mock, {
+    expect_message(con <- breedbase_login("https://bb.example.org", "jdoe", password = "secret"),
+                   "own web password")
+    expect_null(con$site_auth)
+  })
+  plain <- fake_breedbase()
+  httr2::with_mocked_responses(plain$mock, {
+    msgs <- character(0)
+    con <- withCallingHandlers(breedbase_login("https://bb.example.org", "jdoe", password = "secret"),
+                               message = function(m) { msgs <<- c(msgs, conditionMessage(m)); invokeRestart("muffleMessage") })
+    expect_null(con$site_auth)
+    expect_false(any(grepl("web", msgs)))
+  })
+})
+
+test_that("web pages closed by a web password: the analysis upload file is written, checked via BrAPI", {
+  skip_if_not_installed("httr2")
+  rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 1)
+  d <- rc$design
+  set.seed(1)
+  d$yield <- 25 + 0.4 * d$row + rnorm(nrow(d))
+  fit <- analyze_augmented_row_column_design(d, "yield")
+  stage1 <- first_stage_values(fit, rc, "AYT_2026", trait = "fresh root yield")
+  means <- second_stage_values(fit, trait = "fresh root yield")
+  fake <- fake_breedbase(site_auth = c("tester", "webpw"))
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    capture.output(save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026", year = 2026,
+                                  location = "Ibadan", confirm = FALSE, description = "x"))
+    f1 <- tempfile(fileext = ".csv")
+    out <- capture.output(res <- save_breedbase_analysis(stage1, con, analysis_name = "AYT_2026_stage1",
+                                                         program = "IITA", description = "SpATS", level = "plot",
+                                                         upload_file = f1, confirm = FALSE))
+    expect_true(file.exists(f1))
+    up <- utils::read.csv(f1, check.names = FALSE)
+    expect_equal(names(up), c("stock_names", "fresh root yield|CO_334:0000013"))   # full name from BrAPI
+    expect_setequal(up$stock_names, stage1$plot_name)
+    expect_true(any(grepl("Upload analysis", out)))
+    expect_true(any(grepl("Analysis Of: +plots", out)))
+    expect_equal(res$form[["Breeding Program"]], "IITA")
+    expect_length(fake$state$analyses, 0)                    # nothing sent
+
+    # Problems are still found through BrAPI before any file is written.
+    bad <- means
+    bad$accession[1] <- "NOT_AN_ACCESSION"
+    expect_error(capture.output(save_breedbase_analysis(bad, con, analysis_name = "X", program = "IITA",
+                                                        description = "x", upload_file = tempfile(), confirm = FALSE)),
+                 "not in Breedbase: NOT_AN_ACCESSION")
+  })
+})
+
+test_that("statistics are checked against the Breedbase statistics ontology (bundled obo)", {
+  obo <- breedbase_statistics()
+  expect_gt(nrow(obo), 40)
+  expect_equal(obo$accession[obo$statistic == "Adjusted Means from Spatial Correction using SpATS R"], "SGNSTAT:0000054")
+  expect_false("SGNSTAT:0000000" %in% obo$accession)                   # the root is not a statistic
+  ok <- breedtools:::bb_check_statistic_ontology("adjusted means from BLUEs using LMER R")
+  expect_equal(ok, list(name = "Adjusted means from BLUEs using LMER R", accession = "SGNSTAT:0000036"))
+  expect_equal(breedtools:::bb_check_statistic_ontology("SGNSTAT:0000054")$name,
+               "Adjusted Means from Spatial Correction using SpATS R")
+  expect_error(breedtools:::bb_check_statistic_ontology("Adjusted means from BLUEs using LMER R|SGNSTAT:0000054"),
+               "is \"Adjusted Means from Spatial Correction using SpATS R\" in the Breedbase statistics ontology")
+  expect_error(breedtools:::bb_check_statistic_ontology("Adjusted means from BLUE using LMER"), "Did you mean")
+  expect_error(breedtools:::bb_check_statistic_ontology("fresh root yield|CO_334:0000013"), "is not a statistic")
+  # Offline choices come from the ontology.
+  expect_equal(breedtools:::bb_choose_statistic(NULL, NULL, "blup", offline = TRUE)$accession, "SGNSTAT:0000034")
+  # A dry run without a connection already carries the exact term.
+  means <- data.frame(accession = c("G1", "G2"), `fresh root yield` = c(1, 2), check.names = FALSE)
+  sent <- suppressMessages(save_breedbase_analysis(means, analysis_name = "A", program = "P", description = "d",
+                                                   dry_run = TRUE))
+  expect_equal(sent$form$upload_new_analysis_statistical_ontology_term,
+               "Adjusted means from BLUEs using LMER R|SGNSTAT:0000036")
+})
+
+test_that("breedbase_trial_plots reads a saved trial; first_stage_values checks the design against it", {
+  skip_if_not_installed("httr2")
+  rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 1)
+  other <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 2)
+  d <- rc$design
+  set.seed(1)
+  d$yield <- 25 + rnorm(nrow(d))
+  fit <- analyze_augmented_row_column_design(d, "yield")
+  fake <- fake_breedbase()
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    capture.output(save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026", year = 2026,
+                                  location = "Ibadan", confirm = FALSE, description = "x"))
+    fake$state$studies[[1]]$studyDbId -> sid
+    plots <- breedbase_trial_plots(con, "AYT_2026")
+    expect_equal(nrow(plots), 144)
+    expect_equal(plots$accession, rc$design$all_entries[match(plots$plot_number, rc$design$plots)])
+    v <- first_stage_values(fit, rc, "AYT_2026", trait = "y", breedbase_plots = plots)
+    expect_setequal(v$plot_name, plots$plot_name)
+    expect_error(first_stage_values(fit, other, "AYT_2026", trait = "y", breedbase_plots = plots),
+                 "differ from the trial saved in Breedbase")
+    expect_error(breedbase_trial_plots(con, "NOPE"), "was not found")
+  })
+})
+
+test_that("values are added to an existing analysis (a second trait), without duplicating", {
+  skip_if_not_installed("httr2")
+  rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4, n_candidates = 5, seed = 1)
+  d <- rc$design
+  set.seed(1)
+  d$yield <- 25 + 0.4 * d$row + rnorm(nrow(d))
+  d$dm <- 32 + rnorm(nrow(d))
+  stage1 <- first_stage_values(analyze_augmented_row_column_design(d, "yield"), rc, "AYT_2026", trait = "fresh root yield")
+  dm1 <- first_stage_values(analyze_augmented_row_column_design(d, "dm"), rc, "AYT_2026",
+                            trait = "dry matter content percentage|CO_334:0000092")
+  fake <- fake_breedbase()
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    capture.output(save_breedbase(rc, con, program = "IITA", trial_name = "AYT_2026", year = 2026,
+                                  location = "Ibadan", confirm = FALSE, description = "x"))
+    capture.output(save_breedbase_analysis(stage1, con, analysis_name = "S1", program = "IITA", description = "x",
+                                           level = "plot", confirm = FALSE))
+    out <- capture.output(res <- add_breedbase_analysis_values(dm1, con, analysis_name = "S1", level = "plot",
+                                                               confirm = FALSE))
+    expect_equal(res$plots, 144)
+    expect_length(fake$state$analysis_values, 144)
+    expect_true(all(startsWith(names(fake$state$analysis_values), "S1_AYT_2026_")))
+    # The same values again: Breedbase reports them; nothing is replaced without overwrite.
+    expect_error(capture.output(add_breedbase_analysis_values(dm1, con, analysis_name = "S1", level = "plot",
+                                                              confirm = FALSE)), "already stored")
+    expect_error(capture.output(add_breedbase_analysis_values(dm1, con, analysis_name = "NOPE", confirm = FALSE)),
+                 "was not found")
+    out <- capture.output(dr <- add_breedbase_analysis_values(dm1, con, analysis_name = "S1", overwrite = TRUE,
+                                                              dry_run = TRUE))
+    expect_true(any(grepl("Nothing was stored", out)))
+  })
+})
+
+test_that("from Breedbase to analyses: read trials, outliers, first, second and single stage, store", {
+  skip_if_not_installed("httr2")
+  skip_if_not_installed("lme4")
+  sites <- c("Ibadan", "Ikenne")
+  designs <- lapply(1:2, function(i) augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4), 12, 12, 4, 4,
+                                                                 n_candidates = 5, seed = i))
+  set.seed(1)
+  g <- stats::setNames(rnorm(112, sd = 3), c(paste0("G", 1:108), paste0("C", 1:4)))
+  fake <- fake_breedbase(accessions = c(paste0("G", 1:108), paste0("C", 1:4)))
+  httr2::with_mocked_responses(fake$mock, {
+    con <- suppressMessages(breedbase_login("https://bb.example.org", "jdoe", password = "secret"))
+    for (i in 1:2) {
+      capture.output(save_breedbase(designs[[i]], con, program = "IITA", trial_name = paste0("T_", sites[i]),
+                                    year = 2026, location = sites[i], confirm = FALSE, description = "x"))
+      sheet <- phenotype_template(designs[[i]], paste0("T_", sites[i]), traits = "fresh root yield")
+      sheet$`fresh root yield` <- round(50 + g[sheet$accession] + 0.5 * sheet$row + rnorm(nrow(sheet)), 2)
+      sheet$`fresh root yield`[5] <- 500                         # an outlier
+      capture.output(save_breedbase_phenotypes(sheet, con, confirm = FALSE))
+    }
+    out <- capture.output(pheno <- breedbase_phenotypes(con, trials = paste0("T_", sites), traits = "fresh root yield"))
+    expect_equal(nrow(pheno), 288)
+    expect_equal(sum(!is.na(pheno$`fresh root yield`)), 288)
+    expect_equal(attr(pheno, "trait_names")[["fresh root yield"]], "fresh root yield|CO_334:0000013")
+    expect_true(all(c("plot_name", "accession", "rep", "block", "row", "col") %in% names(pheno)))
+    expect_error(breedbase_phenotypes(con, "NOPE", "fresh root yield"), "Trial\\(s\\) not found")
+
+    clean <- remove_outliers(pheno, "fresh root yield", by = "trial_name", quiet = TRUE)
+    expect_true(500 %in% attr(clean, "outliers")$value)
+    two <- analyze_two_stage(clean, "fresh root yield", stage1 = "blocks", genotype_col = "accession",
+                             location_col = "trial_name")
+    one <- analyze_single_stage(clean, "fresh root yield")
+    n_geno <- length(unique(clean$accession[!is.na(clean$`fresh root yield`)]))   # genotypes with data left
+    expect_equal(nrow(two$adjusted_means), n_geno)
+    expect_equal(nrow(one$adjusted_means), n_geno)
+    expect_gt(cor(two$adjusted_means$adjusted_mean, g[two$adjusted_means$genotype]), 0.8)
+    m <- merge(two$adjusted_means, one$adjusted_means, by = "genotype")
+    expect_gt(cor(m$adjusted_mean.x, m$adjusted_mean.y), 0.95)      # two-stage and single-stage agree
+    if (requireNamespace("SpATS", quietly = TRUE)) {
+      sp <- analyze_single_stage(clean, "fresh root yield", spatial = TRUE)
+      expect_equal(sp$diagnostics$model, "spatial (SpATS)")
+      expect_equal(nrow(sp$adjusted_means), n_geno)
+      expect_false(any(grepl("f\\(", sp$variance_components$component)))
+      expect_lt(abs(coef(lm(residual ~ row, sp$plot_results))[2]), 0.05)   # the row trend is in the surface
+    }
+
+    s1 <- first_stage_values(two, trait = "fresh root yield")
+    expect_setequal(s1$plot_name, clean$plot_name[!is.na(clean$`fresh root yield`)])
+    s2 <- second_stage_values(two, trait = "fresh root yield")
+    ss <- second_stage_values(one, trait = "fresh root yield")
+
+    capture.output(save_breedbase_analysis(s1, con, analysis_name = "MET_stage1", program = "IITA",
+                                           description = "first stage", level = "plot", estimate = "blue",
+                                           confirm = FALSE))
+    capture.output(save_breedbase_analysis(s2, con, analysis_name = "MET_means", program = "IITA",
+                                           description = "two-stage means", confirm = FALSE))
+    # A second analysis in the same project: single-stage means under "trait|statistic".
+    out <- capture.output(res <- add_breedbase_analysis_values(ss, con, analysis_name = "MET_means", level = "accession",
+                                                               statistic = "Phenotypic BLUEs using LMER R",
+                                                               confirm = FALSE))
+    expect_equal(res$plots, n_geno)
+    expect_true(all(grepl("^MET_means_.* fresh root yield\\|Phenotypic BLUEs using LMER R\\|COMP:", names(fake$state$analysis_values))))
+  })
+})
+
+test_that("spaces in saved names become '_', accession and location names are kept", {
+  prep <- augmented_prep_design(c(paste0("G", 1:40), "TME 419", "TMS 30572"), c("Alcobaca (BA)", "Itamaraju (BA)"),
+                                block_size = 6, field_cols = 7, seed = 1)
+  expect_message(
+    payload <- save_breedbase(prep, trial_name = "EMBRAPA 2026", year = 2026,
+                              location = c("Alcobaca (BA)" = "Alcobaca (BA)", "Itamaraju (BA)" = "Itamaraju (BA)"),
+                              dry_run = TRUE, description = "Test trial"),
+    "special characters replaced"
+  )
+  expect_equal(vapply(payload$studies, `[[`, "", "studyName"),
+               c("EMBRAPA_2026_Alcobaca_BA", "EMBRAPA_2026_Itamaraju_BA"))
+  units <- unlist(lapply(payload$plots, function(p) vapply(p, `[[`, "", "observationUnitName")))
+  germ <- unlist(lapply(payload$plots, function(p) vapply(p, `[[`, "", "germplasmName")))
+  expect_false(any(grepl(" ", units)))
+  expect_true("TME 419" %in% germ)
+  expect_true(any(grepl("TME_419", units)))
+  expect_equal(bb_clean_name(c(" a  b ", "c"), quiet = TRUE), c("a_b", "c"))
+  expect_equal(bb_clean_name(c("AYT 50% $x (BA) {1} [2] a\\b/c <d> e*f", "Alcoba\u00e7a-1.2"), quiet = TRUE),
+               c("AYT_50_x_BA_1_2_a_b_c_d_e_f", "Alcoba\u00e7a-1.2"))
+  expect_error(bb_clean_name("()", "trial name"), "no letters or digits")
 })

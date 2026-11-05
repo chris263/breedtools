@@ -6,11 +6,12 @@
 \usage{
 first_stage_values(
   fits,
-  design,
-  trial_name,
+  design = NULL,
+  trial_name = NULL,
   trait = NULL,
   plot_name_pattern = "{trial}_{accession}_{block}_{rep}",
-  plot_names = NULL
+  plot_names = NULL,
+  breedbase_plots = NULL
 )
 }
 \arguments{
@@ -20,13 +21,21 @@ names are the Breedbase trait names). Analyses from
 \code{\link[=analyze_augmented_prep_two_stage]{analyze_augmented_prep_two_stage()}} (stage-1 fits per location) or
 \code{\link[=analyze_resolvable_row_column]{analyze_resolvable_row_column()}}.}
 
-\item{design}{The design that was saved to Breedbase.}
+\item{design}{The design that was saved to Breedbase. Leave it \code{NULL}
+for data read from Breedbase (\code{\link[=breedbase_phenotypes]{breedbase_phenotypes()}}): the plot names
+are then taken from the data.}
 
-\item{trial_name}{The trial name used when saving the design.}
+\item{trial_name}{The trial name used when saving the design (not needed
+without a design).}
 
 \item{trait}{Trait name when \code{fits} is a single analysis.}
 
 \item{plot_name_pattern, plot_names}{The plot naming used in \code{\link[=save_breedbase]{save_breedbase()}}.}
+
+\item{breedbase_plots}{Optional plots of the saved trial, from
+\code{\link[=breedbase_trial_plots]{breedbase_trial_plots()}}. The design is then checked against the saved
+trial (the same accession at every plot number), and the plot names are
+taken exactly as saved.}
 }
 \value{
 A tibble with \code{plot_name}, \code{trial_name}, \code{accession},

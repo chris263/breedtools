@@ -80,6 +80,15 @@
 #'   \item Maps: [read_locations()], [map_environment_groups()]
 #' }
 #'
+#' @section Trait data and two-stage analysis:
+#' \itemize{
+#'   \item Look: [plot_trait()]; outliers: [find_outliers()], [remove_outliers()]
+#'   \item Two-stage analysis for any design: [analyze_two_stage()];
+#'     single stage: [analyze_single_stage()]
+#'   \item Phenotypes of trials from Breedbase: [breedbase_phenotypes()]
+#'   \item Raw versus first-stage values: [compare_first_stage()]
+#' }
+#'
 #' @section Checks:
 #' [check_setup()], [check_design()], [check_result()], [check_summary()],
 #' [prediction_accuracy()].

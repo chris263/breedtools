@@ -34,7 +34,15 @@ default, \code{NULL}) the trial is saved directly in the breeding program. An
 existing folder is used as it is; a new one is created when
 \code{create_folder = TRUE}.}
 
-\item{trial_name}{Name of the new trial (must not exist yet).}
+\item{trial_name}{Name of the new trial (must not exist yet). In the
+names saved in Breedbase (trial, plot and new folder names, and the
+location part of p-rep trial names) spaces and special characters such
+as \verb{\% $ ( ) \{ \} [ ] \\\\ / < > *} are replaced with \code{"_"} (only letters,
+digits, \verb{_}, \code{-} and \code{.} are kept), e.g. \code{"Alcobaca (BA)"} gives
+\code{"Alcobaca_BA"}. Accession and location names are kept as they are, to
+match Breedbase.
+
+[ ]: R:\%20}
 
 \item{year}{Year of the trial.}
 

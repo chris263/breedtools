@@ -560,6 +560,8 @@ arc_rc_mixed <- function(data, random_blocks, random_entries, error_df) {
 
   list(
     model = model,
+    # Plot-level fitted values (fixed effects + predicted random effects).
+    fitted = unname(stats::fitted(model)),
     adjusted_means = tibble::tibble(
       genotype = genotypes,
       adjusted_mean = estimate,
@@ -622,6 +624,8 @@ arc_rc_spatial <- function(data, spatial_nseg, error_df) {
   mean_sed <- prep_mean_sed(vc)
   list(
     model = fit,
+    # Plot-level fitted values (genotype + spatial surface + random effects).
+    fitted = unname(fit$fitted),
     adjusted_means = tibble::tibble(
       genotype = genos,
       adjusted_mean = pred$predicted.values,

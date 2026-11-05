@@ -13,7 +13,8 @@ save_breedbase_phenotypes(
   value = NULL,
   timestamp = NULL,
   dry_run = FALSE,
-  confirm = interactive()
+  confirm = interactive(),
+  refresh = TRUE
 )
 }
 \arguments{
@@ -39,6 +40,10 @@ repeated measurements apart.}
 
 \item{confirm}{Logical. Ask before writing (default in interactive
 sessions).}
+
+\item{refresh}{Logical. After saving, refresh the phenotype cache of
+Breedbase so the values show on the trial pages (see
+\code{\link[=breedbase_refresh]{breedbase_refresh()}}).}
 }
 \value{
 Invisibly, a tibble with one row per trait: \code{trait},

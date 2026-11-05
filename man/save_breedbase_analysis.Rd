@@ -2,7 +2,7 @@
 % Please edit documentation in R/breedbase_analysis.R
 \name{save_breedbase_analysis}
 \alias{save_breedbase_analysis}
-\title{Save second-stage results to Breedbase as an analysis}
+\title{Save analysis results to Breedbase as an analysis}
 \usage{
 save_breedbase_analysis(
   data,
@@ -11,24 +11,31 @@ save_breedbase_analysis(
   program,
   description,
   year = format(Sys.Date(), "\%Y"),
+  level = c("accession", "plot"),
   traits = NULL,
   accession = "accession",
+  plot = "plot_name",
   estimate = NULL,
   statistic = NULL,
-  model_type = "mixed_model_lmer",
   protocol = NULL,
+  time_terms = NULL,
+  upload_file = NULL,
   dry_run = FALSE,
-  confirm = interactive()
+  confirm = interactive(),
+  folder = NULL,
+  create_folder = FALSE
 )
 }
 \arguments{
-\item{data}{A data frame with one row per accession and one numeric column
-per trait (as from \code{\link[=second_stage_values]{second_stage_values()}}).}
+\item{data}{A data frame with one row per accession (\code{level = "accession"}) or per plot (\code{level = "plot"}) and one numeric column per
+trait.}
 
 \item{con}{A connection from \code{\link[=breedbase_login]{breedbase_login()}}; \code{NULL} with
-\code{dry_run = TRUE} returns what would be sent.}
+\code{dry_run = TRUE} returns the file that would be uploaded.}
 
-\item{analysis_name}{Name of the new analysis (must not exist yet).}
+\item{analysis_name}{Name of the new analysis (must not exist yet). Spaces
+and special characters are replaced with \code{"_"} (only letters, digits,
+\verb{_}, \code{-} and \code{.} are kept).}
 
 \item{program}{Breeding program of the analysis.}
 
@@ -36,43 +43,92 @@ per trait (as from \code{\link[=second_stage_values]{second_stage_values()}}).}
 
 \item{year}{Year of the analysis (default: this year).}
 
-\item{traits}{Trait columns (default: all except \code{accession}). Their
-names are the Breedbase trait names.}
+\item{level}{\code{"accession"} or \code{"plot"} (Breedbase's "Analysis of").}
 
-\item{accession}{Name of the accession column.}
+\item{traits}{Trait columns (default: all except the name and design
+columns). Their names are the Breedbase trait names.}
 
-\item{estimate}{\code{"blue"} (statistic "Adjusted means from BLUEs using LMER
-R") or \code{"blup"} (statistic "Adjusted means from BLUPs using LMER R"). By
-default taken from \code{\link[=second_stage_values]{second_stage_values()}}, else \code{"blue"}.}
+\item{accession, plot}{Names of the accession and plot-name columns.}
 
-\item{statistic, model_type}{To use another Breedbase statistic term
-(\code{"name|SGNSTAT:0000000"}) or model type (a \code{protocol_type} term; default
-\code{"mixed_model_lmer"}).}
+\item{estimate}{For the default statistic: \code{"blue"} or \code{"blup"} (adjusted
+means of that kind), or \code{"spatial"} (spatial correction, the default for
+\code{level = "plot"}). By default taken from the data
+(\code{\link[=second_stage_values]{second_stage_values()}}, \code{\link[=first_stage_values]{first_stage_values()}}).}
 
-\item{protocol}{Text describing the model, saved with the analysis
-(default: the description).}
+\item{statistic}{Optional statistic term: its name, \code{"name|SGNSTAT:id"}
+or the id, as listed by \code{\link[=breedbase_statistics]{breedbase_statistics()}}. It must be a term of
+the Breedbase statistics ontology (checked against the ontology file,
+with suggestions for misspelled names, and then on the server). By
+default chosen by \code{estimate}.}
+
+\item{protocol}{The model, e.g. a formula: "SpATS(yield ~ genotype +
+PSANOVA(col, row))". Default: the description.}
+
+\item{time_terms}{Optional time terms per trait, as in the form's "Compose
+Trait Info With Time Term", e.g. \code{c("fresh root yield|CO_334:0000013" = "day 300|TIME:0000300")}.}
+
+\item{upload_file}{Where to write the upload file when the site's web
+pages are closed by a web password (see Details). Default: the analysis
+name + \code{"_upload.csv"} in the working folder.}
 
 \item{dry_run}{Logical. Check everything but write nothing.}
 
 \item{confirm}{Logical. Ask before writing (default in interactive
 sessions).}
+
+\item{folder}{Optional folder of the program to put the analysis in, e.g.
+the folder of its trials. Without a folder (the default, \code{NULL}) the
+analysis is in the breeding program itself. An existing folder is used
+as it is; a new one (special characters replaced with \code{"_"}) is created when
+\code{create_folder = TRUE}.}
+
+\item{create_folder}{Logical. Create \code{folder} when it does not exist.}
 }
 \value{
-Invisibly, a tibble with the analysis name and id, the numbers of
-accessions and values sent, the accessions read back, and the analysis
-page.
+Invisibly, a tibble with the analysis name and id, the number of
+rows (accessions or plots) sent and read back, and the analysis page; or,
+when the web pages are closed, a list with the upload \code{file} and the
+\code{form} values.
 }
 \description{
-Saves genotype-level results (for example adjusted means across
-locations from \code{\link[=second_stage_values]{second_stage_values()}}) as a Breedbase analysis, the way
-the Breedbase mixed-models tool does: a new project of type analysis with
-one entry per accession, and each trait saved together with a statistic
-term. The analysis then appears on the Analyses page of Breedbase.
+Saves analysis results as a Breedbase analysis (a project of type
+analysis), through the same upload as the "Upload analysis" form of
+Breedbase:
+\describe{
+\item{\code{level = "accession"}}{"Analysis of: accessions": one value per
+genotype, e.g. second-stage adjusted means from
+\code{\link[=second_stage_values]{second_stage_values()}}.}
+\item{\code{level = "plot"}}{"Analysis of: plots": one value per field plot,
+e.g. first-stage values from \code{\link[=first_stage_values]{first_stage_values()}}. Breedbase finds
+the field trial(s) of the plots and gives the analysis one plot per
+field plot (named \code{"<analysis_name>_<field plot name>"}), with the
+same accession, rep, block, row and column.}
+}
+Each trait is saved together with a statistic term, as Breedbase does for
+every analysis. The analysis then appears on the Analyses page and can be
+used in later analyses. Every name (analysis, accessions or plots, traits,
+statistic) is checked first, and all problems are listed before anything
+is written. The field trials do not change.
 }
 \details{
-Every accession and trait is checked first, and all problems are listed
-before anything is written.
+The form's fields map to the arguments: Analysis Name (\code{analysis_name},
+unique), Analysis Description (\code{description}), Analysis Protocol
+(\code{protocol}), Analysis Of (\code{level}), Breeding Program (\code{program}),
+Statistical Ontology Term (\code{statistic}) and the optional time terms
+(\code{time_terms}). The model type is Breedbase's own one for uploaded
+results (\code{uploaded_generic_analysis_model}).
 }
+\section{Sites with a web password}{
+
+Breedbase creates analyses through its web pages; BrAPI cannot create an
+analysis project. Test sites such as cassava-test.sgn.cornell.edu close
+their web pages with an extra web password. With it (see
+\code{\link[=breedbase_login]{breedbase_login()}}), the analysis is uploaded directly. Without it,
+everything is checked through BrAPI and the file of the "Upload analysis"
+form is written, with the value of every form field printed: upload it in
+the browser and Breedbase creates the same analysis project.
+}
+
 \examples{
 prep <- augmented_prep_design(paste0("E", 1:60), locations = c("North", "South"), seed = 1)
 d <- prep$design
@@ -82,12 +138,17 @@ fit <- analyze_augmented_prep_two_stage(d, "yield")
 means <- second_stage_values(fit, trait = "fresh root yield")
 sent <- save_breedbase_analysis(means, analysis_name = "PREP_2026_stage2", program = "IITA",
                                 description = "Two-stage analysis, weighted", dry_run = TRUE)
-str(sent$analysis_result_values[1])
+head(sent$file)
 
 \dontrun{
 con <- breedbase_login("https://cassavabase.org", "jdoe")
+# Second stage: one value per accession.
 save_breedbase_analysis(means, con, analysis_name = "PREP_2026_stage2", program = "IITA",
                         description = "Two-stage analysis, weighted")
+# First stage: one value per field plot ("Analysis of: plots").
+stage1 <- first_stage_values(fit, prep, "PREP_2026", trait = "fresh root yield")
+save_breedbase_analysis(stage1, con, analysis_name = "PREP_2026_stage1", program = "IITA",
+                        description = "SpATS per location", level = "plot")
 }
 
 }

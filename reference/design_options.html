@@ -50,8 +50,8 @@ can be left unspecified. No randomization or optimization is performed.</p>
 <span>  <span class="va">n_entries</span>,</span>
 <span>  design <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"augmented_row_column"</span>, <span class="st">"prep"</span>, <span class="st">"resolvable"</span><span class="op">)</span>,</span>
 <span>  n_checks <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  rows <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  cols <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  rows_in_field <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cols_in_field <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_locations <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  n_reps <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">3</span>,</span>
 <span>  block_size <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5L</span>, <span class="fl">8L</span>, <span class="fl">10L</span>, <span class="fl">12L</span>, <span class="fl">16L</span>, <span class="fl">20L</span><span class="op">)</span>,</span>
@@ -60,7 +60,9 @@ can be left unspecified. No randomization or optimization is performed.</p>
 <span>  max_dimension <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  min_error_df <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  n_options <span class="op">=</span> <span class="fl">6L</span>,</span>
-<span>  n_candidates <span class="op">=</span> <span class="fl">200L</span></span>
+<span>  n_candidates <span class="op">=</span> <span class="fl">200L</span>,</span>
+<span>  rows <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cols <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -86,11 +88,15 @@ excluded when only positive check counts are requested. Resolvable
 designs replicate checks just like the other genotypes.</p></dd>
 
 
-<dt id="arg-rows-cols">rows, cols<a class="anchor" aria-label="anchor" href="#arg-rows-cols"></a></dt>
-<dd><p>Known field dimensions, per location, including all
-replicates. Each can be a positive integer, a vector of dimensions to
-consider, or <code>NULL</code> to search automatically. Supplied dimensions are
-exact candidate sizes, not upper bounds. For p-rep, the last row may be
+<dt id="arg-rows-in-field-cols-in-field">rows_in_field, cols_in_field<a class="anchor" aria-label="anchor" href="#arg-rows-in-field-cols-in-field"></a></dt>
+<dd><p>Known dimensions of the whole field at
+one location (plot rows and plot columns, including all checks and
+replicates), not of a block. Block dimensions are suggested in the
+result as <code>rows_per_block</code> and <code>cols_per_block</code>. Each can be a positive
+integer, a vector of dimensions to consider, or <code>NULL</code> to search
+automatically. Supplied dimensions are exact candidate sizes, not upper
+bounds. When only one is supplied, the square field (the same number of
+rows and columns) is also considered. For p-rep, the last row may be
 partially occupied, but wholly empty final rows are not proposed.</p></dd>
 
 
@@ -150,11 +156,15 @@ before adding further layouts with the same counts.</p></dd>
 and p-rep generators. Defaults to 200. This is a user-selected search
 effort, not a dimension inferred from entry counts.</p></dd>
 
+
+<dt id="arg-rows-cols">rows, cols<a class="anchor" aria-label="anchor" href="#arg-rows-cols"></a></dt>
+<dd><p>Deprecated names of <code>rows_in_field</code> and <code>cols_in_field</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with option id, design family, entry/check counts,
-field dimensions, location and replication counts, active plots per
+field dimensions, a <code>square_check_blocks</code> flag, location and replication counts, active plots per
 location and in total, field area, unused positions, check plots,
 repeated entries, blocks, nominal <code>error_df</code>, method and notes.
 Field dimensions are named <code>rows_in_field</code> and <code>cols_in_field</code>, matching
@@ -193,8 +203,13 @@ replication, so the number of test-entry positions is exactly
 <code>treatments</code>. Its native generator treats them all as treatments; if
 checks need to be marked in Breedbase, set <code>is_control</code> in both the
 generated <code>design</code> and <code>breedbase_design</code> tables before saving.</p>
-<p>Within each resource-count group, smaller field areas, fewer unused
-positions and less elongated fields come first; Latin augmented row-column
+<p>Square blocks are preferred but not required: for augmented row-column
+designs, when a layout with blocks of <code>n_checks</code> rows by <code>n_checks</code>
+columns exists (for example 3 x 3 blocks for three checks), the smallest
+one is the first option and <code>square_check_blocks</code> flags it. The other
+options follow in the usual order: within each
+resource-count group, smaller field areas, fewer unused positions and
+less elongated fields come first; Latin augmented row-column
 constructions are preferred over searched allocations at the same area.
 This ordering does not estimate statistical precision or choose the
 biologically best design.</p>
@@ -214,11 +229,11 @@ biologically best design.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 18 × 6</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    option design         n_checks rows_in_field cols_in_field plots_per_location</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span>      1 augmented_row…        2             9            14                126</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span>      2 augmented_row…        3             9            14                126</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span>      3 augmented_row…        4             9            14                126</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span>      4 augmented_row…        5             8            16                128</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span>      5 augmented_row…        6            10            13                130</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span>      1 augmented_row…        6            12            12                144</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span>      2 augmented_row…        4            12            12                144</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span>      3 augmented_row…        5            15            10                150</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span>      4 augmented_row…        3             9            18                162</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span>      5 augmented_row…        2             9            14                126</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span>      6 augmented_row…        2             9            14                126</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span>      7 prep                  0            13             9                115</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span>      8 prep                  0            10            12                120</span>
@@ -235,7 +250,7 @@ biologically best design.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># A known field, four checks and exactly 108 test entries:</span></span></span>
 <span class="r-in"><span><span class="va">options</span> <span class="op">&lt;-</span> <span class="fu">design_options</span><span class="op">(</span><span class="fl">108</span>, design <span class="op">=</span> <span class="st">"augmented_row_column"</span>, n_checks <span class="op">=</span> <span class="fl">4</span>,</span></span>
-<span class="r-in"><span>                          rows <span class="op">=</span> <span class="fl">12</span>, cols <span class="op">=</span> <span class="fl">12</span>, n_candidates <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                          rows_in_field <span class="op">=</span> <span class="fl">12</span>, cols_in_field <span class="op">=</span> <span class="fl">12</span>, n_candidates <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">selected</span> <span class="op">&lt;-</span> <span class="va">options</span><span class="op">[</span><span class="fl">1</span>, <span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">trial</span> <span class="op">&lt;-</span> <span class="fu"><a href="augmented_row_column_design.html">augmented_row_column_design</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  treatments <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"LINE_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">108</span><span class="op">)</span><span class="op">)</span>,</span></span>
@@ -251,37 +266,59 @@ biologically best design.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Fully replicated options with one known dimension:</span></span></span>
-<span class="r-in"><span><span class="fu">design_options</span><span class="op">(</span><span class="fl">42</span>, design <span class="op">=</span> <span class="st">"resolvable"</span>, cols <span class="op">=</span> <span class="fl">7</span>, n_reps <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 27</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   option design     n_entries n_checks rows_in_field cols_in_field n_locations</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>      1 resolvable        42        0            18             7           1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>      2 resolvable        42        0            21             7           1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>      3 resolvable        42        0            24             7           1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>      4 resolvable        42        0            27             7           1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 20 more variables: n_reps &lt;int&gt;, rows_per_block &lt;int&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   cols_per_block &lt;int&gt;, rows_per_rep &lt;dbl&gt;, cols_per_rep &lt;int&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   block_size &lt;int&gt;, n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   plots_per_location &lt;dbl&gt;, total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   unused_plots &lt;dbl&gt;, check_plots &lt;int&gt;, n_repeated &lt;dbl&gt;, n_blocks &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   error_df &lt;dbl&gt;, method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span>
+<span class="r-in"><span><span class="fu">design_options</span><span class="op">(</span><span class="fl">42</span>, design <span class="op">=</span> <span class="st">"resolvable"</span>, cols_in_field <span class="op">=</span> <span class="fl">7</span>, n_reps <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 28</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   option design     n_entries n_checks rows_in_field cols_in_field</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>      1 resolvable        42        0            18             7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>      2 resolvable        42        0            21             7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>      3 resolvable        42        0            24             7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>      4 resolvable        42        0            27             7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 22 more variables: square_check_blocks &lt;lgl&gt;, n_locations &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_reps &lt;int&gt;, rows_per_block &lt;int&gt;, cols_per_block &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   rows_per_rep &lt;dbl&gt;, cols_per_rep &lt;int&gt;, block_size &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;, plots_per_location &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;, unused_plots &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   check_plots &lt;int&gt;, n_repeated &lt;dbl&gt;, n_blocks &lt;dbl&gt;, error_df &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Only the number of field rows is known; with three checks, a layout</span></span></span>
+<span class="r-in"><span><span class="co"># with 3 x 3 blocks is listed first when one fits.</span></span></span>
+<span class="r-in"><span><span class="fu">design_options</span><span class="op">(</span><span class="fl">36</span>, design <span class="op">=</span> <span class="st">"augmented_row_column"</span>, n_checks <span class="op">=</span> <span class="fl">3</span>, rows_in_field <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 28</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   option design               n_entries n_checks rows_in_field cols_in_field</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>      1 augmented_row_column        36        3             9             9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>      2 augmented_row_column        36        3             9             6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>      3 augmented_row_column        36        3             9             6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>      4 augmented_row_column        36        3             9             6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>      5 augmented_row_column        36        3             9             7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>      6 augmented_row_column        36        3             9             7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 22 more variables: square_check_blocks &lt;lgl&gt;, n_locations &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_reps &lt;int&gt;, rows_per_block &lt;int&gt;, cols_per_block &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   rows_per_rep &lt;int&gt;, cols_per_rep &lt;int&gt;, block_size &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;, plots_per_location &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;, unused_plots &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   check_plots &lt;dbl&gt;, n_repeated &lt;int&gt;, n_blocks &lt;int&gt;, error_df &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span>
 <span class="r-in"><span><span class="co"># Partial replication at three locations:</span></span></span>
 <span class="r-in"><span><span class="fu">design_options</span><span class="op">(</span><span class="fl">100</span>, design <span class="op">=</span> <span class="st">"prep"</span>, n_locations <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 27</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   option design n_entries n_checks rows_in_field cols_in_field n_locations</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>      1 prep         100        0            13             9           3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>      2 prep         100        0            10            12           3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>      3 prep         100        0             9            14           3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>      4 prep         100        0             7            19           3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>      5 prep         100        0            13             9           3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>      6 prep         100        0            12            10           3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 20 more variables: n_reps &lt;int&gt;, rows_per_block &lt;int&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   cols_per_block &lt;int&gt;, rows_per_rep &lt;int&gt;, cols_per_rep &lt;int&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   block_size &lt;int&gt;, n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   plots_per_location &lt;int&gt;, total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   unused_plots &lt;dbl&gt;, check_plots &lt;int&gt;, n_repeated &lt;int&gt;, n_blocks &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   error_df &lt;dbl&gt;, method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 28</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   option design n_entries n_checks rows_in_field cols_in_field</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>      1 prep         100        0            13             9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>      2 prep         100        0            10            12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>      3 prep         100        0             9            14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>      4 prep         100        0             7            19</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>      5 prep         100        0            13             9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>      6 prep         100        0            12            10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 22 more variables: square_check_blocks &lt;lgl&gt;, n_locations &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_reps &lt;int&gt;, rows_per_block &lt;int&gt;, cols_per_block &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   rows_per_rep &lt;int&gt;, cols_per_rep &lt;int&gt;, block_size &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;, plots_per_location &lt;int&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;, unused_plots &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   check_plots &lt;int&gt;, n_repeated &lt;int&gt;, n_blocks &lt;dbl&gt;, error_df &lt;dbl&gt;,</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

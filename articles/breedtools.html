@@ -147,11 +147,11 @@ fully replicated resolvable row-column designs:</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 18 × 8</span></span></span>
 <span><span class="co">#&gt;    option design  n_checks rows_in_field cols_in_field n_reps plots_per_location</span></span>
 <span><span class="co">#&gt;     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>      1 augmen…        2             9            14      1                126</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>      2 augmen…        3             9            14      1                126</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>      3 augmen…        4             9            14      1                126</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>      4 augmen…        5             8            16      1                128</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>      5 augmen…        6            10            13      1                130</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>      1 augmen…        6            12            12      1                144</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>      2 augmen…        4            12            12      1                144</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>      3 augmen…        5            15            10      1                150</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>      4 augmen…        3             9            18      1                162</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>      5 augmen…        2             9            14      1                126</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>      6 augmen…        2             9            14      1                126</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>      7 prep           0            13             9     <span style="color: #BB0000;">NA</span>                115</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>      8 prep           0            10            12     <span style="color: #BB0000;">NA</span>                120</span></span>
@@ -172,7 +172,7 @@ consider only certain designs, use
 example. Supply known constraints and leave the others unspecified:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fixed_options</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/design_options.html">design_options</a></span><span class="op">(</span><span class="fl">108</span>, design <span class="op">=</span> <span class="st">"augmented_row_column"</span>, n_checks <span class="op">=</span> <span class="fl">4</span>,</span>
-<span>  rows <span class="op">=</span> <span class="fl">12</span>, cols <span class="op">=</span> <span class="fl">12</span>, n_candidates <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
+<span>  rows_in_field <span class="op">=</span> <span class="fl">12</span>, cols_in_field <span class="op">=</span> <span class="fl">12</span>, n_candidates <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">fixed_options</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"option"</span>, <span class="st">"rows_in_field"</span>, <span class="st">"cols_in_field"</span>, <span class="st">"rows_per_block"</span>,</span>
 <span>                   <span class="st">"cols_per_block"</span>, <span class="st">"n_candidates"</span>, <span class="st">"check_plots"</span>, <span class="st">"error_df"</span>, <span class="st">"method"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 9</span></span></span>
@@ -185,27 +185,33 @@ example. Supply known constraints and leave the others unspecified:</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>      5            12            12              6             12          200</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>      6            12            12             12             12          200</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 3 more variables: check_plots &lt;dbl&gt;, error_df &lt;dbl&gt;, method &lt;chr&gt;</span></span></span>
-<span><span class="fu"><a href="../reference/design_options.html">design_options</a></span><span class="op">(</span><span class="fl">42</span>, design <span class="op">=</span> <span class="st">"resolvable"</span>, cols <span class="op">=</span> <span class="fl">7</span>, n_reps <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 27</span></span></span>
-<span><span class="co">#&gt;   option design     n_entries n_checks rows_in_field cols_in_field n_locations</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>      1 resolvable        42        0            18             7           1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>      2 resolvable        42        0            21             7           1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>      3 resolvable        42        0            24             7           1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>      4 resolvable        42        0            27             7           1</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 20 more variables: n_reps &lt;int&gt;, rows_per_block &lt;int&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   cols_per_block &lt;int&gt;, rows_per_rep &lt;dbl&gt;, cols_per_rep &lt;int&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   block_size &lt;int&gt;, n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   plots_per_location &lt;dbl&gt;, total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   unused_plots &lt;dbl&gt;, check_plots &lt;int&gt;, n_repeated &lt;dbl&gt;, n_blocks &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   error_df &lt;dbl&gt;, method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span></span></code></pre></div>
-<p>Rows and columns describe the entire field at one location, including
-all replicates. A supplied dimension is an exact candidate size; a
-vector such as <code>rows = c(12, 15, 18)</code> considers each size.
-<code>max_plots</code> limits field area per location.
-<code>unused_plots</code> reports filler positions or a partial final
-row. <code>min_error_df = 10</code>, for example, can exclude layouts
-with little nominal error information.
+<span><span class="fu"><a href="../reference/design_options.html">design_options</a></span><span class="op">(</span><span class="fl">42</span>, design <span class="op">=</span> <span class="st">"resolvable"</span>, cols_in_field <span class="op">=</span> <span class="fl">7</span>, n_reps <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 28</span></span></span>
+<span><span class="co">#&gt;   option design     n_entries n_checks rows_in_field cols_in_field</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>      1 resolvable        42        0            18             7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>      2 resolvable        42        0            21             7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>      3 resolvable        42        0            24             7</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>      4 resolvable        42        0            27             7</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 22 more variables: square_check_blocks &lt;lgl&gt;, n_locations &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   n_reps &lt;int&gt;, rows_per_block &lt;int&gt;, cols_per_block &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   rows_per_rep &lt;dbl&gt;, cols_per_rep &lt;int&gt;, block_size &lt;int&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   n_candidates &lt;int&gt;, checks_per_block &lt;list&gt;, plots_per_location &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   total_plots &lt;dbl&gt;, field_plots &lt;dbl&gt;, unused_plots &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   check_plots &lt;int&gt;, n_repeated &lt;dbl&gt;, n_blocks &lt;dbl&gt;, error_df &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   method &lt;chr&gt;, generator &lt;chr&gt;, arguments &lt;list&gt;, note &lt;chr&gt;</span></span></span></code></pre></div>
+<p><code>rows_in_field</code> and <code>cols_in_field</code> describe
+the entire field at one location, including all checks and replicates;
+block dimensions are suggested in the result as
+<code>rows_per_block</code> and <code>cols_per_block</code>. A supplied
+dimension is an exact candidate size; a vector such as
+<code>rows_in_field = c(12, 15, 18)</code> considers each size. When
+possible, the first augmented row-column option has square blocks of
+<code>n_checks</code> rows by <code>n_checks</code> columns, such as 3 x
+3 blocks for three checks. <code>max_plots</code> limits field area per
+location. <code>unused_plots</code> reports filler positions or a
+partial final row. <code>min_error_df = 10</code>, for example, can
+exclude layouts with little nominal error information.
 <code>attr(options, "diagnostics")</code> explains why a requested
 design family has no options within the search limits.</p>
 <p>Choose an augmented row-column option and pass every setting

@@ -36,6 +36,8 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="breedtools-010">breedtools 0.1.0<a class="anchor" aria-label="anchor" href="#breedtools-010"></a></h2>
 <ul><li>First CRAN release.</li>
+<li>
+<code><a href="../reference/design_options.html">design_options()</a></code>: the field dimensions are now <code>rows_in_field</code> and <code>cols_in_field</code>, the same names as in its result and in <code><a href="../reference/augmented_row_column_design.html">augmented_row_column_design()</a></code>. <code>rows</code> and <code>cols</code> still work, with a deprecation warning. When possible, the first augmented row-column option has square blocks of <code>n_checks</code> x <code>n_checks</code> (e.g. 3 x 3 blocks for three checks), flagged by the new column <code>square_check_blocks</code>; other block shapes are still listed. With one known dimension, the square field is also tested.</li>
 <li>Documentation website (pkgdown) with every function grouped by task, and a grouped list of all functions with examples in the README.</li>
 <li>Names saved in Breedbase contain only letters, digits, “<em>”, ”-” and ”.”: in trial, plot, new folder and analysis names, spaces and characters such as % $ ( ) { } [ ]  / &lt; &gt; * become ”</em>” (e.g. location “Alcobaca (BA)” gives trial “EMBRAPA_2026_Alcobaca_BA”). Accession and location names are kept, existing folders are used as they are, and trials can still be looked up by the original name.</li>
 <li>

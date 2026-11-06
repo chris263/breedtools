@@ -12,8 +12,8 @@ design_options(
   n_entries,
   design = c("augmented_row_column", "prep", "resolvable"),
   n_checks = NULL,
-  rows = NULL,
-  cols = NULL,
+  rows_in_field = NULL,
+  cols_in_field = NULL,
   n_locations = 1L,
   n_reps = 2:3,
   block_size = c(5L, 8L, 10L, 12L, 16L, 20L),
@@ -22,7 +22,9 @@ design_options(
   max_dimension = NULL,
   min_error_df = 1L,
   n_options = 6L,
-  n_candidates = 200L
+  n_candidates = 200L,
+  rows = NULL,
+  cols = NULL
 )
 ```
 
@@ -46,13 +48,17 @@ design_options(
   excluded when only positive check counts are requested. Resolvable
   designs replicate checks just like the other genotypes.
 
-- rows, cols:
+- rows_in_field, cols_in_field:
 
-  Known field dimensions, per location, including all replicates. Each
-  can be a positive integer, a vector of dimensions to consider, or
-  `NULL` to search automatically. Supplied dimensions are exact
-  candidate sizes, not upper bounds. For p-rep, the last row may be
-  partially occupied, but wholly empty final rows are not proposed.
+  Known dimensions of the whole field at one location (plot rows and
+  plot columns, including all checks and replicates), not of a block.
+  Block dimensions are suggested in the result as `rows_per_block` and
+  `cols_per_block`. Each can be a positive integer, a vector of
+  dimensions to consider, or `NULL` to search automatically. Supplied
+  dimensions are exact candidate sizes, not upper bounds. When only one
+  is supplied, the square field (the same number of rows and columns) is
+  also considered. For p-rep, the last row may be partially occupied,
+  but wholly empty final rows are not proposed.
 
 - n_locations:
 
@@ -111,13 +117,18 @@ design_options(
   generators. Defaults to 200. This is a user-selected search effort,
   not a dimension inferred from entry counts.
 
+- rows, cols:
+
+  Deprecated names of `rows_in_field` and `cols_in_field`.
+
 ## Value
 
 A tibble with option id, design family, entry/check counts, field
-dimensions, location and replication counts, active plots per location
-and in total, field area, unused positions, check plots, repeated
-entries, blocks, nominal `error_df`, method and notes. Field dimensions
-are named `rows_in_field` and `cols_in_field`, matching
+dimensions, a `square_check_blocks` flag, location and replication
+counts, active plots per location and in total, field area, unused
+positions, check plots, repeated entries, blocks, nominal `error_df`,
+method and notes. Field dimensions are named `rows_in_field` and
+`cols_in_field`, matching
 [`augmented_row_column_design()`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md).
 Block and replicate dimensions are included where applicable.
 `n_candidates` reports the chosen search effort. `checks_per_block` is a
@@ -160,11 +171,15 @@ Resolvable options may contain filler positions, which are reported in
 checks need to be marked in Breedbase, set `is_control` in both the
 generated `design` and `breedbase_design` tables before saving.
 
-Within each resource-count group, smaller field areas, fewer unused
-positions and less elongated fields come first; Latin augmented
-row-column constructions are preferred over searched allocations at the
-same area. This ordering does not estimate statistical precision or
-choose the biologically best design.
+Square blocks are preferred but not required: for augmented row-column
+designs, when a layout with blocks of `n_checks` rows by `n_checks`
+columns exists (for example 3 x 3 blocks for three checks), the smallest
+one is the first option and `square_check_blocks` flags it. The other
+options follow in the usual order: within each resource-count group,
+smaller field areas, fewer unused positions and less elongated fields
+come first; Latin augmented row-column constructions are preferred over
+searched allocations at the same area. This ordering does not estimate
+statistical precision or choose the biologically best design.
 
 ## See also
 
@@ -183,11 +198,11 @@ options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field", "p
 #> # A tibble: 18 × 6
 #>    option design         n_checks rows_in_field cols_in_field plots_per_location
 #>     <int> <chr>             <int>         <int>         <int>              <dbl>
-#>  1      1 augmented_row…        2             9            14                126
-#>  2      2 augmented_row…        3             9            14                126
-#>  3      3 augmented_row…        4             9            14                126
-#>  4      4 augmented_row…        5             8            16                128
-#>  5      5 augmented_row…        6            10            13                130
+#>  1      1 augmented_row…        6            12            12                144
+#>  2      2 augmented_row…        4            12            12                144
+#>  3      3 augmented_row…        5            15            10                150
+#>  4      4 augmented_row…        3             9            18                162
+#>  5      5 augmented_row…        2             9            14                126
 #>  6      6 augmented_row…        2             9            14                126
 #>  7      7 prep                  0            13             9                115
 #>  8      8 prep                  0            10            12                120
@@ -204,7 +219,7 @@ options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field", "p
 
 # A known field, four checks and exactly 108 test entries:
 options <- design_options(108, design = "augmented_row_column", n_checks = 4,
-                          rows = 12, cols = 12, n_candidates = 5)
+                          rows_in_field = 12, cols_in_field = 12, n_candidates = 5)
 selected <- options[1, ]
 trial <- augmented_row_column_design(
   treatments = paste0("LINE_", seq_len(108)),
@@ -220,35 +235,57 @@ trial <- augmented_row_column_design(
 )
 
 # Fully replicated options with one known dimension:
-design_options(42, design = "resolvable", cols = 7, n_reps = 3)
-#> # A tibble: 4 × 27
-#>   option design     n_entries n_checks rows_in_field cols_in_field n_locations
-#>    <int> <chr>          <int>    <int>         <int>         <int>       <int>
-#> 1      1 resolvable        42        0            18             7           1
-#> 2      2 resolvable        42        0            21             7           1
-#> 3      3 resolvable        42        0            24             7           1
-#> 4      4 resolvable        42        0            27             7           1
-#> # ℹ 20 more variables: n_reps <int>, rows_per_block <int>,
-#> #   cols_per_block <int>, rows_per_rep <dbl>, cols_per_rep <int>,
-#> #   block_size <int>, n_candidates <int>, checks_per_block <list>,
-#> #   plots_per_location <dbl>, total_plots <dbl>, field_plots <dbl>,
-#> #   unused_plots <dbl>, check_plots <int>, n_repeated <dbl>, n_blocks <dbl>,
-#> #   error_df <dbl>, method <chr>, generator <chr>, arguments <list>, note <chr>
+design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
+#> # A tibble: 4 × 28
+#>   option design     n_entries n_checks rows_in_field cols_in_field
+#>    <int> <chr>          <int>    <int>         <int>         <int>
+#> 1      1 resolvable        42        0            18             7
+#> 2      2 resolvable        42        0            21             7
+#> 3      3 resolvable        42        0            24             7
+#> 4      4 resolvable        42        0            27             7
+#> # ℹ 22 more variables: square_check_blocks <lgl>, n_locations <int>,
+#> #   n_reps <int>, rows_per_block <int>, cols_per_block <int>,
+#> #   rows_per_rep <dbl>, cols_per_rep <int>, block_size <int>,
+#> #   n_candidates <int>, checks_per_block <list>, plots_per_location <dbl>,
+#> #   total_plots <dbl>, field_plots <dbl>, unused_plots <dbl>,
+#> #   check_plots <int>, n_repeated <dbl>, n_blocks <dbl>, error_df <dbl>,
+#> #   method <chr>, generator <chr>, arguments <list>, note <chr>
+
+# Only the number of field rows is known; with three checks, a layout
+# with 3 x 3 blocks is listed first when one fits.
+design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9)
+#> # A tibble: 6 × 28
+#>   option design               n_entries n_checks rows_in_field cols_in_field
+#>    <int> <chr>                    <int>    <int>         <int>         <int>
+#> 1      1 augmented_row_column        36        3             9             9
+#> 2      2 augmented_row_column        36        3             9             6
+#> 3      3 augmented_row_column        36        3             9             6
+#> 4      4 augmented_row_column        36        3             9             6
+#> 5      5 augmented_row_column        36        3             9             7
+#> 6      6 augmented_row_column        36        3             9             7
+#> # ℹ 22 more variables: square_check_blocks <lgl>, n_locations <int>,
+#> #   n_reps <int>, rows_per_block <int>, cols_per_block <int>,
+#> #   rows_per_rep <int>, cols_per_rep <int>, block_size <int>,
+#> #   n_candidates <int>, checks_per_block <list>, plots_per_location <int>,
+#> #   total_plots <dbl>, field_plots <dbl>, unused_plots <dbl>,
+#> #   check_plots <dbl>, n_repeated <int>, n_blocks <int>, error_df <dbl>,
+#> #   method <chr>, generator <chr>, arguments <list>, note <chr>
 # Partial replication at three locations:
 design_options(100, design = "prep", n_locations = 3)
-#> # A tibble: 6 × 27
-#>   option design n_entries n_checks rows_in_field cols_in_field n_locations
-#>    <int> <chr>      <int>    <int>         <int>         <int>       <int>
-#> 1      1 prep         100        0            13             9           3
-#> 2      2 prep         100        0            10            12           3
-#> 3      3 prep         100        0             9            14           3
-#> 4      4 prep         100        0             7            19           3
-#> 5      5 prep         100        0            13             9           3
-#> 6      6 prep         100        0            12            10           3
-#> # ℹ 20 more variables: n_reps <int>, rows_per_block <int>,
-#> #   cols_per_block <int>, rows_per_rep <int>, cols_per_rep <int>,
-#> #   block_size <int>, n_candidates <int>, checks_per_block <list>,
-#> #   plots_per_location <int>, total_plots <dbl>, field_plots <dbl>,
-#> #   unused_plots <dbl>, check_plots <int>, n_repeated <int>, n_blocks <dbl>,
-#> #   error_df <dbl>, method <chr>, generator <chr>, arguments <list>, note <chr>
+#> # A tibble: 6 × 28
+#>   option design n_entries n_checks rows_in_field cols_in_field
+#>    <int> <chr>      <int>    <int>         <int>         <int>
+#> 1      1 prep         100        0            13             9
+#> 2      2 prep         100        0            10            12
+#> 3      3 prep         100        0             9            14
+#> 4      4 prep         100        0             7            19
+#> 5      5 prep         100        0            13             9
+#> 6      6 prep         100        0            12            10
+#> # ℹ 22 more variables: square_check_blocks <lgl>, n_locations <int>,
+#> #   n_reps <int>, rows_per_block <int>, cols_per_block <int>,
+#> #   rows_per_rep <int>, cols_per_rep <int>, block_size <int>,
+#> #   n_candidates <int>, checks_per_block <list>, plots_per_location <int>,
+#> #   total_plots <dbl>, field_plots <dbl>, unused_plots <dbl>,
+#> #   check_plots <int>, n_repeated <int>, n_blocks <dbl>, error_df <dbl>,
+#> #   method <chr>, generator <chr>, arguments <list>, note <chr>
 ```

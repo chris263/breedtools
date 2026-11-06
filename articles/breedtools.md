@@ -46,11 +46,11 @@ options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field", "n
 #> # A tibble: 18 × 8
 #>    option design  n_checks rows_in_field cols_in_field n_reps plots_per_location
 #>     <int> <chr>      <int>         <int>         <int>  <int>              <dbl>
-#>  1      1 augmen…        2             9            14      1                126
-#>  2      2 augmen…        3             9            14      1                126
-#>  3      3 augmen…        4             9            14      1                126
-#>  4      4 augmen…        5             8            16      1                128
-#>  5      5 augmen…        6            10            13      1                130
+#>  1      1 augmen…        6            12            12      1                144
+#>  2      2 augmen…        4            12            12      1                144
+#>  3      3 augmen…        5            15            10      1                150
+#>  4      4 augmen…        3             9            18      1                162
+#>  5      5 augmen…        2             9            14      1                126
 #>  6      6 augmen…        2             9            14      1                126
 #>  7      7 prep           0            13             9     NA                115
 #>  8      8 prep           0            10            12     NA                120
@@ -74,7 +74,7 @@ for example. Supply known constraints and leave the others unspecified:
 ``` r
 
 fixed_options <- design_options(108, design = "augmented_row_column", n_checks = 4,
-  rows = 12, cols = 12, n_candidates = 200)
+  rows_in_field = 12, cols_in_field = 12, n_candidates = 200)
 fixed_options[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
                    "cols_per_block", "n_candidates", "check_plots", "error_df", "method")]
 #> # A tibble: 6 × 9
@@ -87,28 +87,33 @@ fixed_options[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
 #> 5      5            12            12              6             12          200
 #> 6      6            12            12             12             12          200
 #> # ℹ 3 more variables: check_plots <dbl>, error_df <dbl>, method <chr>
-design_options(42, design = "resolvable", cols = 7, n_reps = 3)
-#> # A tibble: 4 × 27
-#>   option design     n_entries n_checks rows_in_field cols_in_field n_locations
-#>    <int> <chr>          <int>    <int>         <int>         <int>       <int>
-#> 1      1 resolvable        42        0            18             7           1
-#> 2      2 resolvable        42        0            21             7           1
-#> 3      3 resolvable        42        0            24             7           1
-#> 4      4 resolvable        42        0            27             7           1
-#> # ℹ 20 more variables: n_reps <int>, rows_per_block <int>,
-#> #   cols_per_block <int>, rows_per_rep <dbl>, cols_per_rep <int>,
-#> #   block_size <int>, n_candidates <int>, checks_per_block <list>,
-#> #   plots_per_location <dbl>, total_plots <dbl>, field_plots <dbl>,
-#> #   unused_plots <dbl>, check_plots <int>, n_repeated <dbl>, n_blocks <dbl>,
-#> #   error_df <dbl>, method <chr>, generator <chr>, arguments <list>, note <chr>
+design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
+#> # A tibble: 4 × 28
+#>   option design     n_entries n_checks rows_in_field cols_in_field
+#>    <int> <chr>          <int>    <int>         <int>         <int>
+#> 1      1 resolvable        42        0            18             7
+#> 2      2 resolvable        42        0            21             7
+#> 3      3 resolvable        42        0            24             7
+#> 4      4 resolvable        42        0            27             7
+#> # ℹ 22 more variables: square_check_blocks <lgl>, n_locations <int>,
+#> #   n_reps <int>, rows_per_block <int>, cols_per_block <int>,
+#> #   rows_per_rep <dbl>, cols_per_rep <int>, block_size <int>,
+#> #   n_candidates <int>, checks_per_block <list>, plots_per_location <dbl>,
+#> #   total_plots <dbl>, field_plots <dbl>, unused_plots <dbl>,
+#> #   check_plots <int>, n_repeated <dbl>, n_blocks <dbl>, error_df <dbl>,
+#> #   method <chr>, generator <chr>, arguments <list>, note <chr>
 ```
 
-Rows and columns describe the entire field at one location, including
-all replicates. A supplied dimension is an exact candidate size; a
-vector such as `rows = c(12, 15, 18)` considers each size. `max_plots`
-limits field area per location. `unused_plots` reports filler positions
-or a partial final row. `min_error_df = 10`, for example, can exclude
-layouts with little nominal error information.
+`rows_in_field` and `cols_in_field` describe the entire field at one
+location, including all checks and replicates; block dimensions are
+suggested in the result as `rows_per_block` and `cols_per_block`. A
+supplied dimension is an exact candidate size; a vector such as
+`rows_in_field = c(12, 15, 18)` considers each size. When possible, the
+first augmented row-column option has square blocks of `n_checks` rows
+by `n_checks` columns, such as 3 x 3 blocks for three checks.
+`max_plots` limits field area per location. `unused_plots` reports
+filler positions or a partial final row. `min_error_df = 10`, for
+example, can exclude layouts with little nominal error information.
 `attr(options, "diagnostics")` explains why a requested design family
 has no options within the search limits.
 

@@ -406,7 +406,7 @@ test_that("augmented_row_column_design rejects layouts that cannot be analyzed",
       cols_per_block = 3,
       n_candidates = 5
     ),
-    "no error degrees of freedom"
+    "fewer check plots"
   )
 
   capacity <- augmented_row_column_capacity(10, 10, 5, 5, 2)
@@ -533,11 +533,24 @@ test_that("capacity reproduces Table 2 of Piepho and Williams (2016)", {
   expect_true(is.na(ex3$rows_per_block))
 })
 
-test_that("Example 1 of the paper is rejected for having no error df", {
-  expect_error(
-    augmented_row_column_design(paste0("E", 1:36), LETTERS[1:3], 6, 9, 3, 3, n_candidates = 5),
-    "no error degrees of freedom"
+test_that("Example 1 of the paper (Fig. 2) is built without warnings despite zero error df", {
+  # 6 x 9 field, 3 x 3 blocks, each check once per block, 36 entries.
+  expect_no_warning(
+    fig2 <- augmented_row_column_design(paste0("E", 1:36), LETTERS[1:3], 6, 9, 3, 3,
+                                        method = "latin", seed = 1)
   )
+  expect_equal(fig2$summary$error_df, 0)
+  ck <- fig2$design[fig2$design$is_control == 1, ]
+  expect_true(all(table(ck$block, ck$all_entries) == 1))
+  expect_true(all(table(ck$row) == 3))        # one check per column group
+  expect_true(all(table(ck$row, ck$all_entries) == 1))
+  # Analyzable with random rows, columns and blocks.
+  skip_if_not_installed("lme4")
+  d <- fig2$design
+  set.seed(2)
+  d$y <- rnorm(nrow(d), 10)
+  fit <- suppressWarnings(analyze_augmented_row_column_design(d, "y", random_blocks = TRUE))
+  expect_false(anyNA(fit$adjusted_means$std_error))
 })
 
 test_that("Example 3 of the paper: unequal groups and blocks with 3 to 5 checks", {

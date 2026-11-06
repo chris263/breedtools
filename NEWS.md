@@ -5,10 +5,26 @@
   `cols_in_field`, the same names as in its result and in
   `augmented_row_column_design()`. `rows` and `cols` still work, with a
   deprecation warning. When possible, the first augmented row-column
-  option has square blocks of `n_checks` x `n_checks` (e.g. 3 x 3 blocks
-  for three checks), flagged by the new column `square_check_blocks`; other
+  option has square blocks of `n_checks` x `n_checks` with each check
+  exactly once (e.g. 3 x 3 blocks for three checks), flagged by the new column `square_check_blocks`; other
   block shapes are still listed. With one known dimension, the square
   field is also tested.
+* `augmented_row_column_design()` now builds layouts with zero error df
+  when rows, columns and blocks are fixed, such as Fig. 2 of Piepho and
+  Williams (2016) (36 entries, three checks once in each 3 x 3 block).
+  Analyze them with `random_blocks = TRUE` or `entries = "random"`;
+  `summary$error_df` shows 0 and `check_design()` reports it as a NOTE.
+  By default `design_options()` lists the Fig. 2 layout (blocks of
+  `n_checks` x `n_checks` plots, each check exactly once) first when it
+  fits, as the one exception to its positive error-df requirement;
+  `min_error_df = 0` lists other saturated layouts too.
+* `design_options()` also suggests augmented row-column layouts with
+  unequal row and column groups, as in Fig. 4 of Piepho and Williams (2016)
+  (22 x 10 field, row groups 6, 5, 6, 5, column groups 3, 4, 3, 47 check
+  plots), with new list-columns `rows_per_rowgroup` and `cols_per_colgroup`.
+  Within a field, layouts whose blocks hold about one plot per check come
+  first, then squarer blocks: Fig. 3 (36 x 18 field, 6 x 6 blocks, four
+  checks) is the first suggestion for its field.
 * Documentation website (pkgdown) with every function grouped by task, and
   a grouped list of all functions with examples in the README.
 * Names saved in Breedbase contain only letters, digits, "_", "-" and ".":

@@ -28,8 +28,10 @@
 #' check and entry plots, `error_df`, the error degrees of freedom of the
 #' row-column ANOVA,
 #' `check_plots - n_controls - (rows - 1) - (cols - 1) -
-#' (row groups - 1)(column groups - 1)` (a design is only analyzable when
-#' `error_df > 0`; Clarke and Stefanova (2011) recommend about 50),
+#' (row groups - 1)(column groups - 1)` (with fixed rows, columns and
+#' blocks a design needs `error_df > 0`; with `error_df = 0`, as in Fig. 2 of
+#' Piepho and Williams (2016), analyze with random blocks or random entries;
+#' Clarke and Stefanova (2011) recommend about 50),
 #' `check_fraction`, and the smallest slack of the row-group and column-group
 #' conditions of Piepho and Williams (2016), which must be non-negative for
 #' the row-group and column-group sub-designs to be estimable on their own.
@@ -1129,14 +1131,18 @@ arc_validate_inputs <- function(
       call. = FALSE
     )
   }
-  if (capacity$error_df <= 0) {
+  if (capacity$error_df < 0) {
     stop(
-      "This layout leaves no error degrees of freedom (error df = ",
-      capacity$error_df, "), so it cannot be analyzed with the row-column model. ",
+      "This layout has fewer check plots than row, column and block effects to estimate ",
+      "(error df = ", capacity$error_df, "). ",
       "Use more checks or larger blocks (fewer blocks per field).",
       call. = FALSE
     )
   }
+  # error_df == 0 (e.g. Piepho and Williams, 2016, Fig. 2) is accepted
+  # silently: the effects are estimable and the layout is analyzed with
+  # random blocks or random entries. summary$error_df and check_design()
+  # report it.
 
   list(
     treatments = treatments,

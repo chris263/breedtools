@@ -43,8 +43,10 @@ give incomplete blocks; larger values give extra check replication.}
 A one-row tibble with the field size, number of groups and blocks,
 check and entry plots, \code{error_df}, the error degrees of freedom of the
 row-column ANOVA,
-\verb{check_plots - n_controls - (rows - 1) - (cols - 1) - (row groups - 1)(column groups - 1)} (a design is only analyzable when
-\code{error_df > 0}; Clarke and Stefanova (2011) recommend about 50),
+\verb{check_plots - n_controls - (rows - 1) - (cols - 1) - (row groups - 1)(column groups - 1)} (with fixed rows, columns and
+blocks a design needs \code{error_df > 0}; with \code{error_df = 0}, as in Fig. 2 of
+Piepho and Williams (2016), analyze with random blocks or random entries;
+Clarke and Stefanova (2011) recommend about 50),
 \code{check_fraction}, and the smallest slack of the row-group and column-group
 conditions of Piepho and Williams (2016), which must be non-negative for
 the row-group and column-group sub-designs to be estimable on their own.

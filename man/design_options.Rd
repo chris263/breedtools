@@ -16,7 +16,7 @@ design_options(
   prep_prop = NULL,
   max_plots = NULL,
   max_dimension = NULL,
-  min_error_df = 1L,
+  min_error_df = NULL,
   n_options = 6L,
   n_candidates = 200L,
   rows = NULL,
@@ -75,7 +75,15 @@ When neither dimension is supplied, fields with an aspect ratio above
 
 \item{min_error_df}{Minimum nominal error degrees of freedom. These are
 count-based values for the design model, assuming its effects are
-estimable, not degrees of freedom of a later spatial model.}
+estimable, not degrees of freedom of a later spatial model. \code{NULL}
+(default) requires at least 1, except for the layout of Fig. 2 of
+Piepho and Williams (2016): blocks of \code{n_checks} x \code{n_checks} plots with
+each check exactly once, such as 36 entries and three checks in a 9 x 6
+field. That layout is saturated with fixed rows, columns and blocks
+(error df = 0) and is analyzed with
+\code{analyze_augmented_row_column_design(random_blocks = TRUE)} or
+\code{entries = "random"}. A supplied value applies to every layout; 0 also
+admits other saturated layouts.}
 
 \item{n_options}{Maximum options returned per design family. The
 shortlist includes different check, full-replication or p-rep counts
@@ -98,6 +106,8 @@ included where applicable. \code{n_candidates} reports the chosen search
 effort. \code{checks_per_block} is a list-column with each augmented
 row-column option's check-allocation matrix, or \code{NULL} for the default
 complete check blocks. These columns support an explicit generator call.
+\code{rows_per_rowgroup} and \code{cols_per_colgroup} are list-columns with the
+group sizes of unequal-group options, or \code{NULL}.
 \code{generator} names the function to call; \code{arguments} is a list-column of
 its layout arguments. Add your own \code{treatments}, \code{controls} (augmented row-column)
 and \code{seed} before calling it with \code{do.call()}. p-rep arguments include
@@ -121,13 +131,21 @@ conditions do not certify a randomized design's connectivity or
 efficiency: generate the chosen option, inspect its summary and run
 \code{\link[=check_design]{check_design()}}. The search is bounded and not exhaustive.
 
-Augmented row-column options use equal row and column groups. Every block
-has at least \code{n_checks} rows and at least \code{n_checks} columns, leaving room
-for one copy of each check in a distinct row and column. For example,
-four checks require blocks of at least 4 rows by 4 columns. Every block
-contains all checks at least once; extra positions are assigned to extra check
-replication, so the number of test-entry positions is exactly
-\code{n_entries}. Flexible allocations use \code{method = "optimal"}.
+Augmented row-column options with equal row and column groups have
+blocks of at least \code{n_checks} rows and at least \code{n_checks} columns,
+leaving room for one copy of each check in a distinct row and column. For
+example, four checks require blocks of at least 4 rows by 4 columns. Every
+such block contains all checks at least once; extra positions are assigned
+to extra check replication, so the number of test-entry positions is
+exactly \code{n_entries}. Flexible allocations use \code{method = "optimal"}.
+
+Options with unequal row or column groups (Piepho and Williams, 2016,
+Example 3 and Fig. 4) split the field into near-equal groups, such as
+rows 6, 5, 6, 5 and columns 3, 4, 3 for a 22 x 10 field. Their blocks hold
+\code{n_checks - 1} to \code{n_checks + 1} check plots, in proportion to block size,
+so some blocks may be incomplete for the checks. These options report
+\code{rows_per_rowgroup}, \code{cols_per_colgroup} and \code{checks_per_block}, with
+\code{rows_per_block} and \code{cols_per_block} set to \code{NA}.
 
 Resolvable options may contain filler positions, which are reported in
 \code{unused_plots}. Include both entries and checks in the generator's
@@ -137,12 +155,16 @@ generated \code{design} and \code{breedbase_design} tables before saving.
 
 Square blocks are preferred but not required: for augmented row-column
 designs, when a layout with blocks of \code{n_checks} rows by \code{n_checks}
-columns exists (for example 3 x 3 blocks for three checks), the smallest
-one is the first option and \code{square_check_blocks} flags it. The other
+columns containing each check exactly once exists (for example 3 x 3
+blocks with checks A, B and C, as in Fig. 2 of Piepho and Williams, 2016),
+the smallest one is the first option and \code{square_check_blocks} flags it.
+Blocks of that size with extra check plots are not flagged. The other
 options follow in the usual order: within each
-resource-count group, smaller field areas, fewer unused positions and
-less elongated fields come first; Latin augmented row-column
-constructions are preferred over searched allocations at the same area.
+resource-count group, smaller field areas and fewer unused positions come
+first. Within a field, augmented row-column layouts whose blocks hold about
+one check plot per check (complete blocks for the checks, as in Piepho and
+Williams, 2016) come first, then Latin constructions, squarer blocks and
+less elongated fields.
 This ordering does not estimate statistical precision or choose the
 biologically best design.
 }
@@ -171,9 +193,13 @@ trial <- augmented_row_column_design(
 # Fully replicated options with one known dimension:
 design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
 
-# Only the number of field rows is known; with three checks, a layout
-# with 3 x 3 blocks is listed first when one fits.
+# Only the number of field rows is known. With three checks, the first
+# option is the layout of Piepho and Williams (2016, Fig. 2): a 9 x 6 field
+# of six 3 x 3 blocks, each check once per block (error df = 0).
 design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9)
+# Require positive error df for every layout:
+design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9,
+               min_error_df = 1)
 # Partial replication at three locations:
 design_options(100, design = "prep", n_locations = 3)
 }

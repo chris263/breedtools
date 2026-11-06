@@ -29,7 +29,8 @@ test_that("augmented row-column options have exactly the requested entry positio
       args <- options$arguments[[i]]
       cap <- do.call(augmented_row_column_capacity,
         c(args[intersect(names(args), c("rows_in_field", "cols_in_field", "rows_per_block",
-                                      "cols_per_block", "checks_per_block"))], list(n_controls = 4)))
+                                      "cols_per_block", "rows_per_rowgroup", "cols_per_colgroup",
+                                      "checks_per_block"))], list(n_controls = 4)))
       expect_equal(cap$entry_plots, n)
       expect_equal(cap$check_plots, 144 - n)
       expect_equal(cap$error_df, options$error_df[i])
@@ -37,15 +38,12 @@ test_that("augmented row-column options have exactly the requested entry positio
       expect_gte(cap$min_colgroup_slack, 0)
     }
     selected <- options[1, ]
-    # The explicit constructor needs every field/block setting, including
-    # extra check replication for entry counts that do not fill regular blocks.
-    generated <- augmented_row_column_design(
-      treatments = paste0("G", seq_len(n)), controls = paste0("C", 1:4),
-      rows_in_field = selected$rows_in_field, cols_in_field = selected$cols_in_field,
-      rows_per_block = selected$rows_per_block, cols_per_block = selected$cols_per_block,
-      checks_per_block = selected$checks_per_block[[1]], method = selected$method,
-      n_candidates = 5, seed = 7
-    )
+    # The option's arguments hold every field/block setting, including
+    # unequal groups and extra check replication.
+    args <- selected$arguments[[1]]
+    args$n_candidates <- 5
+    generated <- do.call(selected$generator, c(list(
+      treatments = paste0("G", seq_len(n)), controls = paste0("C", 1:4), seed = 7), args))
     expect_equal(sum(generated$design$is_control == 0), n)
     expect_equal(sum(generated$design$is_control == 1), 144 - n)
     expect_equal(anyDuplicated(generated$design$all_entries[generated$design$is_control == 0]), 0)
@@ -86,14 +84,16 @@ test_that("augmented row-column blocks have at least one row and column per chec
     options <- design_options(100, "augmented_row_column", n_checks = 4,
                                rows_in_field = dims[1], cols_in_field = dims[2], n_options = 20)
     expect_gt(nrow(options), 0)
-    expect_true(all(options$rows_per_block >= 4L))
-    expect_true(all(options$cols_per_block >= 4L))
+    equal <- !is.na(options$rows_per_block)
+    expect_true(all(options$rows_per_block[equal] >= 4L))
+    expect_true(all(options$cols_per_block[equal] >= 4L))
   }
   # The minimum follows each option's own check count.
   options <- design_options(100, "augmented_row_column", n_checks = 2:6)
   expect_setequal(options$n_checks, 2:6)
-  expect_true(all(options$rows_per_block >= options$n_checks))
-  expect_true(all(options$cols_per_block >= options$n_checks))
+  equal <- !is.na(options$rows_per_block)
+  expect_true(all(options$rows_per_block[equal] >= options$n_checks[equal]))
+  expect_true(all(options$cols_per_block[equal] >= options$n_checks[equal]))
   for (dims in list(c(3, 20), c(20, 3))) {
     expect_message(empty <- design_options(20, "augmented_row_column", n_checks = 4,
       rows_in_field = dims[1], cols_in_field = dims[2]), "No design options")
@@ -206,4 +206,59 @@ test_that("rows and cols still work as deprecated names of the field dimensions"
   new <- design_options(108, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12)
   expect_identical(old, new)
   expect_error(suppressWarnings(design_options(100, rows = 9, rows_in_field = 9)), "rows_in_field")
+})
+
+test_that("min_error_df = 0 offers the Fig. 2 layout of Piepho and Williams (2016)", {
+  options <- design_options(36, "augmented_row_column", n_checks = 3, rows_in_field = 9, min_error_df = 0)
+  expect_identical(c(options$rows_in_field[1], options$cols_in_field[1]), c(9L, 6L))
+  expect_equal(c(options$rows_per_block[1], options$cols_per_block[1]), c(3, 3))
+  expect_equal(options$check_plots[1], 18)
+  expect_equal(options$error_df[1], 0)
+  expect_true(options$square_check_blocks[1])
+  # By default the Fig. 2 layout (each check once per 3 x 3 block) is the
+  # only one allowed with zero error df; an explicit min_error_df applies to all.
+  default <- design_options(36, "augmented_row_column", n_checks = 3, rows_in_field = 9)
+  expect_identical(c(default$rows_in_field[1], default$cols_in_field[1]), c(9L, 6L))
+  expect_true(default$square_check_blocks[1])
+  expect_match(default$note[1], "random_blocks")
+  expect_true(all(default$error_df[-1] >= 1))
+  strict <- design_options(36, "augmented_row_column", n_checks = 3, rows_in_field = 9, min_error_df = 1)
+  expect_true(all(strict$error_df >= 1))
+  # A 9 x 9 field has 5 check plots per 3 x 3 block: not the Fig. 2 layout.
+  full <- design_options(36, "augmented_row_column", n_checks = 3, rows_in_field = 9, cols_in_field = 9)
+  expect_false(any(full$square_check_blocks))
+})
+
+test_that("Fig. 3 of Piepho and Williams (2016) is the first suggestion for its field", {
+  # 576 entries, 4 checks, 36 x 18 field: eighteen 6 x 6 blocks, 4 check plots each.
+  options <- design_options(576, "augmented_row_column", n_checks = 4,
+                            rows_in_field = 36, cols_in_field = 18)
+  expect_equal(c(options$rows_per_block[1], options$cols_per_block[1]), c(6, 6))
+  expect_equal(options$check_plots[1], 72)
+  expect_equal(options$error_df[1], 6)
+  expect_identical(options$method[1], "latin")
+})
+
+test_that("Fig. 4 of Piepho and Williams (2016): unequal groups are suggested and generated", {
+  # 173 entries, 4 checks, 22 x 10 field: row groups 6,5,6,5; column groups 3,4,3.
+  options <- design_options(173, "augmented_row_column", n_checks = 4,
+                            rows_in_field = 22, cols_in_field = 10)
+  first <- options[1, ]
+  expect_equal(first$rows_per_rowgroup[[1]], c(6L, 5L, 6L, 5L))
+  expect_equal(first$cols_per_colgroup[[1]], c(3L, 4L, 3L))
+  expect_true(is.na(first$rows_per_block))
+  expect_equal(first$n_blocks, 12)
+  expect_equal(first$check_plots, 47)
+  expect_equal(first$error_df, 7)
+  pb <- first$checks_per_block[[1]]
+  expect_equal(sum(pb), 47)
+  expect_true(all(pb >= 3 & pb <= 5))
+  trial <- do.call(first$generator, c(list(treatments = paste0("E", 1:173), controls = LETTERS[1:4],
+                                           seed = 1), first$arguments[[1]]))
+  expect_equal(sum(trial$design$is_control == 1), 47)
+  expect_equal(max(trial$design$row), 22)
+  expect_equal(max(trial$design$col), 10)
+  expect_equal(trial$summary$error_df, 7)
+  expect_equal(unname(table(trial$design$block[trial$design$is_control == 1])), as.vector(t(pb)),
+               ignore_attr = TRUE)
 })

@@ -45,7 +45,15 @@
 #'   3 are excluded. Supply a dimension explicitly to consider longer fields.
 #' @param min_error_df Minimum nominal error degrees of freedom. These are
 #'   count-based values for the design model, assuming its effects are
-#'   estimable, not degrees of freedom of a later spatial model.
+#'   estimable, not degrees of freedom of a later spatial model. `NULL`
+#'   (default) requires at least 1, except for the layout of Fig. 2 of
+#'   Piepho and Williams (2016): blocks of `n_checks` x `n_checks` plots with
+#'   each check exactly once, such as 36 entries and three checks in a 9 x 6
+#'   field. That layout is saturated with fixed rows, columns and blocks
+#'   (error df = 0) and is analyzed with
+#'   `analyze_augmented_row_column_design(random_blocks = TRUE)` or
+#'   `entries = "random"`. A supplied value applies to every layout; 0 also
+#'   admits other saturated layouts.
 #' @param n_options Maximum options returned per design family. The
 #'   shortlist includes different check, full-replication or p-rep counts
 #'   before adding further layouts with the same counts.
@@ -64,13 +72,21 @@
 #' efficiency: generate the chosen option, inspect its summary and run
 #' [check_design()]. The search is bounded and not exhaustive.
 #'
-#' Augmented row-column options use equal row and column groups. Every block
-#' has at least `n_checks` rows and at least `n_checks` columns, leaving room
-#' for one copy of each check in a distinct row and column. For example,
-#' four checks require blocks of at least 4 rows by 4 columns. Every block
-#' contains all checks at least once; extra positions are assigned to extra check
-#' replication, so the number of test-entry positions is exactly
-#' `n_entries`. Flexible allocations use `method = "optimal"`.
+#' Augmented row-column options with equal row and column groups have
+#' blocks of at least `n_checks` rows and at least `n_checks` columns,
+#' leaving room for one copy of each check in a distinct row and column. For
+#' example, four checks require blocks of at least 4 rows by 4 columns. Every
+#' such block contains all checks at least once; extra positions are assigned
+#' to extra check replication, so the number of test-entry positions is
+#' exactly `n_entries`. Flexible allocations use `method = "optimal"`.
+#'
+#' Options with unequal row or column groups (Piepho and Williams, 2016,
+#' Example 3 and Fig. 4) split the field into near-equal groups, such as
+#' rows 6, 5, 6, 5 and columns 3, 4, 3 for a 22 x 10 field. Their blocks hold
+#' `n_checks - 1` to `n_checks + 1` check plots, in proportion to block size,
+#' so some blocks may be incomplete for the checks. These options report
+#' `rows_per_rowgroup`, `cols_per_colgroup` and `checks_per_block`, with
+#' `rows_per_block` and `cols_per_block` set to `NA`.
 #'
 #' Resolvable options may contain filler positions, which are reported in
 #' `unused_plots`. Include both entries and checks in the generator's
@@ -80,12 +96,16 @@
 #'
 #' Square blocks are preferred but not required: for augmented row-column
 #' designs, when a layout with blocks of `n_checks` rows by `n_checks`
-#' columns exists (for example 3 x 3 blocks for three checks), the smallest
-#' one is the first option and `square_check_blocks` flags it. The other
+#' columns containing each check exactly once exists (for example 3 x 3
+#' blocks with checks A, B and C, as in Fig. 2 of Piepho and Williams, 2016),
+#' the smallest one is the first option and `square_check_blocks` flags it.
+#' Blocks of that size with extra check plots are not flagged. The other
 #' options follow in the usual order: within each
-#' resource-count group, smaller field areas, fewer unused positions and
-#' less elongated fields come first; Latin augmented row-column
-#' constructions are preferred over searched allocations at the same area.
+#' resource-count group, smaller field areas and fewer unused positions come
+#' first. Within a field, augmented row-column layouts whose blocks hold about
+#' one check plot per check (complete blocks for the checks, as in Piepho and
+#' Williams, 2016) come first, then Latin constructions, squarer blocks and
+#' less elongated fields.
 #' This ordering does not estimate statistical precision or choose the
 #' biologically best design.
 #'
@@ -99,6 +119,8 @@
 #'   effort. `checks_per_block` is a list-column with each augmented
 #'   row-column option's check-allocation matrix, or `NULL` for the default
 #'   complete check blocks. These columns support an explicit generator call.
+#'   `rows_per_rowgroup` and `cols_per_colgroup` are list-columns with the
+#'   group sizes of unequal-group options, or `NULL`.
 #'   `generator` names the function to call; `arguments` is a list-column of
 #'   its layout arguments. Add your own `treatments`, `controls` (augmented row-column)
 #'   and `seed` before calling it with `do.call()`. p-rep arguments include
@@ -135,9 +157,13 @@
 #' # Fully replicated options with one known dimension:
 #' design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
 #'
-#' # Only the number of field rows is known; with three checks, a layout
-#' # with 3 x 3 blocks is listed first when one fits.
+#' # Only the number of field rows is known. With three checks, the first
+#' # option is the layout of Piepho and Williams (2016, Fig. 2): a 9 x 6 field
+#' # of six 3 x 3 blocks, each check once per block (error df = 0).
 #' design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9)
+#' # Require positive error df for every layout:
+#' design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9,
+#'                min_error_df = 1)
 #' # Partial replication at three locations:
 #' design_options(100, design = "prep", n_locations = 3)
 #' @export
@@ -147,7 +173,7 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
                            block_size = c(5L, 8L, 10L, 12L, 16L, 20L),
                            prep_prop = NULL,
                            max_plots = NULL, max_dimension = NULL,
-                           min_error_df = 1L, n_options = 6L, n_candidates = 200L,
+                           min_error_df = NULL, n_options = 6L, n_candidates = 200L,
                            rows = NULL, cols = NULL) {
   integers <- function(x, name, minimum = 1L, scalar = FALSE) {
     if (!is.numeric(x) || !length(x) || (scalar && length(x) != 1L) ||
@@ -178,7 +204,12 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
   n_locations <- integers(n_locations, "n_locations", scalar = TRUE)
   n_reps <- integers(n_reps, "n_reps", minimum = 2L)
   block_size <- integers(block_size, "block_size", minimum = 2L)
-  min_error_df <- integers(min_error_df, "min_error_df", scalar = TRUE)
+  # Default: at least 1 error df, except the saturated layout of Piepho and
+  # Williams (2016, Fig. 2), with each check exactly once per n_checks x
+  # n_checks block, which is analyzed with random blocks.
+  allow_fig2 <- is.null(min_error_df)
+  if (allow_fig2) min_error_df <- 1L
+  min_error_df <- integers(min_error_df, "min_error_df", scalar = TRUE, minimum = 0L)
   n_options <- integers(n_options, "n_options", scalar = TRUE)
   n_candidates <- integers(n_candidates, "n_candidates", scalar = TRUE)
   if (is.null(prep_prop)) {
@@ -216,7 +247,8 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
       augmented_row_column = if (any(checks > 0L)) {
         why <- paste0("No augmented row-column layout meets the supplied limits with at least ",
                        "n_checks rows and n_checks columns in every block.")
-        do_option_augmented(n_entries, checks[checks > 0L], fields, n_locations, min_error_df, n_options)
+        do_option_augmented(n_entries, checks[checks > 0L], fields, n_locations, min_error_df, n_options,
+                            allow_fig2)
       } else {
         why <- "Augmented row-column designs require at least one distinct check."
         NULL
@@ -239,8 +271,18 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
         })
       }
       group <- paste(choices$n_checks, choices$n_reps, choices$n_repeated, sep = "/")
-      choices <- choices[order(choices$field_plots, choices$unused_plots,
-        choices$method != "latin", abs(log(choices$rows_in_field / choices$cols_in_field)), -choices$error_df), ]
+      # Within a field: blocks holding about one plot per check (complete
+      # blocks for the checks), Latin constructions, then squarer blocks.
+      per_block <- if (kind == "augmented_row_column") abs(choices$check_plots / choices$n_blocks - choices$n_checks) else rep(0, nrow(choices))
+      block_rows <- choices$rows_in_field / vapply(choices$arguments, function(a)
+        if (!is.null(a$rows_per_rowgroup)) length(a$rows_per_rowgroup) else
+          if (!is.null(a$rows_per_block)) a$rows_in_field / a$rows_per_block else 1, numeric(1))
+      block_cols <- choices$cols_in_field / vapply(choices$arguments, function(a)
+        if (!is.null(a$cols_per_colgroup)) length(a$cols_per_colgroup) else
+          if (!is.null(a$cols_per_block)) a$cols_in_field / a$cols_per_block else 1, numeric(1))
+      choices <- choices[order(choices$field_plots, choices$unused_plots, per_block,
+        choices$method != "latin", abs(log(block_rows / block_cols)),
+        abs(log(choices$rows_in_field / choices$cols_in_field)), -choices$error_df), ]
       # Preference, not a requirement: when possible, the best option has
       # square blocks of n_checks rows by n_checks columns.
       group <- paste(choices$n_checks, choices$n_reps, choices$n_repeated, sep = "/")
@@ -294,9 +336,12 @@ do_option_row <- function(design = "", n_entries = 0L, n_checks = 0L, rows = 0L,
   tibble::tibble(design = design, n_entries = n_entries, n_checks = n_checks,
     rows_in_field = rows, cols_in_field = cols,
     square_check_blocks = isTRUE(n_checks > 0L && identical(as.integer(arguments$rows_per_block), as.integer(n_checks)) &&
-                                   identical(as.integer(arguments$cols_per_block), as.integer(n_checks))),
+                                   identical(as.integer(arguments$cols_per_block), as.integer(n_checks)) &&
+                                   is.null(arguments$checks_per_block)),
     n_locations = n_locations, n_reps = n_reps,
     rows_per_block = arguments$rows_per_block %||% NA_integer_,
+    rows_per_rowgroup = list(arguments$rows_per_rowgroup),
+    cols_per_colgroup = list(arguments$cols_per_colgroup),
     cols_per_block = arguments$cols_per_block %||% NA_integer_,
     rows_per_rep = arguments$rows_per_rep %||% NA_integer_,
     cols_per_rep = arguments$cols_per_rep %||% NA_integer_,
@@ -315,7 +360,7 @@ do_option_divisors <- function(n) {
   sort(unique(c(small, n %/% small)))
 }
 
-do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
+do_option_augmented <- function(n, checks, fields, locations, min_df, limit, allow_fig2 = FALSE) {
   if (!length(checks)) return(NULL)
   choices <- list()
   seen_checks <- integer()
@@ -324,7 +369,7 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
   for (i in seq_len(nrow(fields))) {
     r <- fields$rows[i]; c <- fields$cols[i]
     p <- as.double(r) * c - n
-    if (p < r + c - 2 + min(checks) + min_df) next
+    if (p < r + c - 2 + min(checks) + if (allow_fig2) 0 else min_df) next
     rb <- do_option_divisors(r); rb <- rb[rb >= 2L]
     cb <- do_option_divisors(c); cb <- cb[cb >= 2L]
     grid <- expand.grid(rb = rb, cb = cb, checks = checks)
@@ -335,8 +380,10 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
     }
     nr <- r / grid$rb; nc <- c / grid$cb; b <- nr * nc
     df <- p - grid$checks - (r - 1) - (c - 1) - (nr - 1) * (nc - 1)
+    # Each check exactly once in every n_checks x n_checks block.
+    fig2 <- grid$rb == grid$checks & grid$cb == grid$checks & p == b * grid$checks
     grid <- grid[grid$rb >= grid$checks & grid$cb >= grid$checks &
-                   df >= min_df & floor(p / b) >= grid$checks &
+                   (df >= min_df | (allow_fig2 & fig2 & df >= 0)) & floor(p / b) >= grid$checks &
                    ceiling(p / b) < grid$rb * grid$cb, , drop = FALSE]
     for (j in seq_len(nrow(grid))) {
       g <- grid[j, ]; nr <- r %/% g$rb; nc <- c %/% g$cb; b <- nr * nc
@@ -361,10 +408,17 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
       choices[[length(choices) + 1L]] <- do_option_row("augmented_row_column", n, g$checks, r, c, locations,
         1L, r * c, p, blocks = b, error_df = cap$error_df, method = method,
         generator = "augmented_row_column_design", arguments = args,
-        note = if (regular) "Every check once per block." else
+        note = if (regular && cap$error_df == 0) paste0("Every check once per block. Error df = 0 with fixed ",
+          "rows, columns and blocks (Piepho and Williams, 2016, Fig. 2): analyze with random_blocks = TRUE.") else
+          if (regular) "Every check once per block." else
           "Extra check replication fills the field exactly; allocation needs optimization.")
       seen_checks <- union(seen_checks, g$checks)
-      if (g$rb == g$checks && g$cb == g$checks) seen_square <- union(seen_square, g$checks)
+      if (regular && g$rb == g$checks && g$cb == g$checks) seen_square <- union(seen_square, g$checks)
+    }
+    if (is.na(stop_area)) {
+      unequal <- do_option_unequal(n, checks, r, c, p, locations, min_df)
+      choices <- c(choices, unequal)
+      seen_checks <- union(seen_checks, vapply(unequal, function(x) x$n_checks, integer(1)))
     }
     # Search the smallest fields first; keep a pool larger than the shortlist.
     wanted <- head(checks, limit)
@@ -376,8 +430,75 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
       # promoting a much larger field.
       rest <- fields[-seq_len(i), , drop = FALSE]
       rest <- rest[as.double(rest$rows) * rest$cols <= 1.5 * stop_area, , drop = FALSE]
-      possible <- vapply(wanted, function(k) any(rest$rows %% k == 0L & rest$cols %% k == 0L), logical(1))
+      # Each check once per k x k block: k check plots in every k^2 plots.
+      possible <- vapply(wanted, function(k) any(rest$rows %% k == 0L & rest$cols %% k == 0L &
+        as.double(rest$rows) * rest$cols * (k - 1) == as.double(n) * k), logical(1))
       if (all(wanted %in% seen_square | !possible)) break
+    }
+  }
+  choices
+}
+
+# Near-equal split of `total` rows (or columns) into `g` groups, larger
+# groups spread out, e.g. 22 rows in 4 groups -> 6, 5, 6, 5 and 10 columns
+# in 3 groups -> 3, 4, 3, as in Piepho and Williams (2016, Fig. 4).
+do_option_split <- function(total, g) {
+  sizes <- rep(total %/% g, g)
+  extra <- total %% g
+  if (extra) {
+    step <- g / extra
+    sizes[floor((seq_len(extra) - 1) * step + (step - 1) / 2) + 1L] <- sizes[1] + 1L
+  }
+  as.integer(sizes)
+}
+
+# Check plots per block proportional to block area (largest remainder),
+# as in Piepho and Williams (2016, Fig. 4).
+do_option_allocate <- function(p, rows, cols) {
+  area <- outer(rows, cols)
+  quota <- p * area / sum(area)
+  pb <- floor(quota)
+  left <- p - sum(pb)
+  if (left > 0) {
+    take <- order(-(quota - pb), seq_along(quota))[seq_len(left)]
+    pb[take] <- pb[take] + 1
+  }
+  matrix(as.integer(pb), length(rows), length(cols))
+}
+
+# Augmented row-column layouts with unequal row or column groups (Piepho and
+# Williams, 2016, Example 3). Blocks hold about n_checks check plots each
+# (n_checks - 1 to n_checks + 1), so some may be incomplete for the checks.
+do_option_unequal <- function(n, checks, r, c, p, locations, min_df) {
+  splits <- function(total, k) {
+    out <- list()
+    for (g in seq_len(total %/% 2L)) {
+      size <- total / g
+      if (size < max(2, ceiling(k / 2)) || size > 2 * k) next
+      out[[length(out) + 1L]] <- do_option_split(total, g)
+    }
+    out
+  }
+  choices <- list()
+  for (k in checks) {
+    row_splits <- splits(r, k); col_splits <- splits(c, k)
+    for (rs in row_splits) for (cs in col_splits) {
+      if (length(unique(rs)) == 1L && length(unique(cs)) == 1L) next  # equal groups: searched above
+      b <- length(rs) * length(cs)
+      if (p / b < max(2, k - 1) || p / b > k + 1) next
+      pb <- do_option_allocate(p, rs, cs)
+      if (any(pb < 1L) || any(pb >= outer(rs, cs))) next
+      cap <- augmented_row_column_capacity(n_controls = k, rows_per_rowgroup = rs,
+                                           cols_per_colgroup = cs, checks_per_block = pb)
+      if (!cap$every_row_has_check || !cap$every_col_has_check ||
+          cap$min_rowgroup_slack < 0 || cap$min_colgroup_slack < 0 || cap$error_df < min_df) next
+      args <- list(rows_per_rowgroup = rs, cols_per_colgroup = cs, checks_per_block = pb,
+                   method = "optimal")
+      choices[[length(choices) + 1L]] <- do_option_row("augmented_row_column", n, k, r, c, locations,
+        1L, r * c, p, blocks = b, error_df = cap$error_df, method = "optimal",
+        generator = "augmented_row_column_design", arguments = args,
+        note = paste0("Unequal groups: rows ", paste(rs, collapse = ","), "; columns ",
+                      paste(cs, collapse = ","), ". Check plots per block follow block size."))
     }
   }
   choices

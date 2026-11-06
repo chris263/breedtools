@@ -346,7 +346,13 @@ check_design.augmented_row_column_design <- function(design, section = NULL) {
     check_result("check plots per block as requested",
                  all(as.vector(table(factor(ck$block, levels = seq_along(inp$checks_per_block)))) ==
                        as.vector(t(inp$checks_per_block))), sec),
-    check_result(sprintf("error df > 0 (%d)", design$summary$error_df), design$summary$error_df > 0, sec),
+    if (design$summary$error_df == 0) {
+      # Saturated with fixed effects but analyzable with random effects.
+      check_result("error df > 0 (0): analyze with random_blocks = TRUE or entries = \"random\"",
+                   FALSE, sec, note = TRUE) || TRUE
+    } else {
+      check_result(sprintf("error df > 0 (%d)", design$summary$error_df), design$summary$error_df > 0, sec)
+    },
     check_result("row, column and block effects estimable from the checks", design$summary$d_criterion > 0, sec)
   )
   # Blocks with at least as many check plots as checks hold every check;

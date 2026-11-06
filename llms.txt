@@ -76,7 +76,7 @@ remotes::install_github("solgenomics/breedtools")
   [`vignette("breedtools")`](https://solgenomics.github.io/breedtools/articles/breedtools.md)
   walks through every design and analysis with simulated data.
 - **In R**:
-  [`help(package = "breedtools")`](https://chris263.github.io/breedtools/reference)
+  [`help(package = "breedtools")`](https://solgenomics.github.io/breedtools/reference)
   lists every help page.
   [`?augmented_row_column_design`](https://solgenomics.github.io/breedtools/reference/augmented_row_column_design.md)
   opens one page, and `example(augmented_row_column_design)` runs its

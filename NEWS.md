@@ -1,6 +1,14 @@
 # breedtools 0.1.0
 
 * First CRAN release.
+* `design_options()`: the field dimensions are now `rows_in_field` and
+  `cols_in_field`, the same names as in its result and in
+  `augmented_row_column_design()`. `rows` and `cols` still work, with a
+  deprecation warning. When possible, the first augmented row-column
+  option has square blocks of `n_checks` x `n_checks` (e.g. 3 x 3 blocks
+  for three checks), flagged by the new column `square_check_blocks`; other
+  block shapes are still listed. With one known dimension, the square
+  field is also tested.
 * Documentation website (pkgdown) with every function grouped by task, and
   a grouped list of all functions with examples in the README.
 * Names saved in Breedbase contain only letters, digits, "_", "-" and ".":

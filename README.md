@@ -67,8 +67,8 @@ remotes::install_github("solgenomics/breedtools")
 ```r
 library(breedtools)
 design_options(n_entries = 100)  # field dimensions and checks not yet known
-design_options(108, design = "augmented_row_column", n_checks = 4, rows = 12, cols = 12)
-design_options(42, design = "resolvable", n_reps = 3, cols = 7)
+design_options(108, design = "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12)
+design_options(42, design = "resolvable", n_reps = 3, cols_in_field = 7)
 ```
 
 Options report field size, checks, replication, plot counts, unused

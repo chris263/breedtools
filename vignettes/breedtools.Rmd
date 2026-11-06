@@ -58,15 +58,19 @@ known constraints and leave the others unspecified:
 
 ```{r constrained-design-options}
 fixed_options <- design_options(108, design = "augmented_row_column", n_checks = 4,
-  rows = 12, cols = 12, n_candidates = 200)
+  rows_in_field = 12, cols_in_field = 12, n_candidates = 200)
 fixed_options[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
                    "cols_per_block", "n_candidates", "check_plots", "error_df", "method")]
-design_options(42, design = "resolvable", cols = 7, n_reps = 3)
+design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
 ```
 
-Rows and columns describe the entire field at one location, including all
-replicates. A supplied dimension is an exact candidate size; a vector such
-as `rows = c(12, 15, 18)` considers each size. `max_plots` limits field area
+`rows_in_field` and `cols_in_field` describe the entire field at one
+location, including all checks and replicates; block dimensions are
+suggested in the result as `rows_per_block` and `cols_per_block`. A
+supplied dimension is an exact candidate size; a vector such as
+`rows_in_field = c(12, 15, 18)` considers each size. When possible,
+the first augmented row-column option has square blocks of `n_checks` rows
+by `n_checks` columns, such as 3 x 3 blocks for three checks. `max_plots` limits field area
 per location. `unused_plots` reports filler positions or a partial final
 row. `min_error_df = 10`, for example, can exclude layouts with little
 nominal error information. `attr(options, "diagnostics")` explains why a

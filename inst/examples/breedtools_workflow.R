@@ -52,12 +52,12 @@ check_setup(out_dir)
 # ---- A1. Plan the layout: will it be analyzable? ----------------------------
 
 # If only your entry count is known, start here. Restrict `design` to the
-# families you want and add rows, cols, n_checks or n_reps as they become known.
+# families you want and add rows_in_field, cols_in_field, n_checks or n_reps as they become known.
 planning_options <- design_options(100)
 print(planning_options[, c("design", "n_checks", "rows_in_field", "cols_in_field", "n_reps",
                            "plots_per_location", "error_df")])
 # For an augmented row-column design, pass every chosen setting explicitly:
-#   selected <- design_options(108, "augmented_row_column", n_checks = 4, rows = 12, cols = 12)[1, ]
+#   selected <- design_options(108, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12)[1, ]
 #   trial <- augmented_row_column_design(
 #     treatments = your_entries, controls = your_checks,
 #     rows_in_field = selected$rows_in_field, cols_in_field = selected$cols_in_field,

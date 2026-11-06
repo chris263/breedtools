@@ -8,8 +8,8 @@ design_options(
   n_entries,
   design = c("augmented_row_column", "prep", "resolvable"),
   n_checks = NULL,
-  rows = NULL,
-  cols = NULL,
+  rows_in_field = NULL,
+  cols_in_field = NULL,
   n_locations = 1L,
   n_reps = 2:3,
   block_size = c(5L, 8L, 10L, 12L, 16L, 20L),
@@ -18,7 +18,9 @@ design_options(
   max_dimension = NULL,
   min_error_df = 1L,
   n_options = 6L,
-  n_candidates = 200L
+  n_candidates = 200L,
+  rows = NULL,
+  cols = NULL
 )
 }
 \arguments{
@@ -34,10 +36,14 @@ zero for the other families. p-rep uses no separate checks; it is
 excluded when only positive check counts are requested. Resolvable
 designs replicate checks just like the other genotypes.}
 
-\item{rows, cols}{Known field dimensions, per location, including all
-replicates. Each can be a positive integer, a vector of dimensions to
-consider, or \code{NULL} to search automatically. Supplied dimensions are
-exact candidate sizes, not upper bounds. For p-rep, the last row may be
+\item{rows_in_field, cols_in_field}{Known dimensions of the whole field at
+one location (plot rows and plot columns, including all checks and
+replicates), not of a block. Block dimensions are suggested in the
+result as \code{rows_per_block} and \code{cols_per_block}. Each can be a positive
+integer, a vector of dimensions to consider, or \code{NULL} to search
+automatically. Supplied dimensions are exact candidate sizes, not upper
+bounds. When only one is supplied, the square field (the same number of
+rows and columns) is also considered. For p-rep, the last row may be
 partially occupied, but wholly empty final rows are not proposed.}
 
 \item{n_locations}{Number of locations. Augmented row-column and resolvable layouts
@@ -78,10 +84,12 @@ before adding further layouts with the same counts.}
 \item{n_candidates}{Search candidates to pass to the augmented row-column
 and p-rep generators. Defaults to 200. This is a user-selected search
 effort, not a dimension inferred from entry counts.}
+
+\item{rows, cols}{Deprecated names of \code{rows_in_field} and \code{cols_in_field}.}
 }
 \value{
 A tibble with option id, design family, entry/check counts,
-field dimensions, location and replication counts, active plots per
+field dimensions, a \code{square_check_blocks} flag, location and replication counts, active plots per
 location and in total, field area, unused positions, check plots,
 repeated entries, blocks, nominal \code{error_df}, method and notes.
 Field dimensions are named \code{rows_in_field} and \code{cols_in_field}, matching
@@ -127,8 +135,13 @@ Resolvable options may contain filler positions, which are reported in
 checks need to be marked in Breedbase, set \code{is_control} in both the
 generated \code{design} and \code{breedbase_design} tables before saving.
 
-Within each resource-count group, smaller field areas, fewer unused
-positions and less elongated fields come first; Latin augmented row-column
+Square blocks are preferred but not required: for augmented row-column
+designs, when a layout with blocks of \code{n_checks} rows by \code{n_checks}
+columns exists (for example 3 x 3 blocks for three checks), the smallest
+one is the first option and \code{square_check_blocks} flags it. The other
+options follow in the usual order: within each
+resource-count group, smaller field areas, fewer unused positions and
+less elongated fields come first; Latin augmented row-column
 constructions are preferred over searched allocations at the same area.
 This ordering does not estimate statistical precision or choose the
 biologically best design.
@@ -140,7 +153,7 @@ options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field", "p
 
 # A known field, four checks and exactly 108 test entries:
 options <- design_options(108, design = "augmented_row_column", n_checks = 4,
-                          rows = 12, cols = 12, n_candidates = 5)
+                          rows_in_field = 12, cols_in_field = 12, n_candidates = 5)
 selected <- options[1, ]
 trial <- augmented_row_column_design(
   treatments = paste0("LINE_", seq_len(108)),
@@ -156,7 +169,11 @@ trial <- augmented_row_column_design(
 )
 
 # Fully replicated options with one known dimension:
-design_options(42, design = "resolvable", cols = 7, n_reps = 3)
+design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
+
+# Only the number of field rows is known; with three checks, a layout
+# with 3 x 3 blocks is listed first when one fits.
+design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9)
 # Partial replication at three locations:
 design_options(100, design = "prep", n_locations = 3)
 }

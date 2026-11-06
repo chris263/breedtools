@@ -17,13 +17,13 @@ test_that("entry counts alone produce bounded options for each native design fam
 })
 
 test_that("augmented row-column options have exactly the requested entry positions, including prime counts", {
-  options <- design_options(108, "augmented_row_column", n_checks = 4, rows = 12, cols = 12)
+  options <- design_options(108, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12)
   expect_gt(nrow(options), 0)
   expect_identical(options$method[1], "latin")
   expect_equal(options$rows_per_block[1], 4)
   expect_equal(options$cols_per_block[1], 4)
   for (n in c(100, 101)) {
-    options <- design_options(n, "augmented_row_column", n_checks = 4, rows = 12, cols = 12, n_options = 2)
+    options <- design_options(n, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12, n_options = 2)
     expect_gt(nrow(options), 0)
     for (i in seq_len(nrow(options))) {
       args <- options$arguments[[i]]
@@ -53,7 +53,7 @@ test_that("augmented row-column options have exactly the requested entry positio
 })
 
 test_that("p-rep options obey repeated-entry budgets and map to generator arguments", {
-  options <- design_options(100, "prep", n_locations = 3, cols = 10)
+  options <- design_options(100, "prep", n_locations = 3, cols_in_field = 10)
   expect_gt(nrow(options), 0)
   expect_true(all(options$n_checks == 0))
   expect_true(all(options$n_repeated * 3 <= 100))
@@ -84,7 +84,7 @@ test_that("augmented row-column blocks have at least one row and column per chec
   # Check both orientations: a narrow row group or column group is excluded.
   for (dims in list(c(9, 14), c(14, 9), c(12, 12))) {
     options <- design_options(100, "augmented_row_column", n_checks = 4,
-                               rows = dims[1], cols = dims[2], n_options = 20)
+                               rows_in_field = dims[1], cols_in_field = dims[2], n_options = 20)
     expect_gt(nrow(options), 0)
     expect_true(all(options$rows_per_block >= 4L))
     expect_true(all(options$cols_per_block >= 4L))
@@ -96,19 +96,19 @@ test_that("augmented row-column blocks have at least one row and column per chec
   expect_true(all(options$cols_per_block >= options$n_checks))
   for (dims in list(c(3, 20), c(20, 3))) {
     expect_message(empty <- design_options(20, "augmented_row_column", n_checks = 4,
-      rows = dims[1], cols = dims[2]), "No design options")
+      rows_in_field = dims[1], cols_in_field = dims[2]), "No design options")
     expect_equal(nrow(empty), 0)
     expect_match(attr(empty, "diagnostics")$reason, "n_checks rows and n_checks columns")
   }
 })
 
 test_that("resolvable options account for all checks, replicates and filler positions", {
-  options <- design_options(42, "resolvable", n_reps = 3, cols = 7)
+  options <- design_options(42, "resolvable", n_reps = 3, cols_in_field = 7)
   expect_equal(options$rows_in_field[1], 18)
   expect_equal(options$error_df[1], 49)
   expect_equal(options$unused_plots[1], 0)
   # A larger fixed field needs fillers, rather than extra test entries.
-  options <- design_options(40, "resolvable", n_checks = 2, n_reps = 3, rows = 21, cols = 7)
+  options <- design_options(40, "resolvable", n_checks = 2, n_reps = 3, rows_in_field = 21, cols_in_field = 7)
   expect_gt(nrow(options), 0)
   expect_equal(options$plots_per_location, 126)
   expect_equal(options$unused_plots, 21)
@@ -129,11 +129,11 @@ test_that("resolvable options account for all checks, replicates and filler posi
 })
 
 test_that("field constraints and empty results keep a consistent schema", {
-  options <- design_options(100, rows = c(12, 18, 24), cols = c(8, 10), max_plots = 240)
+  options <- design_options(100, rows_in_field = c(12, 18, 24), cols_in_field = c(8, 10), max_plots = 240)
   expect_true(all(options$rows_in_field %in% c(12, 18, 24)))
   expect_true(all(options$cols_in_field %in% c(8, 10)))
   expect_true(all(options$field_plots <= 240))
-  expect_message(empty <- design_options(100, rows = 4, cols = 4), "No design options")
+  expect_message(empty <- design_options(100, rows_in_field = 4, cols_in_field = 4), "No design options")
   expect_equal(nrow(empty), 0)
   expect_identical(names(empty), names(options))
   expect_true(is.list(empty$arguments))
@@ -161,8 +161,8 @@ test_that("invalid counts and design requests have explicit errors", {
   expect_error(design_options(100, "unknown"), "arg")
   expect_error(design_options(100, "augmented"), "augmented_row_column")
   expect_error(design_options(100, n_checks = -1), "n_checks")
-  expect_error(design_options(100, rows = 0), "rows")
-  expect_error(design_options(100, cols = 2.5), "cols")
+  expect_error(design_options(100, rows_in_field = 0), "rows_in_field")
+  expect_error(design_options(100, cols_in_field = 2.5), "cols_in_field")
   expect_error(design_options(100, n_locations = 0), "n_locations")
   expect_error(design_options(100, n_reps = 1), "n_reps")
   expect_error(design_options(100, prep_prop = NA_real_), "prep_prop")
@@ -172,7 +172,7 @@ test_that("invalid counts and design requests have explicit errors", {
 })
 
 test_that("augmented row-column options expose all generator settings with the correct name", {
-  options <- design_options(108, "augmented_row_column", n_checks = 4, rows = 12, cols = 12,
+  options <- design_options(108, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12,
                              n_candidates = 37)
   expect_true(all(options$design == "augmented_row_column"))
   expect_true(all(c("rows_in_field", "cols_in_field", "rows_per_block", "cols_per_block",
@@ -182,4 +182,28 @@ test_that("augmented row-column options expose all generator settings with the c
   expect_identical(options$rows_in_field[1], 12L)
   expect_identical(options$cols_in_field[1], 12L)
   expect_null(options$checks_per_block[[1]])
+})
+
+test_that("n_checks x n_checks blocks are the first option when possible, not a requirement", {
+  options <- design_options(36, "augmented_row_column", n_checks = 3, rows_in_field = 9)
+  expect_equal(options$rows_per_block[1], 3)
+  expect_equal(options$cols_per_block[1], 3)
+  expect_true(options$square_check_blocks[1])
+  expect_false(any(options$square_check_blocks[-1]))
+  # Other block shapes are still offered.
+  expect_true(any(options$rows_per_block != 3 | options$cols_per_block != 3))
+  # With 4 checks, 12 x 12 has 4 x 4 blocks; 108 entries give the Latin layout.
+  latin <- design_options(108, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12)
+  expect_true(latin$square_check_blocks[1])
+  # When no such layout exists, the usual order is kept.
+  none <- design_options(100, "augmented_row_column", n_checks = 4, rows_in_field = 9, cols_in_field = 14)
+  expect_false(any(none$square_check_blocks))
+})
+
+test_that("rows and cols still work as deprecated names of the field dimensions", {
+  expect_warning(old <- design_options(108, "augmented_row_column", n_checks = 4, rows = 12, cols = 12),
+                 "deprecated")
+  new <- design_options(108, "augmented_row_column", n_checks = 4, rows_in_field = 12, cols_in_field = 12)
+  expect_identical(old, new)
+  expect_error(suppressWarnings(design_options(100, rows = 9, rows_in_field = 9)), "rows_in_field")
 })

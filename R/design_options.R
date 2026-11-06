@@ -13,10 +13,14 @@
 #'   zero for the other families. p-rep uses no separate checks; it is
 #'   excluded when only positive check counts are requested. Resolvable
 #'   designs replicate checks just like the other genotypes.
-#' @param rows,cols Known field dimensions, per location, including all
-#'   replicates. Each can be a positive integer, a vector of dimensions to
-#'   consider, or `NULL` to search automatically. Supplied dimensions are
-#'   exact candidate sizes, not upper bounds. For p-rep, the last row may be
+#' @param rows_in_field,cols_in_field Known dimensions of the whole field at
+#'   one location (plot rows and plot columns, including all checks and
+#'   replicates), not of a block. Block dimensions are suggested in the
+#'   result as `rows_per_block` and `cols_per_block`. Each can be a positive
+#'   integer, a vector of dimensions to consider, or `NULL` to search
+#'   automatically. Supplied dimensions are exact candidate sizes, not upper
+#'   bounds. When only one is supplied, the square field (the same number of
+#'   rows and columns) is also considered. For p-rep, the last row may be
 #'   partially occupied, but wholly empty final rows are not proposed.
 #' @param n_locations Number of locations. Augmented row-column and resolvable layouts
 #'   describe one field to randomize independently at each location. A
@@ -48,6 +52,7 @@
 #' @param n_candidates Search candidates to pass to the augmented row-column
 #'   and p-rep generators. Defaults to 200. This is a user-selected search
 #'   effort, not a dimension inferred from entry counts.
+#' @param rows,cols Deprecated names of `rows_in_field` and `cols_in_field`.
 #'
 #' @details
 #' This is a parameter planner. Candidates pass plot-count, block-size and
@@ -73,14 +78,19 @@
 #' checks need to be marked in Breedbase, set `is_control` in both the
 #' generated `design` and `breedbase_design` tables before saving.
 #'
-#' Within each resource-count group, smaller field areas, fewer unused
-#' positions and less elongated fields come first; Latin augmented row-column
+#' Square blocks are preferred but not required: for augmented row-column
+#' designs, when a layout with blocks of `n_checks` rows by `n_checks`
+#' columns exists (for example 3 x 3 blocks for three checks), the smallest
+#' one is the first option and `square_check_blocks` flags it. The other
+#' options follow in the usual order: within each
+#' resource-count group, smaller field areas, fewer unused positions and
+#' less elongated fields come first; Latin augmented row-column
 #' constructions are preferred over searched allocations at the same area.
 #' This ordering does not estimate statistical precision or choose the
 #' biologically best design.
 #'
 #' @return A tibble with option id, design family, entry/check counts,
-#'   field dimensions, location and replication counts, active plots per
+#'   field dimensions, a `square_check_blocks` flag, location and replication counts, active plots per
 #'   location and in total, field area, unused positions, check plots,
 #'   repeated entries, blocks, nominal `error_df`, method and notes.
 #'   Field dimensions are named `rows_in_field` and `cols_in_field`, matching
@@ -107,7 +117,7 @@
 #'
 #' # A known field, four checks and exactly 108 test entries:
 #' options <- design_options(108, design = "augmented_row_column", n_checks = 4,
-#'                           rows = 12, cols = 12, n_candidates = 5)
+#'                           rows_in_field = 12, cols_in_field = 12, n_candidates = 5)
 #' selected <- options[1, ]
 #' trial <- augmented_row_column_design(
 #'   treatments = paste0("LINE_", seq_len(108)),
@@ -123,17 +133,22 @@
 #' )
 #'
 #' # Fully replicated options with one known dimension:
-#' design_options(42, design = "resolvable", cols = 7, n_reps = 3)
+#' design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
+#'
+#' # Only the number of field rows is known; with three checks, a layout
+#' # with 3 x 3 blocks is listed first when one fits.
+#' design_options(36, design = "augmented_row_column", n_checks = 3, rows_in_field = 9)
 #' # Partial replication at three locations:
 #' design_options(100, design = "prep", n_locations = 3)
 #' @export
 design_options <- function(n_entries, design = c("augmented_row_column", "prep", "resolvable"),
-                           n_checks = NULL, rows = NULL, cols = NULL,
+                           n_checks = NULL, rows_in_field = NULL, cols_in_field = NULL,
                            n_locations = 1L, n_reps = 2:3,
                            block_size = c(5L, 8L, 10L, 12L, 16L, 20L),
                            prep_prop = NULL,
                            max_plots = NULL, max_dimension = NULL,
-                           min_error_df = 1L, n_options = 6L, n_candidates = 200L) {
+                           min_error_df = 1L, n_options = 6L, n_candidates = 200L,
+                           rows = NULL, cols = NULL) {
   integers <- function(x, name, minimum = 1L, scalar = FALSE) {
     if (!is.numeric(x) || !length(x) || (scalar && length(x) != 1L) ||
         anyNA(x) || any(!is.finite(x) | x < minimum | x > .Machine$integer.max | x != floor(x))) {
@@ -148,8 +163,18 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
   }
   design <- match.arg(design, c("augmented_row_column", "prep", "resolvable"), several.ok = TRUE)
   if (!is.null(n_checks)) n_checks <- integers(n_checks, "n_checks", minimum = 0L)
-  if (!is.null(rows)) rows <- integers(rows, "rows")
-  if (!is.null(cols)) cols <- integers(cols, "cols")
+  if (!is.null(rows) || !is.null(cols)) {
+    if ((!is.null(rows) && !is.null(rows_in_field)) || (!is.null(cols) && !is.null(cols_in_field))) {
+      stop("Use `rows_in_field` and `cols_in_field` only; `rows` and `cols` are deprecated names.",
+           call. = FALSE)
+    }
+    warning("`rows` and `cols` are deprecated; use `rows_in_field` and `cols_in_field` ",
+            "(dimensions of the whole field, not of a block).", call. = FALSE)
+    rows_in_field <- rows_in_field %||% rows
+    cols_in_field <- cols_in_field %||% cols
+  }
+  rows <- if (!is.null(rows_in_field)) integers(rows_in_field, "rows_in_field")
+  cols <- if (!is.null(cols_in_field)) integers(cols_in_field, "cols_in_field")
   n_locations <- integers(n_locations, "n_locations", scalar = TRUE)
   n_reps <- integers(n_reps, "n_reps", minimum = 2L)
   block_size <- integers(block_size, "block_size", minimum = 2L)
@@ -167,12 +192,18 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
     stop("`prep_prop` must contain proportions greater than 0 and no larger than 1.", call. = FALSE)
   }
   max_checks <- if (is.null(n_checks)) 6L else max(n_checks)
+  default_plots <- is.null(max_plots)
   if (is.null(max_plots)) {
     multiplier <- if ("resolvable" %in% design) max(4, as.double(n_reps) + 1) else 4
     max_plots <- if (!is.null(rows) && !is.null(cols)) as.double(max(rows)) * max(cols) else
       multiplier * (as.double(n_entries) + max_checks)
   }
   max_plots <- integers(max_plots, "max_plots", scalar = TRUE)
+  if (xor(is.null(rows), is.null(cols)) && default_plots) {
+    # With one known dimension, always test the square field too.
+    known <- as.double(max(c(rows, cols)))
+    if (known * known >= n_entries) max_plots <- max(max_plots, as.integer(known * known))
+  }
   if (is.null(max_dimension)) max_dimension <- max(20, ceiling(2 * sqrt(max_plots)))
   max_dimension <- integers(max_dimension, "max_dimension", scalar = TRUE)
   fields <- do_option_fields(rows, cols, n_entries, max_plots, max_dimension)
@@ -207,8 +238,14 @@ design_options <- function(n_entries, design = c("augmented_row_column", "prep",
           args
         })
       }
+      group <- paste(choices$n_checks, choices$n_reps, choices$n_repeated, sep = "/")
       choices <- choices[order(choices$field_plots, choices$unused_plots,
         choices$method != "latin", abs(log(choices$rows_in_field / choices$cols_in_field)), -choices$error_df), ]
+      # Preference, not a requirement: when possible, the best option has
+      # square blocks of n_checks rows by n_checks columns.
+      group <- paste(choices$n_checks, choices$n_reps, choices$n_repeated, sep = "/")
+      best <- choices$square_check_blocks & !duplicated(paste(group, choices$square_check_blocks))
+      choices <- choices[order(!best), ]
       group <- paste(choices$n_checks, choices$n_reps, choices$n_repeated, sep = "/")
       within_group <- ave(seq_len(nrow(choices)), group, FUN = seq_along)
       choices <- choices[head(order(within_group, seq_len(nrow(choices))), n_options), ]
@@ -255,7 +292,10 @@ do_option_row <- function(design = "", n_entries = 0L, n_checks = 0L, rows = 0L,
                            repeated = NA_integer_, blocks = 0L, error_df = 0L, method = "",
                            generator = "", arguments = list(), note = "") {
   tibble::tibble(design = design, n_entries = n_entries, n_checks = n_checks,
-    rows_in_field = rows, cols_in_field = cols, n_locations = n_locations, n_reps = n_reps,
+    rows_in_field = rows, cols_in_field = cols,
+    square_check_blocks = isTRUE(n_checks > 0L && identical(as.integer(arguments$rows_per_block), as.integer(n_checks)) &&
+                                   identical(as.integer(arguments$cols_per_block), as.integer(n_checks))),
+    n_locations = n_locations, n_reps = n_reps,
     rows_per_block = arguments$rows_per_block %||% NA_integer_,
     cols_per_block = arguments$cols_per_block %||% NA_integer_,
     rows_per_rep = arguments$rows_per_rep %||% NA_integer_,
@@ -279,6 +319,8 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
   if (!length(checks)) return(NULL)
   choices <- list()
   seen_checks <- integer()
+  seen_square <- integer()
+  stop_area <- NA_real_
   for (i in seq_len(nrow(fields))) {
     r <- fields$rows[i]; c <- fields$cols[i]
     p <- as.double(r) * c - n
@@ -286,6 +328,11 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
     rb <- do_option_divisors(r); rb <- rb[rb >= 2L]
     cb <- do_option_divisors(c); cb <- cb[cb >= 2L]
     grid <- expand.grid(rb = rb, cb = cb, checks = checks)
+    if (!is.na(stop_area)) {
+      # Past the usual search: only n_checks x n_checks blocks still missing.
+      grid <- grid[grid$rb == grid$checks & grid$cb == grid$checks &
+                     !grid$checks %in% seen_square, , drop = FALSE]
+    }
     nr <- r / grid$rb; nc <- c / grid$cb; b <- nr * nc
     df <- p - grid$checks - (r - 1) - (c - 1) - (nr - 1) * (nc - 1)
     grid <- grid[grid$rb >= grid$checks & grid$cb >= grid$checks &
@@ -317,9 +364,21 @@ do_option_augmented <- function(n, checks, fields, locations, min_df, limit) {
         note = if (regular) "Every check once per block." else
           "Extra check replication fills the field exactly; allocation needs optimization.")
       seen_checks <- union(seen_checks, g$checks)
+      if (g$rb == g$checks && g$cb == g$checks) seen_square <- union(seen_square, g$checks)
     }
     # Search the smallest fields first; keep a pool larger than the shortlist.
-    if (length(choices) >= 10L * limit && all(head(checks, limit) %in% seen_checks)) break
+    wanted <- head(checks, limit)
+    if (is.na(stop_area) && length(choices) >= 10L * limit && all(wanted %in% seen_checks)) {
+      stop_area <- as.double(r) * c
+    }
+    if (!is.na(stop_area)) {
+      # Look a little further for n_checks x n_checks blocks, without
+      # promoting a much larger field.
+      rest <- fields[-seq_len(i), , drop = FALSE]
+      rest <- rest[as.double(rest$rows) * rest$cols <= 1.5 * stop_area, , drop = FALSE]
+      possible <- vapply(wanted, function(k) any(rest$rows %% k == 0L & rest$cols %% k == 0L), logical(1))
+      if (all(wanted %in% seen_square | !possible)) break
+    }
   }
   choices
 }

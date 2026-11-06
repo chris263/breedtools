@@ -46,12 +46,12 @@ options[, c("option", "design", "n_checks", "rows_in_field", "cols_in_field", "n
 #> # A tibble: 18 × 8
 #>    option design  n_checks rows_in_field cols_in_field n_reps plots_per_location
 #>     <int> <chr>      <int>         <int>         <int>  <int>              <dbl>
-#>  1      1 augmen…        6            12            12      1                144
-#>  2      2 augmen…        4            12            12      1                144
-#>  3      3 augmen…        5            15            10      1                150
-#>  4      4 augmen…        3             9            18      1                162
-#>  5      5 augmen…        2             9            14      1                126
-#>  6      6 augmen…        2             9            14      1                126
+#>  1      1 augmen…        2             9            14      1                126
+#>  2      2 augmen…        3             9            14      1                126
+#>  3      3 augmen…        4            14             9      1                126
+#>  4      4 augmen…        5             8            16      1                128
+#>  5      5 augmen…        6            10            13      1                130
+#>  6      6 augmen…        2            14             9      1                126
 #>  7      7 prep           0            13             9     NA                115
 #>  8      8 prep           0            10            12     NA                120
 #>  9      9 prep           0             9            14     NA                125
@@ -81,27 +81,27 @@ fixed_options[, c("option", "rows_in_field", "cols_in_field", "rows_per_block",
 #>   option rows_in_field cols_in_field rows_per_block cols_per_block n_candidates
 #>    <int>         <int>         <int>          <int>          <int>        <int>
 #> 1      1            12            12              4              4          200
-#> 2      2            12            12             12              4          200
-#> 3      3            12            12             12              6          200
-#> 4      4            12            12              4             12          200
-#> 5      5            12            12              6             12          200
-#> 6      6            12            12             12             12          200
+#> 2      2            12            12             NA             NA          200
+#> 3      3            12            12             NA             NA          200
+#> 4      4            12            12              6              4          200
+#> 5      5            12            12              4              6          200
+#> 6      6            12            12              6              6          200
 #> # ℹ 3 more variables: check_plots <dbl>, error_df <dbl>, method <chr>
 design_options(42, design = "resolvable", cols_in_field = 7, n_reps = 3)
-#> # A tibble: 4 × 28
+#> # A tibble: 4 × 30
 #>   option design     n_entries n_checks rows_in_field cols_in_field
 #>    <int> <chr>          <int>    <int>         <int>         <int>
 #> 1      1 resolvable        42        0            18             7
 #> 2      2 resolvable        42        0            21             7
 #> 3      3 resolvable        42        0            24             7
 #> 4      4 resolvable        42        0            27             7
-#> # ℹ 22 more variables: square_check_blocks <lgl>, n_locations <int>,
-#> #   n_reps <int>, rows_per_block <int>, cols_per_block <int>,
-#> #   rows_per_rep <dbl>, cols_per_rep <int>, block_size <int>,
-#> #   n_candidates <int>, checks_per_block <list>, plots_per_location <dbl>,
-#> #   total_plots <dbl>, field_plots <dbl>, unused_plots <dbl>,
-#> #   check_plots <int>, n_repeated <dbl>, n_blocks <dbl>, error_df <dbl>,
-#> #   method <chr>, generator <chr>, arguments <list>, note <chr>
+#> # ℹ 24 more variables: square_check_blocks <lgl>, n_locations <int>,
+#> #   n_reps <int>, rows_per_block <int>, rows_per_rowgroup <list>,
+#> #   cols_per_colgroup <list>, cols_per_block <int>, rows_per_rep <dbl>,
+#> #   cols_per_rep <int>, block_size <int>, n_candidates <int>,
+#> #   checks_per_block <list>, plots_per_location <dbl>, total_plots <dbl>,
+#> #   field_plots <dbl>, unused_plots <dbl>, check_plots <int>, n_repeated <dbl>,
+#> #   n_blocks <dbl>, error_df <dbl>, method <chr>, generator <chr>, …
 ```
 
 `rows_in_field` and `cols_in_field` describe the entire field at one

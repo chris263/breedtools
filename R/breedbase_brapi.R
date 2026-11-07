@@ -74,10 +74,12 @@ breedbase_login <- function(url, username, password = NULL, site_username = NULL
     site_auth <- list(username = site_username, password = site_password)
   }
 
+  # Form-encoded body: newer Breedbase versions reject a JSON object here
+  # ("JSON array body required"); every version accepts the form.
   resp <- bb_perform(
-    httr2::req_body_json(
+    httr2::req_body_form(
       httr2::request(paste0(url, "/brapi/v2/token")),
-      list(username = username, password = password, grant_type = "password")
+      username = username, password = password, grant_type = "password"
     ),
     what = "log in"
   )

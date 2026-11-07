@@ -18,6 +18,8 @@ save_breedbase_phenotypes(
   trait = NULL,
   value = NULL,
   timestamp = NULL,
+  overwrite = FALSE,
+  remove_empty = FALSE,
   dry_run = FALSE,
   confirm = interactive(),
   refresh = TRUE
@@ -59,6 +61,16 @@ save_breedbase_phenotypes(
   (e.g. `"2026-08-15 10:30:00"`). Breedbase uses it to tell repeated
   measurements apart.
 
+- overwrite:
+
+  Logical. Replace values that Breedbase already has with different ones
+  (see "Saving again").
+
+- remove_empty:
+
+  Logical. Delete stored values whose cell is empty (`NA` or `""`) in
+  `data`; needs `overwrite = TRUE` (see "Saving again").
+
 - dry_run:
 
   Logical. Check everything but write nothing.
@@ -76,8 +88,10 @@ save_breedbase_phenotypes(
 ## Value
 
 Invisibly, a tibble with one row per trait: `trait`,
-`observation_variable_db_id`, `values_sent` and `values_found` (read
-back from Breedbase after saving).
+`observation_variable_db_id`, `values_sent`, `values_found` (read back
+from Breedbase after saving), and how the values were handled: `new`,
+`replaced`, `unchanged` and `removed`. Returns invisible `NULL` when
+saving is declined, including changed values with `overwrite = FALSE`.
 
 ## Details
 
@@ -95,9 +109,38 @@ or long, one row per value, with `trait` and `value` columns
 
 Trait names are the Breedbase names, with or without the ontology id:
 `"fresh root yield"` or `"fresh root yield|CO_334:0000013"` (the column
-names of a Breedbase phenotype download). Empty values (`NA` or `""`)
-are skipped. Values are checked by Breedbase against the trait (e.g.
-numbers within the allowed range).
+names of a Breedbase phenotype download). Values are checked by
+Breedbase against the trait (e.g. numbers within the allowed range).
+
+## Saving again (values already in Breedbase)
+
+Before writing, the values already stored for these plots and traits are
+read, and every value is sorted into new, unchanged (same value, not
+sent again) or changed:
+
+- `overwrite = FALSE` (default):
+
+  If changed values exist, a message is printed and the function returns
+  without an error; nothing is written.
+
+- `overwrite = TRUE`:
+
+  Changed values replace the stored ones.
+
+Empty cells (`NA` or `""`) are never sent. When Breedbase has a value
+for an empty cell (e.g. an outlier set to `NA` with
+[`remove_outliers()`](https://solgenomics.github.io/breedtools/reference/remove_outliers.md)):
+
+- `remove_empty = FALSE` (default):
+
+  The stored value is kept (and reported).
+
+- `remove_empty = TRUE`:
+
+  The stored value is deleted. Like the "remove values" option of
+  Breedbase's upload page, this needs `overwrite = TRUE`, a curator
+  account and access to the web pages (the site password, see
+  [`breedbase_login()`](https://solgenomics.github.io/breedtools/reference/breedbase_login.md)).
 
 ## Slow servers
 
@@ -151,6 +194,10 @@ if (FALSE) { # \dontrun{
 con <- breedbase_login("https://cassavabase.org", "jdoe")
 save_breedbase_phenotypes(sheet, con, dry_run = TRUE)   # check first
 save_breedbase_phenotypes(sheet, con)
+
+# Saving a corrected sheet again: replace changed values, and delete the
+# stored values of cells now empty (e.g. outliers set to NA).
+save_breedbase_phenotypes(sheet, con, overwrite = TRUE, remove_empty = TRUE)
 
 # Long data: one row per value
 long <- data.frame(plot_name = sheet$plot_name, trait = "fresh root yield",

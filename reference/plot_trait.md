@@ -1,10 +1,26 @@
-# Plot a trait: distribution and field map
+# Plot a trait: boxplot, distribution and field map
 
-Draws, for each location (or other group), a histogram of the trait and
-a map of the field with the value of every plot, so gradients, odd plots
-and outliers are easy to see. Outliers from
-[`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)
-can be circled on the map.
+Draws the trait per location (or other group) so gradients, odd plots
+and outliers are easy to see:
+
+- `"boxplot"`:
+
+  All locations side by side. Outliers (IQR rule, as in
+  [`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md),
+  or the table given in `outliers`) are drawn in red and labelled with
+  their plot number; the other plots in grey.
+
+- `"histogram"`:
+
+  The distribution at each location.
+
+- `"field"`:
+
+  A map of the field with the value of every plot, with a colour bar.
+  The colour scale of each location spans the values inside the IQR
+  fences, so a few extreme plots do not wash out the rest of the map;
+  plots beyond the scale get the end colour and are circled in red.
+  Missing plots are grey.
 
 ## Usage
 
@@ -13,11 +29,14 @@ plot_trait(
   data,
   trait,
   by = if ("location" %in% names(data)) "location" else NULL,
-  type = c("both", "histogram", "field"),
+  type = c("both", "histogram", "field", "boxplot", "all"),
   row_col = "row",
   col_col = "col",
   outliers = NULL,
-  breaks = "Sturges"
+  breaks = "Sturges",
+  multiplier = 1.5,
+  scale = c("location", "common"),
+  plot_col = intersect(c("plots", "plot_number"), names(data))[1]
 )
 ```
 
@@ -38,7 +57,8 @@ plot_trait(
 
 - type:
 
-  `"both"` (histogram and field map), `"histogram"` or `"field"`.
+  `"both"` (histogram and field map), `"histogram"`, `"field"`,
+  `"boxplot"` or `"all"` (boxplot, then histogram and field map).
 
 - row_col, col_col:
 
@@ -48,17 +68,32 @@ plot_trait(
 
   Optional table from
   [`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)
-  to circle on the map.
+  or `attr(remove_outliers(...), "outliers")`: these plots are marked.
+  By default the outliers are found in `data` with the IQR rule.
 
 - breaks:
 
   Histogram breaks, as in
   [`graphics::hist()`](https://rdrr.io/r/graphics/hist.html).
 
+- multiplier:
+
+  IQR multiplier for the default outliers and the colour scale.
+
+- scale:
+
+  `"location"` (default: one colour scale per location, so each field
+  shows its own gradient) or `"common"` (one scale for all locations, to
+  compare their levels).
+
+- plot_col:
+
+  Column with the plot numbers used as labels.
+
 ## Value
 
 Invisibly, a tibble with a summary per group: plots, values, missing,
-mean, sd, min, max and CV (%).
+outliers, mean, sd, min, max and CV (%).
 
 ## Examples
 
@@ -67,6 +102,9 @@ rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4),
                                   12, 12, 4, 4, n_candidates = 5, seed = 1)
 d <- rc$design
 d$yield <- 50 + 0.8 * d$row + rnorm(nrow(d), sd = 2)
-plot_trait(d, "yield")
+d$yield[c(5, 40)] <- c(120, 10)
+plot_trait(d, "yield", type = "boxplot")
+
+plot_trait(d, "yield", type = "field")
 
 ```

@@ -22,7 +22,9 @@ save_breedbase_first_stage(
   statistic = NULL,
   create_trait = TRUE,
   dry_run = FALSE,
-  confirm = interactive()
+  confirm = interactive(),
+  overwrite = FALSE,
+  remove_empty = FALSE
 )
 ```
 
@@ -59,10 +61,12 @@ save_breedbase_first_stage(
   Logical. Create the composed traits that do not exist yet (you are
   asked first when `confirm = TRUE`).
 
-- dry_run, confirm:
+- dry_run, confirm, overwrite, remove_empty:
 
   As in
-  [`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md).
+  [`save_breedbase_phenotypes()`](https://solgenomics.github.io/breedtools/reference/save_breedbase_phenotypes.md):
+  run it again after a new analysis with `overwrite = TRUE` to replace
+  the stored values.
 
 ## Value
 

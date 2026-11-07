@@ -48,8 +48,9 @@ breedbase_check(
 
 - trial_name:
 
-  Optional trial name. A trial with this name that already exists (with
-  plots) is reported to fix.
+  Optional trial name(s), e.g. one per location. A name already used by
+  a trial (with plots) is reported as `"TAKEN"`: change it before
+  saving.
 
 ## Value
 

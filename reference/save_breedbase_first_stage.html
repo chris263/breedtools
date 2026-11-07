@@ -68,7 +68,9 @@ The values are saved through BrAPI, like <code><a href="save_breedbase_phenotype
 <span>  statistic <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  create_trait <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  confirm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  confirm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  remove_empty <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -103,8 +105,10 @@ is not given. By default chosen from this Breedbase's own statistics
 yet (you are asked first when <code>confirm = TRUE</code>).</p></dd>
 
 
-<dt id="arg-dry-run-confirm">dry_run, confirm<a class="anchor" aria-label="anchor" href="#arg-dry-run-confirm"></a></dt>
-<dd><p>As in <code><a href="save_breedbase_phenotypes.html">save_breedbase_phenotypes()</a></code>.</p></dd>
+<dt id="arg-dry-run-confirm-overwrite-remove-empty">dry_run, confirm, overwrite, remove_empty<a class="anchor" aria-label="anchor" href="#arg-dry-run-confirm-overwrite-remove-empty"></a></dt>
+<dd><p>As in
+<code><a href="save_breedbase_phenotypes.html">save_breedbase_phenotypes()</a></code>: run it again after a new analysis with
+<code>overwrite = TRUE</code> to replace the stored values.</p></dd>
 
 </dl></div>
     <div class="section level2">

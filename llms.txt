@@ -439,7 +439,7 @@ Trait plots, outliers, two-stage and single-stage analysis of several
 trials, and the values to store from them.
 
 - [`plot_trait()`](https://solgenomics.github.io/breedtools/reference/plot_trait.md)
-  : Plot a trait: distribution and field map
+  : Plot a trait: boxplot, distribution and field map
 - [`find_outliers()`](https://solgenomics.github.io/breedtools/reference/find_outliers.md)
   : Find outliers in trait data (IQR rule)
 - [`remove_outliers()`](https://solgenomics.github.io/breedtools/reference/remove_outliers.md)

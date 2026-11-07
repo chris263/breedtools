@@ -57,6 +57,8 @@ Breedbase first, and every problem is listed before anything is written.</p>
 <span>  trait <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  value <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  timestamp <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  remove_empty <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  dry_run <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  confirm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  refresh <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -97,6 +99,16 @@ measurement (e.g. <code>"2026-08-15 10:30:00"</code>). Breedbase uses it to tell
 repeated measurements apart.</p></dd>
 
 
+<dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
+<dd><p>Logical. Replace values that Breedbase already has with
+different ones (see "Saving again").</p></dd>
+
+
+<dt id="arg-remove-empty">remove_empty<a class="anchor" aria-label="anchor" href="#arg-remove-empty"></a></dt>
+<dd><p>Logical. Delete stored values whose cell is empty
+(<code>NA</code> or <code>""</code>) in <code>data</code>; needs <code>overwrite = TRUE</code> (see "Saving again").</p></dd>
+
+
 <dt id="arg-dry-run">dry_run<a class="anchor" aria-label="anchor" href="#arg-dry-run"></a></dt>
 <dd><p>Logical. Check everything but write nothing.</p></dd>
 
@@ -115,8 +127,10 @@ Breedbase so the values show on the trial pages (see
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly, a tibble with one row per trait: <code>trait</code>,
-<code>observation_variable_db_id</code>, <code>values_sent</code> and <code>values_found</code> (read back
-from Breedbase after saving).</p>
+<code>observation_variable_db_id</code>, <code>values_sent</code>, <code>values_found</code> (read back
+from Breedbase after saving), and how the values were handled:
+<code>new</code>, <code>replaced</code>, <code>unchanged</code> and <code>removed</code>. Returns invisible <code>NULL</code>
+when saving is declined, including changed values with <code>overwrite = FALSE</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -125,10 +139,36 @@ by <code><a href="phenotype_template.html">phenotype_template()</a></code>):</p>
 (<code>trait = "trait", value = "value"</code>).</p>
 <p>Trait names are the Breedbase names, with or without the ontology id:
 <code>"fresh root yield"</code> or <code>"fresh root yield|CO_334:0000013"</code> (the column
-names of a Breedbase phenotype download). Empty values (<code>NA</code> or <code>""</code>) are
-skipped. Values are checked by Breedbase against the trait (e.g. numbers
-within the allowed range).</p>
+names of a Breedbase phenotype download). Values are checked by Breedbase
+against the trait (e.g. numbers within the allowed range).</p>
     </div>
+    <div class="section level2">
+    <h2 id="saving-again-values-already-in-breedbase-">Saving again (values already in Breedbase)<a class="anchor" aria-label="anchor" href="#saving-again-values-already-in-breedbase-"></a></h2>
+
+
+<p>Before writing, the values already stored for these plots and traits are
+read, and every value is sorted into new, unchanged (same value, not sent
+again) or changed:</p><dl><dt><code>overwrite = FALSE</code> (default)</dt>
+<dd><p>If changed values exist, a message is
+printed and the function returns without an error; nothing is written.</p></dd>
+
+<dt><code>overwrite = TRUE</code></dt>
+<dd><p>Changed values replace the stored ones.</p></dd>
+
+
+</dl><p>Empty cells (<code>NA</code> or <code>""</code>) are never sent. When Breedbase has a value
+for an empty cell (e.g. an outlier set to <code>NA</code> with <code><a href="remove_outliers.html">remove_outliers()</a></code>):</p><dl><dt><code>remove_empty = FALSE</code> (default)</dt>
+<dd><p>The stored value is kept (and
+reported).</p></dd>
+
+<dt><code>remove_empty = TRUE</code></dt>
+<dd><p>The stored value is deleted. Like the
+"remove values" option of Breedbase's upload page, this needs
+<code>overwrite = TRUE</code>, a curator account and access to the web pages
+(the site password, see <code><a href="breedbase_login.html">breedbase_login()</a></code>).</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="slow-servers">Slow servers<a class="anchor" aria-label="anchor" href="#slow-servers"></a></h2>
 
@@ -175,6 +215,10 @@ wait longer (seconds) for each answer.</p>
 <span class="r-in"><span><span class="va">con</span> <span class="op">&lt;-</span> <span class="fu"><a href="breedbase_login.html">breedbase_login</a></span><span class="op">(</span><span class="st">"https://cassavabase.org"</span>, <span class="st">"jdoe"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">save_breedbase_phenotypes</span><span class="op">(</span><span class="va">sheet</span>, <span class="va">con</span>, dry_run <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># check first</span></span></span>
 <span class="r-in"><span><span class="fu">save_breedbase_phenotypes</span><span class="op">(</span><span class="va">sheet</span>, <span class="va">con</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Saving a corrected sheet again: replace changed values, and delete the</span></span></span>
+<span class="r-in"><span><span class="co"># stored values of cells now empty (e.g. outliers set to NA).</span></span></span>
+<span class="r-in"><span><span class="fu">save_breedbase_phenotypes</span><span class="op">(</span><span class="va">sheet</span>, <span class="va">con</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span>, remove_empty <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Long data: one row per value</span></span></span>
 <span class="r-in"><span><span class="va">long</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>plot_name <span class="op">=</span> <span class="va">sheet</span><span class="op">$</span><span class="va">plot_name</span>, trait <span class="op">=</span> <span class="st">"fresh root yield"</span>,</span></span>

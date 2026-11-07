@@ -26,8 +26,9 @@ from \code{\link[=augmented_row_column_design]{augmented_row_column_design()}}, 
 optional for saving too: without it the trial goes directly in the
 program).}
 
-\item{trial_name}{Optional trial name. A trial with this name that already
-exists (with plots) is reported to fix.}
+\item{trial_name}{Optional trial name(s), e.g. one per location. A name
+already used by a trial (with plots) is reported as
+\code{"TAKEN"}: change it before saving.}
 }
 \value{
 Invisibly, a tibble with one row per name checked: \code{what}, \code{name},

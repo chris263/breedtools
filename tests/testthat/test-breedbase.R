@@ -255,7 +255,18 @@ fake_breedbase <- function(accessions = c(paste0("G", 1:200), paste0("C", 1:6), 
         if (key %in% seen) return(err(400, "The combination already exists in the database"))
         seen <- c(seen, key)
       }
-      state$observations <- c(state$observations, body)
+      for (i in seq_along(body)) body[[i]]$observationDbId <- as.character(900000 + length(state$observations) + i)
+      state$observations <- c(state$observations, unname(body))
+      return(ok(list()))
+    }
+    if (path == "observations" && method == "PUT") {
+      # Like Breedbase: {observationDbId: observation}, stored with overwrite.
+      ids <- vapply(state$observations, function(o) o$observationDbId %||% "", "")
+      for (id in names(body)) {
+        i <- match(id, ids)
+        if (is.na(i)) return(err(400, "observationDbId not found"))
+        state$observations[[i]]$value <- body[[id]]$value
+      }
       return(ok(list()))
     }
     if (path == "search/studies") {
@@ -825,8 +836,51 @@ test_that("phenotypes: dry run, wide and long data, checks and upload", {
     expect_true(all(c("observationUnitDbId", "observationVariableDbId", "value") %in% names(one)))
     expect_type(one$value, "character")
 
-    # Saving the same values again is refused by Breedbase (no duplicates).
-    expect_error(capture.output(save_breedbase_phenotypes(sheet, con, confirm = FALSE)), "already exists")
+    # Saving the same values again: nothing is sent (no duplicates).
+    n_obs <- length(fake$state$observations)
+    out <- capture.output(res <- save_breedbase_phenotypes(sheet, con, confirm = FALSE))
+    expect_true(any(grepl("Nothing to write", out)))
+    expect_length(fake$state$observations, n_obs)
+    expect_equal(res$unchanged, c(140L, 144L))
+
+    # Changed values: skipped without an error, so a loop can continue.
+    changed <- sheet
+    changed$`fresh root yield`[5:7] <- 99
+    mixed <- changed
+    mixed$`fresh root yield`[1] <- 42       # a new value alongside conflicts
+    stored_before <- fake$state$observations
+    n_requests <- length(fake$state$requests)
+    completed <- 0L
+    out <- capture.output(for (s in list(changed, mixed)) {
+      result <- withVisible(save_breedbase_phenotypes(s, con, confirm = FALSE))
+      completed <- completed + 1L
+    })
+    expect_equal(completed, 2L)
+    expect_equal(sum(out == "You have decided to not replace. Phenotypes are already there."), 2L)
+    expect_false(any(grepl(" -> ", out, fixed = TRUE)))
+    expect_null(result$value)
+    expect_false(result$visible)
+    expect_identical(fake$state$observations, stored_before)
+    requests <- fake$state$requests[seq.int(n_requests + 1L, length(fake$state$requests))]
+    writes <- Filter(function(r) r$method %in% c("PUT", "DELETE") ||
+                       (r$method == "POST" && r$path == "observations"), requests)
+    expect_length(writes, 0L)
+
+    # Changed values are still replaced when overwrite is enabled.
+    out <- capture.output(res <- save_breedbase_phenotypes(changed, con, confirm = FALSE, overwrite = TRUE))
+    expect_length(fake$state$observations, n_obs)            # replaced, not added
+    expect_equal(res$replaced, c(3L, 0L))
+    expect_equal(res$values_found, res$values_sent)
+    puts <- Filter(function(r) r$method == "PUT", fake$state$requests)
+    expect_length(puts, 1)
+    expect_length(puts[[1]]$body, 3)
+
+    # Empty cells with stored values: kept and reported; deleting needs overwrite.
+    blank <- changed
+    blank$`fresh root yield`[5] <- NA
+    out <- capture.output(save_breedbase_phenotypes(blank, con, confirm = FALSE))
+    expect_true(any(grepl("1 cells are empty in `data` but have a value in Breedbase", out)))
+    expect_error(save_breedbase_phenotypes(blank, con, remove_empty = TRUE), "needs `overwrite = TRUE`")
 
     # Long data with time stamps: repeated measurements on other dates.
     long <- data.frame(plot = sheet$plot_name[1:10], trait = "fresh root yield", value = 20:29,

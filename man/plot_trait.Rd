@@ -2,17 +2,20 @@
 % Please edit documentation in R/trait_tools.R
 \name{plot_trait}
 \alias{plot_trait}
-\title{Plot a trait: distribution and field map}
+\title{Plot a trait: boxplot, distribution and field map}
 \usage{
 plot_trait(
   data,
   trait,
   by = if ("location" \%in\% names(data)) "location" else NULL,
-  type = c("both", "histogram", "field"),
+  type = c("both", "histogram", "field", "boxplot", "all"),
   row_col = "row",
   col_col = "col",
   outliers = NULL,
-  breaks = "Sturges"
+  breaks = "Sturges",
+  multiplier = 1.5,
+  scale = c("location", "common"),
+  plot_col = intersect(c("plots", "plot_number"), names(data))[1]
 )
 }
 \arguments{
@@ -23,29 +26,52 @@ plot_trait(
 \item{by}{Optional grouping column; by default \code{"location"} when the data
 have it.}
 
-\item{type}{\code{"both"} (histogram and field map), \code{"histogram"} or \code{"field"}.}
+\item{type}{\code{"both"} (histogram and field map), \code{"histogram"}, \code{"field"},
+\code{"boxplot"} or \code{"all"} (boxplot, then histogram and field map).}
 
 \item{row_col, col_col}{Field row and column columns (for the map).}
 
-\item{outliers}{Optional table from \code{\link[=find_outliers]{find_outliers()}} to circle on the map.}
+\item{outliers}{Optional table from \code{\link[=find_outliers]{find_outliers()}} or
+\code{attr(remove_outliers(...), "outliers")}: these plots are marked. By
+default the outliers are found in \code{data} with the IQR rule.}
 
 \item{breaks}{Histogram breaks, as in \code{\link[graphics:hist]{graphics::hist()}}.}
+
+\item{multiplier}{IQR multiplier for the default outliers and the colour
+scale.}
+
+\item{scale}{\code{"location"} (default: one colour scale per location, so
+each field shows its own gradient) or \code{"common"} (one scale for all
+locations, to compare their levels).}
+
+\item{plot_col}{Column with the plot numbers used as labels.}
 }
 \value{
 Invisibly, a tibble with a summary per group: plots, values,
-missing, mean, sd, min, max and CV (\%).
+missing, outliers, mean, sd, min, max and CV (\%).
 }
 \description{
-Draws, for each location (or other group), a histogram of the trait and a
-map of the field with the value of every plot, so gradients, odd plots
-and outliers are easy to see. Outliers from \code{\link[=find_outliers]{find_outliers()}} can be
-circled on the map.
+Draws the trait per location (or other group) so gradients, odd plots and
+outliers are easy to see:
+\describe{
+\item{\code{"boxplot"}}{All locations side by side. Outliers (IQR rule, as in
+\code{\link[=find_outliers]{find_outliers()}}, or the table given in \code{outliers}) are drawn in red
+and labelled with their plot number; the other plots in grey.}
+\item{\code{"histogram"}}{The distribution at each location.}
+\item{\code{"field"}}{A map of the field with the value of every plot, with a
+colour bar. The colour scale of each location spans the values inside
+the IQR fences, so a few extreme plots do not wash out the rest of the
+map; plots beyond the scale get the end colour and are circled in red.
+Missing plots are grey.}
+}
 }
 \examples{
 rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4),
                                   12, 12, 4, 4, n_candidates = 5, seed = 1)
 d <- rc$design
 d$yield <- 50 + 0.8 * d$row + rnorm(nrow(d), sd = 2)
-plot_trait(d, "yield")
+d$yield[c(5, 40)] <- c(120, 10)
+plot_trait(d, "yield", type = "boxplot")
+plot_trait(d, "yield", type = "field")
 
 }

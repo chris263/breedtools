@@ -12,6 +12,8 @@ save_breedbase_phenotypes(
   trait = NULL,
   value = NULL,
   timestamp = NULL,
+  overwrite = FALSE,
+  remove_empty = FALSE,
   dry_run = FALSE,
   confirm = interactive(),
   refresh = TRUE
@@ -36,6 +38,12 @@ except \code{plot}, \code{timestamp} and the design columns of
 measurement (e.g. \code{"2026-08-15 10:30:00"}). Breedbase uses it to tell
 repeated measurements apart.}
 
+\item{overwrite}{Logical. Replace values that Breedbase already has with
+different ones (see "Saving again").}
+
+\item{remove_empty}{Logical. Delete stored values whose cell is empty
+(\code{NA} or \code{""}) in \code{data}; needs \code{overwrite = TRUE} (see "Saving again").}
+
 \item{dry_run}{Logical. Check everything but write nothing.}
 
 \item{confirm}{Logical. Ask before writing (default in interactive
@@ -47,8 +55,10 @@ Breedbase so the values show on the trial pages (see
 }
 \value{
 Invisibly, a tibble with one row per trait: \code{trait},
-\code{observation_variable_db_id}, \code{values_sent} and \code{values_found} (read back
-from Breedbase after saving).
+\code{observation_variable_db_id}, \code{values_sent}, \code{values_found} (read back
+from Breedbase after saving), and how the values were handled:
+\code{new}, \code{replaced}, \code{unchanged} and \code{removed}. Returns invisible \code{NULL}
+when saving is declined, including changed values with \code{overwrite = FALSE}.
 }
 \description{
 Uploads trait values of plots that are already in Breedbase (for example
@@ -69,10 +79,31 @@ or long, one row per value, with \code{trait} and \code{value} columns
 
 Trait names are the Breedbase names, with or without the ontology id:
 \code{"fresh root yield"} or \code{"fresh root yield|CO_334:0000013"} (the column
-names of a Breedbase phenotype download). Empty values (\code{NA} or \code{""}) are
-skipped. Values are checked by Breedbase against the trait (e.g. numbers
-within the allowed range).
+names of a Breedbase phenotype download). Values are checked by Breedbase
+against the trait (e.g. numbers within the allowed range).
 }
+\section{Saving again (values already in Breedbase)}{
+
+Before writing, the values already stored for these plots and traits are
+read, and every value is sorted into new, unchanged (same value, not sent
+again) or changed:
+\describe{
+\item{\code{overwrite = FALSE} (default)}{If changed values exist, a message is
+printed and the function returns without an error; nothing is written.}
+\item{\code{overwrite = TRUE}}{Changed values replace the stored ones.}
+}
+Empty cells (\code{NA} or \code{""}) are never sent. When Breedbase has a value
+for an empty cell (e.g. an outlier set to \code{NA} with \code{\link[=remove_outliers]{remove_outliers()}}):
+\describe{
+\item{\code{remove_empty = FALSE} (default)}{The stored value is kept (and
+reported).}
+\item{\code{remove_empty = TRUE}}{The stored value is deleted. Like the
+"remove values" option of Breedbase's upload page, this needs
+\code{overwrite = TRUE}, a curator account and access to the web pages
+(the site password, see \code{\link[=breedbase_login]{breedbase_login()}}).}
+}
+}
+
 \section{Slow servers}{
 
 Accessions are searched 25 names at a time, because Breedbase looks up
@@ -107,6 +138,10 @@ head(obs)
 con <- breedbase_login("https://cassavabase.org", "jdoe")
 save_breedbase_phenotypes(sheet, con, dry_run = TRUE)   # check first
 save_breedbase_phenotypes(sheet, con)
+
+# Saving a corrected sheet again: replace changed values, and delete the
+# stored values of cells now empty (e.g. outliers set to NA).
+save_breedbase_phenotypes(sheet, con, overwrite = TRUE, remove_empty = TRUE)
 
 # Long data: one row per value
 long <- data.frame(plot_name = sheet$plot_name, trait = "fresh root yield",

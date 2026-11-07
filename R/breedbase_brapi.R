@@ -240,8 +240,9 @@ breedbase_locations <- function(con) {
 #' @param program,folder Optional breeding program and folder (the folder is
 #'   optional for saving too: without it the trial goes directly in the
 #'   program).
-#' @param trial_name Optional trial name. A trial with this name that already
-#'   exists (with plots) is reported to fix.
+#' @param trial_name Optional trial name(s), e.g. one per location. A name
+#'   already used by a trial (with plots) is reported as
+#'   `"TAKEN"`: change it before saving.
 #'
 #' @section Slow servers:
 #' Accessions are searched 25 names at a time, because Breedbase looks up
@@ -284,7 +285,9 @@ breedbase_check <- function(con, accessions = NULL, location = NULL, program = N
     rows[[length(rows) + 1]] <<- tibble::tibble(what = what, name = name, status = status, suggestion = suggestion)
   }
   cat("Checking names in ", con$url, "\n", sep = "")
-  if (!is.null(trial_name)) trial_name <- bb_clean_name(trial_name, "trial name")
+  if (!is.null(trial_name)) {
+    trial_name <- bb_clean_name(trial_name, "trial name")
+  }
 
   if (!is.null(program)) {
     progs <- breedbase_programs(con)
@@ -304,11 +307,13 @@ breedbase_check <- function(con, accessions = NULL, location = NULL, program = N
     loc <- bb_check_locations(con, unique(unname(location)))
     for (i in seq_len(nrow(loc))) add("location", loc$name[i], loc$status[i], loc$suggestion[i])
   }
-  if (!is.null(trial_name)) {
-    trial_id <- bb_find_study(con, trial_name)
+  for (d in unique(trial_name[duplicated(trial_name)])) add("trial", d, "REPEATED", "each trial needs its own name")
+  for (tn in unique(trial_name)) {
+    trial_id <- bb_find_study(con, tn)
     status <- if (is.na(trial_id)) "OK" else if (bb_count_plots(con, trial_id) > 0) "TAKEN" else "EMPTY"
-    add("trial", trial_name, status, switch(status,
-      TAKEN = "choose another trial_name",
+    add("trial", tn, status, switch(status,
+      TAKEN = paste0("a trial with this name is already in Breedbase (", con$url, "/breeders/trial/", trial_id,
+                     "): choose another trial_name"),
       EMPTY = "exists without plots (an earlier save was cut off): save_breedbase() will add the plots",
       NA_character_))
   }
@@ -801,6 +806,12 @@ bb_post <- function(con, path, payload, what) {
   bb_require_httr2()
   req <- httr2::req_body_json(bb_request(con, path), payload, auto_unbox = TRUE, null = "null")
   bb_perform(httr2::req_method(req, "POST"), what = what)
+}
+
+bb_put <- function(con, path, payload, what) {
+  bb_require_httr2()
+  req <- httr2::req_body_json(bb_request(con, path), payload, auto_unbox = TRUE, null = "null")
+  bb_perform(httr2::req_method(req, "PUT"), what = what)
 }
 
 bb_find_program <- function(con, program) {

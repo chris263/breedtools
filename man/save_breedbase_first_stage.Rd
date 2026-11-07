@@ -11,7 +11,9 @@ save_breedbase_first_stage(
   statistic = NULL,
   create_trait = TRUE,
   dry_run = FALSE,
-  confirm = interactive()
+  confirm = interactive(),
+  overwrite = FALSE,
+  remove_empty = FALSE
 )
 }
 \arguments{
@@ -32,7 +34,9 @@ is not given. By default chosen from this Breedbase's own statistics
 \item{create_trait}{Logical. Create the composed traits that do not exist
 yet (you are asked first when \code{confirm = TRUE}).}
 
-\item{dry_run, confirm}{As in \code{\link[=save_breedbase_phenotypes]{save_breedbase_phenotypes()}}.}
+\item{dry_run, confirm, overwrite, remove_empty}{As in
+\code{\link[=save_breedbase_phenotypes]{save_breedbase_phenotypes()}}: run it again after a new analysis with
+\code{overwrite = TRUE} to replace the stored values.}
 }
 \value{
 As \code{\link[=save_breedbase_phenotypes]{save_breedbase_phenotypes()}}: one row per trait with the

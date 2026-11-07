@@ -113,74 +113,107 @@ remove_outliers <- function(data, traits, multiplier = 1.5,
   data
 }
 
-#' Plot a trait: distribution and field map
+#' Plot a trait: boxplot, distribution and field map
 #'
-#' Draws, for each location (or other group), a histogram of the trait and a
-#' map of the field with the value of every plot, so gradients, odd plots
-#' and outliers are easy to see. Outliers from [find_outliers()] can be
-#' circled on the map.
+#' Draws the trait per location (or other group) so gradients, odd plots and
+#' outliers are easy to see:
+#' \describe{
+#'   \item{`"boxplot"`}{All locations side by side. Outliers (IQR rule, as in
+#'     [find_outliers()], or the table given in `outliers`) are drawn in red
+#'     and labelled with their plot number; the other plots in grey.}
+#'   \item{`"histogram"`}{The distribution at each location.}
+#'   \item{`"field"`}{A map of the field with the value of every plot, with a
+#'     colour bar. The colour scale of each location spans the values inside
+#'     the IQR fences, so a few extreme plots do not wash out the rest of the
+#'     map; plots beyond the scale get the end colour and are circled in red.
+#'     Missing plots are grey.}
+#' }
 #'
 #' @param data A data frame with one row per plot.
 #' @param trait Name of the numeric trait column.
 #' @param by Optional grouping column; by default `"location"` when the data
 #'   have it.
-#' @param type `"both"` (histogram and field map), `"histogram"` or `"field"`.
+#' @param type `"both"` (histogram and field map), `"histogram"`, `"field"`,
+#'   `"boxplot"` or `"all"` (boxplot, then histogram and field map).
 #' @param row_col,col_col Field row and column columns (for the map).
-#' @param outliers Optional table from [find_outliers()] to circle on the map.
+#' @param outliers Optional table from [find_outliers()] or
+#'   `attr(remove_outliers(...), "outliers")`: these plots are marked. By
+#'   default the outliers are found in `data` with the IQR rule.
 #' @param breaks Histogram breaks, as in [graphics::hist()].
+#' @param multiplier IQR multiplier for the default outliers and the colour
+#'   scale.
+#' @param scale `"location"` (default: one colour scale per location, so
+#'   each field shows its own gradient) or `"common"` (one scale for all
+#'   locations, to compare their levels).
+#' @param plot_col Column with the plot numbers used as labels.
 #'
 #' @return Invisibly, a tibble with a summary per group: plots, values,
-#'   missing, mean, sd, min, max and CV (%).
+#'   missing, outliers, mean, sd, min, max and CV (%).
 #'
 #' @examples
 #' rc <- augmented_row_column_design(paste0("G", 1:108), paste0("C", 1:4),
 #'                                   12, 12, 4, 4, n_candidates = 5, seed = 1)
 #' d <- rc$design
 #' d$yield <- 50 + 0.8 * d$row + rnorm(nrow(d), sd = 2)
-#' plot_trait(d, "yield")
+#' d$yield[c(5, 40)] <- c(120, 10)
+#' plot_trait(d, "yield", type = "boxplot")
+#' plot_trait(d, "yield", type = "field")
 #'
 #' @export
 plot_trait <- function(data, trait, by = if ("location" %in% names(data)) "location" else NULL,
-                       type = c("both", "histogram", "field"), row_col = "row", col_col = "col",
-                       outliers = NULL, breaks = "Sturges") {
+                       type = c("both", "histogram", "field", "boxplot", "all"), row_col = "row", col_col = "col",
+                       outliers = NULL, breaks = "Sturges", multiplier = 1.5, scale = c("location", "common"),
+                       plot_col = intersect(c("plots", "plot_number"), names(data))[1]) {
   type <- match.arg(type)
+  scale <- match.arg(scale)
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
   absent <- setdiff(c(trait, by), names(data))
   if (length(absent)) stop("Column(s) not found: ", paste(absent, collapse = ", "), call. = FALSE)
   has_map <- all(c(row_col, col_col) %in% names(data))
   if (type == "field" && !has_map) stop("The field map needs `", row_col, "` and `", col_col, "` columns.", call. = FALSE)
   if (type == "both" && !has_map) type <- "histogram"
+  if (type == "all" && !has_map) type <- "boxplot"
   x <- suppressWarnings(as.numeric(data[[trait]]))
   group <- if (length(by)) factor(as.character(data[[by]]), levels = unique(as.character(data[[by]]))) else
     factor(rep(trait, nrow(data)))
   groups <- levels(group)
-  panels <- length(groups) * if (type == "both") 2 else 1
-  ncol <- if (type == "both") 2 else min(length(groups), 3)
-  old <- graphics::par(mfrow = c(ceiling(panels / ncol), ncol), mar = c(4, 4, 3, 1))
-  on.exit(graphics::par(old), add = TRUE)
-  zlim <- range(x, na.rm = TRUE)
-  for (g in groups) {
-    i <- which(group == g)
-    title <- if (length(by)) paste(trait, "-", g) else trait
-    if (type %in% c("both", "histogram")) {
-      graphics::hist(x[i], breaks = breaks, col = "steelblue", border = "white", main = title,
-                     xlab = trait, ylab = "Plots")
-      graphics::abline(v = mean(x[i], na.rm = TRUE), lty = 2)
-    }
-    if (type %in% c("both", "field")) {
-      mark <- NULL
-      if (!is.null(outliers) && nrow(outliers) && "row" %in% names(outliers)) {
-        o <- outliers[outliers$trait == trait, , drop = FALSE]
-        if (length(by) && by %in% names(o)) o <- o[as.character(o[[by]]) == g, , drop = FALSE]
-        mark <- o
+  # Outliers as a logical per row: from the table given, else the IQR rule.
+  is_out <- bb_outlier_rows(data, trait, x, group, outliers, by, row_col, col_col, plot_col, multiplier)
+  labels <- if (!is.na(plot_col) && plot_col %in% names(data)) as.character(data[[plot_col]]) else
+    as.character(seq_len(nrow(data)))
+  common_zlim <- bb_robust_range(x[!is_out], multiplier)
+
+  if (type %in% c("boxplot", "all")) {
+    bb_trait_boxplot(x, group, is_out, labels, trait, by, multiplier)
+    if (type == "all" && interactive()) grDevices::devAskNewPage(TRUE)
+  }
+  if (type %in% c("both", "histogram", "field", "all")) {
+    per_group <- if (type %in% c("both", "all")) 2 else 1
+    ncol <- if (per_group == 2) 2 else min(length(groups), 3)
+    old <- graphics::par(mfrow = c(ceiling(length(groups) * per_group / ncol), ncol), mar = c(4, 4, 3, 6))
+    on.exit(graphics::par(old), add = TRUE)
+    if (type == "all" && interactive()) on.exit(grDevices::devAskNewPage(FALSE), add = TRUE)
+    for (g in groups) {
+      i <- which(group == g)
+      title <- if (length(by)) paste(trait, "-", g) else trait
+      if (type %in% c("both", "histogram", "all")) {
+        graphics::hist(x[i], breaks = breaks, col = "steelblue", border = "white", main = title,
+                       xlab = trait, ylab = "Plots")
+        graphics::abline(v = mean(x[i], na.rm = TRUE), lty = 2)
+        if (any(is_out[i])) graphics::rug(x[i][is_out[i]], col = "red", lwd = 2)
       }
-      bb_field_image(data[[row_col]][i], data[[col_col]][i], x[i], main = paste(title, "(field)"),
-                     zlim = zlim, mark = mark)
+      if (type %in% c("both", "field", "all")) {
+        zlim <- if (scale == "common") common_zlim else bb_robust_range(x[i][!is_out[i]], multiplier)
+        bb_field_image(data[[row_col]][i], data[[col_col]][i], x[i], main = paste(title, "(field)"),
+                       zlim = zlim, mark = is_out[i], legend = trait)
+      }
     }
   }
   summary <- dplyr::bind_rows(lapply(groups, function(g) {
     v <- x[group == g]
+    n_out <- sum(is_out[group == g])
     tibble::tibble(group = g, plots = length(v), values = sum(!is.na(v)), missing = sum(is.na(v)),
+                   outliers = n_out,
                    mean = mean(v, na.rm = TRUE), sd = stats::sd(v, na.rm = TRUE),
                    min = suppressWarnings(min(v, na.rm = TRUE)), max = suppressWarnings(max(v, na.rm = TRUE)),
                    cv_percent = 100 * stats::sd(v, na.rm = TRUE) / mean(v, na.rm = TRUE))
@@ -188,31 +221,144 @@ plot_trait <- function(data, trait, by = if ("location" %in% names(data)) "locat
   invisible(summary)
 }
 
-# Field map: one cell per plot, row 1 at the top; NA plots grey; optional
-# circles on marked plots (columns row and col).
-bb_field_image <- function(row, col, value, main, zlim = range(value, na.rm = TRUE), mark = NULL) {
+# Rows of `data` that are outliers of `trait`: from a find_outliers() table
+# (matched by group and plot, or row/col), else by the IQR rule.
+bb_outlier_rows <- function(data, trait, x, group, outliers, by, row_col, col_col, plot_col, multiplier) {
+  if (is.null(outliers)) {
+    found <- find_outliers(data, trait, multiplier = multiplier, by = by)
+    out <- rep(FALSE, nrow(data))
+    out[found$.row] <- TRUE
+    return(out)
+  }
+  o <- outliers[as.character(outliers$trait) == trait, , drop = FALSE]
+  if (!nrow(o)) return(rep(FALSE, nrow(data)))
+  g_data <- if (length(by)) as.character(data[[by]]) else ""
+  g_out <- if (length(by) && by %in% names(o)) as.character(o[[by]]) else ""
+  if (!is.na(plot_col) && plot_col %in% names(o)) {
+    key_data <- paste(g_data, data[[plot_col]], sep = "\r")
+    key_out <- paste(g_out, o[[plot_col]], sep = "\r")
+  } else if (all(c(row_col, col_col) %in% names(o))) {
+    key_data <- paste(g_data, data[[row_col]], data[[col_col]], sep = "\r")
+    key_out <- paste(g_out, o[[row_col]], o[[col_col]], sep = "\r")
+  } else {
+    stop("`outliers` needs a plot or row/col column to match the data.", call. = FALSE)
+  }
+  key_data %in% key_out
+}
+
+# Range of the values inside the IQR fences (the colour scale of a map).
+bb_robust_range <- function(x, multiplier = 1.5) {
+  x <- x[is.finite(x)]
+  if (!length(x)) return(c(NA_real_, NA_real_))
+  if (length(x) >= 4) {
+    q <- stats::quantile(x, c(0.25, 0.75), names = FALSE)
+    x <- x[x >= q[1] - multiplier * diff(q) & x <= q[2] + multiplier * diff(q)]
+  }
+  range(x)
+}
+
+# Boxplot per group, one panel each with its own scale: the other plots grey
+# (jittered), outliers red and labelled with the plot number. Outliers far
+# beyond the box are drawn as triangles at the panel edge, with their value,
+# so they do not squash the box.
+bb_trait_boxplot <- function(x, group, is_out, labels, trait, by, multiplier = 1.5) {
+  groups <- levels(group)
+  old <- graphics::par(mfrow = c(1, length(groups)), mar = c(3, 4, 4, 1), oma = c(0, 0, 2, 0))
+  on.exit(graphics::par(old), add = TRUE)
+  for (g in groups) {
+    i <- which(group == g)
+    v <- x[i]
+    out <- is_out[i] & !is.na(v)
+    keep <- v[!out & !is.na(v)]
+    if (!length(keep)) keep <- v[!is.na(v)]
+    if (!length(keep)) {
+      graphics::plot.new()
+      graphics::title(main = g)
+      next
+    }
+    r <- range(keep)
+    pad <- 0.6 * max(diff(r), abs(r[1]) * 0.05, 1e-8)
+    ylim <- c(r[1] - pad, r[2] + pad)
+    graphics::boxplot(keep, outline = FALSE, col = "grey95", border = "grey40", ylim = ylim, ylab = trait,
+                      main = g, xlim = c(0.4, 1.8))
+    # Deterministic jitter (no change to the user's random numbers).
+    jitter <- ((seq_along(keep) * 0.618034) %% 1 - 0.5) * 0.3
+    graphics::points(1 + jitter, keep, pch = 16, cex = 0.7,
+                     col = grDevices::adjustcolor("grey30", 0.5))
+    if (any(out)) {
+      vo <- v[out]
+      lo <- labels[i][out]
+      inside <- vo >= ylim[1] & vo <= ylim[2]
+      if (any(inside)) {
+        graphics::points(rep(1, sum(inside)), vo[inside], pch = 21, cex = 1.4, bg = "red", col = "darkred")
+        graphics::text(rep(1.08, sum(inside)), vo[inside], lo[inside], adj = 0, cex = 0.75, col = "darkred")
+      }
+      for (side in c("high", "low")) {
+        far <- if (side == "high") vo > ylim[2] else vo < ylim[1]
+        if (!any(far)) next
+        y <- if (side == "high") ylim[2] else ylim[1]
+        ord <- order(if (side == "high") -vo[far] else vo[far])
+        graphics::points(1, y, pch = if (side == "high") 24 else 25, cex = 1.6, bg = "red", col = "darkred")
+        txt <- paste0("plot ", lo[far][ord], ": ", format(signif(vo[far][ord], 4)), collapse = "\n")
+        graphics::text(1.12, y, txt, adj = c(0, if (side == "high") 1 else 0), cex = 0.7, col = "darkred")
+      }
+    }
+    graphics::mtext(paste0(sum(out), " outlier", if (sum(out) == 1) "" else "s", " of ", sum(!is.na(v)), " plots"),
+                    side = 3, line = 0.2, cex = 0.7, col = "darkred")
+  }
+  graphics::mtext(paste0(trait, ": outliers (red, labelled by plot; triangles = beyond the axis)"),
+                  outer = TRUE, cex = 0.95, font = 2)
+}
+
+# Field map: one cell per plot, row 1 at the top; NA plots grey; values
+# beyond `zlim` get the end colours; `mark` (logical per plot, or a table
+# with row and col) circled in red; a colour bar on the right.
+bb_field_image <- function(row, col, value, main, zlim = range(value, na.rm = TRUE), mark = NULL, legend = NULL) {
   row <- as.integer(row)
   col <- as.integer(col)
   nr <- max(row, na.rm = TRUE)
   nc <- max(col, na.rm = TRUE)
+  pal <- grDevices::hcl.colors(50, "RdYlBu", rev = TRUE)
+  ok_z <- all(is.finite(zlim)) && diff(zlim) > 0
+  shown <- if (ok_z) pmin(pmax(value, zlim[1]), zlim[2]) else value
   m <- matrix(NA_real_, nr, nc)
-  m[cbind(row, col)] <- value
-  pal <- grDevices::hcl.colors(50, "viridis")
+  m[cbind(row, col)] <- shown
   graphics::plot(NA, xlim = c(0.5, nc + 0.5), ylim = c(nr + 0.5, 0.5), xlab = "Column", ylab = "Row",
                  main = main, xaxs = "i", yaxs = "i")
-  graphics::rect(0.5, nr + 0.5, nc + 0.5, 0.5, col = "grey85", border = NA)
-  if (all(is.finite(zlim)) && diff(zlim) > 0) {
+  graphics::rect(0.5, nr + 0.5, nc + 0.5, 0.5, col = "grey80", border = NA)
+  if (ok_z) {
     graphics::image(seq_len(nc), seq_len(nr), t(m), col = pal, zlim = zlim, add = TRUE)
   } else {
     graphics::image(seq_len(nc), seq_len(nr), t(m), col = pal[25], add = TRUE)
   }
-  if (!is.null(mark) && nrow(mark)) {
+  graphics::abline(h = seq_len(nr + 1) - 0.5, v = seq_len(nc + 1) - 0.5, col = "white", lwd = 0.5)
+  if (is.logical(mark)) {
+    if (any(mark, na.rm = TRUE)) {
+      graphics::points(col[which(mark)], row[which(mark)], pch = 1, cex = 2.2, lwd = 2, col = "red")
+    }
+  } else if (!is.null(mark) && nrow(mark)) {
     graphics::points(mark$col, mark$row, pch = 1, cex = 2.2, lwd = 2, col = "red")
   }
-  if (all(is.finite(zlim))) {
-    graphics::mtext(sprintf("low %.3g (dark) - high %.3g (yellow)", zlim[1], zlim[2]), side = 3, line = 0.2,
-                    cex = 0.7)
-  }
+  if (ok_z) bb_color_bar(zlim, pal, legend)
+  graphics::mtext(if (is.null(mark)) "grey = missing" else "grey = missing   red circle = outlier", side = 3,
+                  line = 0.2, cex = 0.65)
+}
+
+# Vertical colour bar just right of the current plot, with tick labels.
+bb_color_bar <- function(zlim, pal, label = NULL) {
+  usr <- graphics::par("usr")
+  w <- diff(usr[1:2])
+  x0 <- usr[2] + 0.04 * w
+  x1 <- x0 + 0.05 * w
+  y <- seq(usr[3], usr[4], length.out = length(pal) + 1)
+  graphics::rect(x0, y[-length(y)], x1, y[-1], col = pal, border = NA, xpd = TRUE)
+  graphics::rect(x0, usr[3], x1, usr[4], border = "grey40", xpd = TRUE)
+  ticks <- pretty(zlim, n = 4)
+  ticks <- ticks[ticks >= zlim[1] & ticks <= zlim[2]]
+  ty <- usr[3] + (ticks - zlim[1]) / diff(zlim) * (usr[4] - usr[3])
+  graphics::segments(x1, ty, x1 + 0.015 * w, ty, xpd = TRUE)
+  graphics::text(x1 + 0.02 * w, ty, format(ticks), adj = 0, cex = 0.7, xpd = TRUE)
+  if (!is.null(label)) graphics::text(x0, usr[4], label, adj = c(0, -0.6), cex = 0.7, xpd = TRUE)
 }
 
 #' Compare raw and first-stage adjusted values
@@ -269,7 +415,7 @@ compare_first_stage <- function(fit, plot = TRUE, locations = NULL) {
   if (isTRUE(plot)) {
     draw <- if (is.null(locations)) unique(per_plot$location) else intersect(locations, unique(per_plot$location))
     has_map <- !all(is.na(per_plot$row)) && !all(is.na(per_plot$col))
-    old <- graphics::par(mfrow = c(length(draw), if (has_map) 3 else 1), mar = c(4, 4, 3, 1))
+    old <- graphics::par(mfrow = c(length(draw), if (has_map) 3 else 1), mar = c(4, 4, 3, 6))
     on.exit(graphics::par(old), add = TRUE)
     for (loc in draw) {
       p <- per_plot[per_plot$location == loc, , drop = FALSE]

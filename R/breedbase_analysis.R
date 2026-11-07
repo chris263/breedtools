@@ -485,7 +485,9 @@ bb_composed_trait_id <- function(con, components) {
 #'   (the spatial correction term); see [breedbase_statistics()].
 #' @param create_trait Logical. Create the composed traits that do not exist
 #'   yet (you are asked first when `confirm = TRUE`).
-#' @param dry_run,confirm As in [save_breedbase_phenotypes()].
+#' @param dry_run,confirm,overwrite,remove_empty As in
+#'   [save_breedbase_phenotypes()]: run it again after a new analysis with
+#'   `overwrite = TRUE` to replace the stored values.
 #'
 #' @inheritSection breedbase_check Slow servers
 #'
@@ -511,7 +513,8 @@ bb_composed_trait_id <- function(con, components) {
 #'
 #' @export
 save_breedbase_first_stage <- function(values, con = NULL, as_trait = NULL, statistic = NULL,
-                                       create_trait = TRUE, dry_run = FALSE, confirm = interactive()) {
+                                       create_trait = TRUE, dry_run = FALSE, confirm = interactive(),
+                                       overwrite = FALSE, remove_empty = FALSE) {
   if (!is.data.frame(values) || !"plot_name" %in% names(values)) {
     stop("`values` must be a table with a `plot_name` column, as from first_stage_values().", call. = FALSE)
   }
@@ -581,7 +584,7 @@ save_breedbase_first_stage <- function(values, con = NULL, as_trait = NULL, stat
   out <- values[, c("plot_name", names(targets)), drop = FALSE]
   names(out) <- c("plot_name", unname(targets))
   bb_save_phenotypes(out, con, plot = "plot_name", traits = unname(targets), dry_run = dry_run,
-                     confirm = confirm, trait_ids = trait_ids)
+                     confirm = confirm, trait_ids = trait_ids, overwrite = overwrite, remove_empty = remove_empty)
 }
 
 #' Read the plots of a trial saved in Breedbase
